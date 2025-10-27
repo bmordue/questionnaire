@@ -1,0 +1,40 @@
+{
+  "id": "response-1730057371845-abc123",
+  "questionnaireId": "simple-text-survey-v1",
+  "questionnaireVersion": "1.0.0",
+  "sessionId": "session-1730057371845",
+  "startedAt": "2025-10-27T20:00:00.000Z",
+  "completedAt": "2025-10-27T20:05:30.000Z",
+  "status": "completed",
+  "answers": [
+    {
+      "questionId": "name",
+      "value": "Jane Doe",
+      "answeredAt": "2025-10-27T20:01:15.000Z"
+    },
+    {
+      "questionId": "age",
+      "value": 28,
+      "answeredAt": "2025-10-27T20:02:30.000Z"
+    },
+    {
+      "questionId": "email",
+      "value": "jane.doe@example.com",
+      "answeredAt": "2025-10-27T20:03:45.000Z"
+    },
+    {
+      "questionId": "comments",
+      "value": "This is a great survey!\nI really enjoyed filling it out.",
+      "answeredAt": "2025-10-27T20:05:00.000Z"
+    }
+  ],
+  "progress": {
+    "currentQuestionIndex": 4,
+    "totalQuestions": 4,
+    "answeredCount": 4
+  },
+  "metadata": {
+    "device": "desktop",
+    "browser": "Chrome"
+  }
+}
