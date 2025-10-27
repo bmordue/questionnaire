@@ -14,7 +14,7 @@
 
 ## Progress
 - **Questions Answered**: 4 of 4 (100%)
-- **Current Question**: 5 of 4
+- **Current Question**: 4 of 4
 
 ## Responses
 

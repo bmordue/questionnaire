@@ -12,7 +12,7 @@
 
 ## Progress
 - **Questions Answered**: 6 of 6 (100%)
-- **Current Question**: 7 of 6
+- **Current Question**: 6 of 6
 
 ## Responses
 
