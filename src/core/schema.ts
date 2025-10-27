@@ -1,3 +1,6 @@
+// Re-export all schemas
+export * from './schemas/question.js';
+export * from './schemas/questionnaire.js';
 /**
  * Core Schema Module
  * 
@@ -64,3 +67,4 @@ export type {
   Answer,
   ResponseProgress
 } from './schemas/response.js';
+

@@ -1,0 +1,106 @@
+{
+  "id": "customer-feedback-v1",
+  "version": "1.0.0",
+  "metadata": {
+    "title": "Customer Satisfaction Survey",
+    "createdAt": "2025-10-27T17:29:31.845Z",
+    "updatedAt": "2025-10-27T17:29:31.845Z",
+    "description": "Help us improve our service"
+  },
+  "questions": [
+    {
+      "id": "overall_satisfaction",
+      "type": "rating",
+      "text": "How satisfied are you with our service?",
+      "required": true,
+      "validation": {
+        "min": 1,
+        "max": 5
+      }
+    },
+    {
+      "id": "improvement_areas",
+      "type": "multiple_choice",
+      "text": "Which areas need improvement?",
+      "required": false,
+      "options": [
+        {
+          "value": "customer_support",
+          "label": "Customer Support"
+        },
+        {
+          "value": "product_quality",
+          "label": "Product Quality"
+        },
+        {
+          "value": "delivery_speed",
+          "label": "Delivery Speed"
+        },
+        {
+          "value": "pricing",
+          "label": "Pricing"
+        },
+        {
+          "value": "website_experience",
+          "label": "Website Experience"
+        },
+        {
+          "value": "communication",
+          "label": "Communication"
+        }
+      ],
+      "conditional": {
+        "dependsOn": "overall_satisfaction",
+        "operator": "lessThan",
+        "value": 4,
+        "action": "show"
+      }
+    },
+    {
+      "id": "additional_feedback",
+      "type": "text",
+      "text": "Please provide any additional feedback",
+      "required": false,
+      "validation": {
+        "maxLength": 1000
+      },
+      "conditional": {
+        "dependsOn": "overall_satisfaction",
+        "operator": "lessThan",
+        "value": 4,
+        "action": "show"
+      }
+    },
+    {
+      "id": "recommend",
+      "type": "rating",
+      "text": "How likely are you to recommend us to a friend? (1-10)",
+      "required": true,
+      "validation": {
+        "min": 1,
+        "max": 10
+      }
+    },
+    {
+      "id": "contact_followup",
+      "type": "boolean",
+      "text": "May we contact you for follow-up?",
+      "required": false
+    },
+    {
+      "id": "contact_email",
+      "type": "email",
+      "text": "Please provide your email address",
+      "required": false,
+      "validation": {
+        "maxLength": 255
+      },
+      "conditional": {
+        "dependsOn": "contact_followup",
+        "operator": "equals",
+        "value": true,
+        "action": "show"
+      }
+    }
+  ]
+}

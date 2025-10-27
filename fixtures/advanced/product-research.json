@@ -1,0 +1,154 @@
+{
+  "id": "product-research-v1",
+  "version": "1.0.0",
+  "metadata": {
+    "title": "Product Feature Research",
+    "createdAt": "2025-10-27T17:29:31.846Z",
+    "updatedAt": "2025-10-27T17:29:31.846Z",
+    "description": "Help us prioritize new features"
+  },
+  "questions": [
+    {
+      "id": "current_usage",
+      "type": "single_choice",
+      "text": "How often do you use our product?",
+      "required": true,
+      "options": [
+        {
+          "value": "daily",
+          "label": "Daily"
+        },
+        {
+          "value": "weekly",
+          "label": "Weekly"
+        },
+        {
+          "value": "monthly",
+          "label": "Monthly"
+        },
+        {
+          "value": "rarely",
+          "label": "Rarely"
+        },
+        {
+          "value": "never",
+          "label": "Never"
+        }
+      ]
+    },
+    {
+      "id": "feature_priorities",
+      "type": "multiple_choice",
+      "text": "Which features are most important to you?",
+      "required": false,
+      "options": [
+        {
+          "value": "mobile_app",
+          "label": "Mobile App"
+        },
+        {
+          "value": "api_integration",
+          "label": "API Integration"
+        },
+        {
+          "value": "advanced_analytics",
+          "label": "Advanced Analytics"
+        },
+        {
+          "value": "collaboration_tools",
+          "label": "Collaboration Tools"
+        },
+        {
+          "value": "export_functionality",
+          "label": "Export Functionality"
+        },
+        {
+          "value": "customization_options",
+          "label": "Customization Options"
+        }
+      ],
+      "conditional": {
+        "dependsOn": "current_usage",
+        "operator": "notEquals",
+        "value": "Never",
+        "action": "show"
+      }
+    },
+    {
+      "id": "satisfaction_rating",
+      "type": "rating",
+      "text": "How would you rate your overall experience?",
+      "required": true,
+      "validation": {
+        "min": 1,
+        "max": 5
+      },
+      "conditional": {
+        "dependsOn": "current_usage",
+        "operator": "notEquals",
+        "value": "Never",
+        "action": "show"
+      }
+    },
+    {
+      "id": "missing_features",
+      "type": "text",
+      "text": "What features are you missing?",
+      "required": false,
+      "validation": {
+        "maxLength": 500
+      },
+      "conditional": {
+        "dependsOn": "current_usage",
+        "operator": "notEquals",
+        "value": "Never",
+        "action": "show"
+      }
+    },
+    {
+      "id": "competitor_usage",
+      "type": "boolean",
+      "text": "Do you use any competing products?",
+      "required": false
+    },
+    {
+      "id": "competitor_names",
+      "type": "text",
+      "text": "Which competing products do you use?",
+      "required": false,
+      "validation": {
+        "maxLength": 200
+      },
+      "conditional": {
+        "dependsOn": "competitor_usage",
+        "operator": "equals",
+        "value": true,
+        "action": "show"
+      }
+    },
+    {
+      "id": "price_sensitivity",
+      "type": "single_choice",
+      "text": "How important is pricing in your decision?",
+      "required": false,
+      "options": [
+        {
+          "value": "very_important",
+          "label": "Very Important"
+        },
+        {
+          "value": "important",
+          "label": "Important"
+        },
+        {
+          "value": "neutral",
+          "label": "Neutral"
+        },
+        {
+          "value": "not_important",
+          "label": "Not Important"
+        }
+      ]
+    }
+  ]
+}

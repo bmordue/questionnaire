@@ -18,7 +18,7 @@ export enum QuestionType {
 /**
  * Base validation rule schema
  */
-const ValidationRuleSchema = z.object({
+export const ValidationRuleSchema = z.object({
   type: z.enum(['min', 'max', 'pattern', 'minLength', 'maxLength', 'integer']),
   value: z.union([z.string(), z.number()]),
   message: z.string().optional()
@@ -27,7 +27,7 @@ const ValidationRuleSchema = z.object({
 /**
  * Text question validation rules
  */
-const TextValidationSchema = z.object({
+export const TextValidationSchema = z.object({
   minLength: z.number().optional(),
   maxLength: z.number().optional(),
   pattern: z.string().optional(),
@@ -37,7 +37,7 @@ const TextValidationSchema = z.object({
 /**
  * Number question validation rules
  */
-const NumberValidationSchema = z.object({
+export const NumberValidationSchema = z.object({
   min: z.number().optional(),
   max: z.number().optional(),
   integer: z.boolean().optional()
@@ -46,7 +46,7 @@ const NumberValidationSchema = z.object({
 /**
  * Date question validation rules
  */
-const DateValidationSchema = z.object({
+export const DateValidationSchema = z.object({
   minDate: z.string().optional(),
   maxDate: z.string().optional(),
   allowPast: z.boolean().optional(),
@@ -56,7 +56,7 @@ const DateValidationSchema = z.object({
 /**
  * Rating question validation rules
  */
-const RatingValidationSchema = z.object({
+export const RatingValidationSchema = z.object({
   min: z.number(),
   max: z.number(),
   step: z.number().optional()
@@ -65,7 +65,7 @@ const RatingValidationSchema = z.object({
 /**
  * Question option for choice-based questions
  */
-const QuestionOptionSchema = z.object({
+export const QuestionOptionSchema = z.object({
   value: z.string(),
   label: z.string(),
   description: z.string().optional()
@@ -74,7 +74,7 @@ const QuestionOptionSchema = z.object({
 /**
  * Conditional logic for dynamic questionnaires
  */
-const ConditionalLogicSchema = z.object({
+export const ConditionalLogicSchema = z.object({
   dependsOn: z.string(),
   operator: z.enum(['equals', 'notEquals', 'contains', 'greaterThan', 'lessThan']),
   value: z.any(),
@@ -85,7 +85,7 @@ const ConditionalLogicSchema = z.object({
  * Base Question Schema
  * Common fields for all question types
  */
-const BaseQuestionSchema = z.object({
+export const BaseQuestionSchema = z.object({
   id: z.string(),
   type: z.nativeEnum(QuestionType),
   text: z.string(),

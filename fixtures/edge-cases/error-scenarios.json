@@ -1,0 +1,175 @@
+{
+  "id": "error-scenarios-v1",
+  "version": "1.0.0",
+  "metadata": {
+    "title": "Error Scenario Testing",
+    "createdAt": "2025-10-27T17:29:31.846Z",
+    "updatedAt": "2025-10-27T17:29:31.846Z",
+    "description": "Tests edge cases and potential error conditions"
+  },
+  "questions": [
+    {
+      "id": "empty_string_ok",
+      "type": "text",
+      "text": "This field accepts empty strings (not required)",
+      "required": false
+    },
+    {
+      "id": "single_char_allowed",
+      "type": "text",
+      "text": "Single character is allowed",
+      "required": false,
+      "validation": {
+        "minLength": 1,
+        "maxLength": 1
+      }
+    },
+    {
+      "id": "zero_allowed",
+      "type": "number",
+      "text": "Zero is a valid answer",
+      "required": false,
+      "validation": {
+        "min": 0,
+        "max": 0
+      }
+    },
+    {
+      "id": "negative_numbers",
+      "type": "number",
+      "text": "Negative numbers are allowed",
+      "required": false,
+      "validation": {
+        "min": -100,
+        "max": -1
+      }
+    },
+    {
+      "id": "single_option_choice",
+      "type": "single_choice",
+      "text": "Only one option available",
+      "required": false,
+      "options": [
+        {
+          "value": "only_option",
+          "label": "Only Option"
+        }
+      ]
+    },
+    {
+      "id": "many_options",
+      "type": "single_choice",
+      "text": "Select from many options",
+      "required": false,
+      "options": [
+        {
+          "value": "option_1",
+          "label": "Option 1"
+        },
+        {
+          "value": "option_2",
+          "label": "Option 2"
+        },
+        {
+          "value": "option_3",
+          "label": "Option 3"
+        },
+        {
+          "value": "option_4",
+          "label": "Option 4"
+        },
+        {
+          "value": "option_5",
+          "label": "Option 5"
+        },
+        {
+          "value": "option_6",
+          "label": "Option 6"
+        },
+        {
+          "value": "option_7",
+          "label": "Option 7"
+        },
+        {
+          "value": "option_8",
+          "label": "Option 8"
+        },
+        {
+          "value": "option_9",
+          "label": "Option 9"
+        },
+        {
+          "value": "option_10",
+          "label": "Option 10"
+        },
+        {
+          "value": "option_11",
+          "label": "Option 11"
+        },
+        {
+          "value": "option_12",
+          "label": "Option 12"
+        },
+        {
+          "value": "option_13",
+          "label": "Option 13"
+        },
+        {
+          "value": "option_14",
+          "label": "Option 14"
+        },
+        {
+          "value": "option_15",
+          "label": "Option 15"
+        }
+      ]
+    },
+    {
+      "id": "optional_multiple_no_limit",
+      "type": "multiple_choice",
+      "text": "Select as many as you want (or none)",
+      "required": false,
+      "options": [
+        {
+          "value": "choice_a",
+          "label": "Choice A"
+        },
+        {
+          "value": "choice_b",
+          "label": "Choice B"
+        },
+        {
+          "value": "choice_c",
+          "label": "Choice C"
+        }
+      ]
+    },
+    {
+      "id": "conditional_on_false",
+      "type": "boolean",
+      "text": "Answer false to see next question",
+      "required": false
+    },
+    {
+      "id": "shown_on_false",
+      "type": "text",
+      "text": "This appears when previous answer is false",
+      "required": false,
+      "conditional": {
+        "dependsOn": "conditional_on_false",
+        "operator": "equals",
+        "value": false,
+        "action": "show"
+      }
+    },
+    {
+      "id": "date_past_only",
+      "type": "date",
+      "text": "Select a date in the past",
+      "required": false,
+      "validation": {
+        "maxDate": "today"
+      }
+    }
+  ]
+}

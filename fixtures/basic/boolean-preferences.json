@@ -1,0 +1,36 @@
+{
+  "id": "boolean-preferences-v1",
+  "version": "1.0.0",
+  "metadata": {
+    "title": "User Preferences",
+    "createdAt": "2025-10-27T17:29:31.839Z",
+    "updatedAt": "2025-10-27T17:29:31.840Z",
+    "description": "Boolean yes/no questions for user preferences"
+  },
+  "questions": [
+    {
+      "id": "newsletter_subscribe",
+      "type": "boolean",
+      "text": "Would you like to subscribe to our newsletter?",
+      "required": true
+    },
+    {
+      "id": "terms_accepted",
+      "type": "boolean",
+      "text": "Do you accept the terms and conditions?",
+      "required": true
+    },
+    {
+      "id": "share_data",
+      "type": "boolean",
+      "text": "Can we share your data with third parties?",
+      "required": false
+    },
+    {
+      "id": "marketing_emails",
+      "type": "boolean",
+      "text": "Would you like to receive marketing emails?",
+      "required": false
+    }
+  ]
+}

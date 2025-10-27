@@ -1,0 +1,115 @@
+{
+  "id": "choice-based-quiz-v1",
+  "version": "1.0.0",
+  "metadata": {
+    "title": "Knowledge Quiz",
+    "createdAt": "2025-10-27T17:29:31.845Z",
+    "updatedAt": "2025-10-27T17:29:31.845Z",
+    "description": "A quiz with single and multiple choice questions"
+  },
+  "questions": [
+    {
+      "id": "favorite_color",
+      "type": "single_choice",
+      "text": "What is your favorite color?",
+      "required": true,
+      "options": [
+        {
+          "value": "red",
+          "label": "Red"
+        },
+        {
+          "value": "blue",
+          "label": "Blue"
+        },
+        {
+          "value": "green",
+          "label": "Green"
+        },
+        {
+          "value": "yellow",
+          "label": "Yellow"
+        },
+        {
+          "value": "purple",
+          "label": "Purple"
+        },
+        {
+          "value": "other",
+          "label": "Other"
+        }
+      ]
+    },
+    {
+      "id": "hobbies",
+      "type": "multiple_choice",
+      "text": "What are your hobbies? (Select all that apply)",
+      "required": false,
+      "options": [
+        {
+          "value": "reading",
+          "label": "Reading"
+        },
+        {
+          "value": "sports",
+          "label": "Sports"
+        },
+        {
+          "value": "music",
+          "label": "Music"
+        },
+        {
+          "value": "gaming",
+          "label": "Gaming"
+        },
+        {
+          "value": "cooking",
+          "label": "Cooking"
+        },
+        {
+          "value": "travel",
+          "label": "Travel"
+        }
+      ],
+      "validation": {
+        "maxSelections": 3
+      }
+    },
+    {
+      "id": "programming_languages",
+      "type": "multiple_choice",
+      "text": "Which programming languages do you know?",
+      "required": false,
+      "options": [
+        {
+          "value": "javascript",
+          "label": "JavaScript"
+        },
+        {
+          "value": "typescript",
+          "label": "TypeScript"
+        },
+        {
+          "value": "python",
+          "label": "Python"
+        },
+        {
+          "value": "java",
+          "label": "Java"
+        },
+        {
+          "value": "c++",
+          "label": "C++"
+        },
+        {
+          "value": "go",
+          "label": "Go"
+        },
+        {
+          "value": "rust",
+          "label": "Rust"
+        }
+      ]
+    }
+  ]
+}

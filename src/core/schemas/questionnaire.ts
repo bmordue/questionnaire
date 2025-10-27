@@ -4,7 +4,7 @@ import { QuestionSchema } from './question.js';
 /**
  * Questionnaire Metadata Schema
  */
-const QuestionnaireMetadataSchema = z.object({
+export const QuestionnaireMetadataSchema = z.object({
   title: z.string(),
   description: z.string().optional(),
   author: z.string().optional(),
@@ -16,7 +16,7 @@ const QuestionnaireMetadataSchema = z.object({
 /**
  * Questionnaire Configuration Schema
  */
-const QuestionnaireConfigSchema = z.object({
+export const QuestionnaireConfigSchema = z.object({
   allowBack: z.boolean().default(true),
   allowSkip: z.boolean().default(false),
   shuffleQuestions: z.boolean().default(false),
