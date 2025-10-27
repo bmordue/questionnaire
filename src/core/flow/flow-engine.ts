@@ -88,9 +88,9 @@ export class QuestionnaireFlowEngine implements FlowEngine {
       currentQuestionIndex: 0,
       currentQuestionId: firstQuestion.id,
       responses: new Map(),
-      visitedQuestions: new Set(),
+      visitedQuestions: new Set([firstQuestion.id]),
       skippedQuestions: new Set(),
-      questionHistory: [],
+      questionHistory: [firstQuestion.id],
       isCompleted: false,
       startTime: new Date(),
       lastUpdateTime: new Date()
