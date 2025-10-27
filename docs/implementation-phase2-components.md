@@ -511,8 +511,8 @@ class MessageFormatter {
 - [x] Performance is acceptable for complex forms
 
 ## Dependencies
-- ✅ Inquirer.js ^12.2.2 (prompting framework) - INSTALLED
-- ✅ Chalk ^5.4.1 (terminal styling) - INSTALLED
+- ✅ Inquirer.js ^12.10.0 (prompting framework) - INSTALLED
+- ✅ Chalk ^5.6.2 (terminal styling) - INSTALLED
 - ✅ @types/inquirer ^9.0.9 (TypeScript types) - INSTALLED
 
 ## Implementation Summary

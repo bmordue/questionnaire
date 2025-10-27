@@ -325,8 +325,8 @@ src/ui/components/
 
 ## Dependencies
 
-- **inquirer** (^12.2.2) - Interactive command line prompts
-- **chalk** (^5.4.1) - Terminal string styling
+- **inquirer** (^12.10.0) - Interactive command line prompts
+- **chalk** (^5.6.2) - Terminal string styling
 - **@types/inquirer** (^9.0.9) - TypeScript types for inquirer
 
 ## Design Principles
