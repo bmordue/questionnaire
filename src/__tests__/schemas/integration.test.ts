@@ -108,19 +108,21 @@ describe('Schema Integration Tests', () => {
           TestDataFactory.createValidTextQuestion({
             id: 'q2',
             conditional: {
-              dependsOn: 'q1',
-              operator: 'equals',
-              value: true,
-              action: 'show'
+              showIf: {
+                questionId: 'q1',
+                operator: 'equals',
+                value: true
+              }
             }
           }),
           TestDataFactory.createValidNumberQuestion({
             id: 'q3',
             conditional: {
-              dependsOn: 'q1',
-              operator: 'equals',
-              value: false,
-              action: 'hide'
+              hideIf: {
+                questionId: 'q1',
+                operator: 'equals',
+                value: false
+              }
             }
           })
         ]
@@ -136,19 +138,20 @@ describe('Schema Integration Tests', () => {
           TestDataFactory.createValidTextQuestion({
             id: 'q2',
             conditional: {
-              dependsOn: 'q1',
-              operator: 'equals',
-              value: 'a',
-              action: 'show'
+              showIf: {
+                questionId: 'q1',
+                operator: 'equals',
+                value: 'a'
+              }
             }
           }),
           TestDataFactory.createValidNumberQuestion({
             id: 'q3',
             conditional: {
-              dependsOn: 'q2',
-              operator: 'notEquals',
-              value: '',
-              action: 'require'
+              requiredIf: {
+                questionId: 'q2',
+                operator: 'isNotEmpty'
+              }
             }
           })
         ]
@@ -173,10 +176,11 @@ describe('Schema Integration Tests', () => {
             TestDataFactory.createValidTextQuestion({
               id: `q${index + 1}`,
               conditional: {
-                dependsOn: 'q0',
-                operator,
-                value: 50,
-                action: 'show'
+                showIf: {
+                  questionId: 'q0',
+                  operator: operator as any,
+                  value: 50
+                }
               }
             })
           ]

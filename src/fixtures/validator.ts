@@ -135,10 +135,19 @@ export class FixtureValidator {
     // Check conditional references
     questionnaire.questions.forEach(question => {
       if (question.conditional) {
-        const refId = question.conditional.dependsOn;
-        if (!questionIds.has(refId)) {
-          issues.push(`Question ${question.id} references non-existent question: ${refId}`);
-        }
+        const { showIf, hideIf, skipIf, requiredIf } = question.conditional;
+        const conditions = [
+          ...(showIf ? (Array.isArray(showIf) ? showIf : [showIf]) : []),
+          ...(hideIf ? (Array.isArray(hideIf) ? hideIf : [hideIf]) : []),
+          ...(skipIf ? (Array.isArray(skipIf) ? skipIf : [skipIf]) : []),
+          ...(requiredIf ? (Array.isArray(requiredIf) ? requiredIf : [requiredIf]) : [])
+        ];
+        
+        conditions.forEach(condition => {
+          if (!questionIds.has(condition.questionId)) {
+            issues.push(`Question ${question.id} references non-existent question: ${condition.questionId}`);
+          }
+        });
       }
     });
     
