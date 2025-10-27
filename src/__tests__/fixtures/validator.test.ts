@@ -152,10 +152,11 @@ describe('FixtureValidator', () => {
             text: 'Question 1?',
             required: false,
             conditional: {
-              dependsOn: 'nonexistent',
-              operator: 'equals' as const,
-              value: 'test',
-              action: 'show' as const
+              showIf: {
+                questionId: 'nonexistent',
+                operator: 'equals' as const,
+                value: 'test'
+              }
             }
           }
         ]

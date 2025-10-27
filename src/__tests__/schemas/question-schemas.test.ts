@@ -446,51 +446,94 @@ describe('Question Schema Validation', () => {
     it('should accept question with conditional logic', () => {
       const questionWithConditional = TestDataFactory.createValidTextQuestion({
         conditional: {
-          dependsOn: 'q0',
-          operator: 'equals',
-          value: 'yes',
-          action: 'show'
+          showIf: {
+            questionId: 'q0',
+            operator: 'equals',
+            value: 'yes'
+          }
         }
       });
       ValidationTestHelpers.expectValidationSuccess(TextQuestionSchema, questionWithConditional);
     });
 
     it('should accept all conditional operators', () => {
-      const operators: Array<'equals' | 'notEquals' | 'contains' | 'greaterThan' | 'lessThan'> = [
+      const operators = [
         'equals',
         'notEquals',
         'contains',
         'greaterThan',
-        'lessThan'
-      ];
+        'lessThan',
+        'greaterThanOrEqual',
+        'lessThanOrEqual',
+        'notContains',
+        'in',
+        'notIn',
+        'isEmpty',
+        'isNotEmpty'
+      ] as const;
 
       operators.forEach((operator) => {
         const question = TestDataFactory.createValidTextQuestion({
           conditional: {
-            dependsOn: 'q0',
-            operator,
-            value: 'test',
-            action: 'show'
+            showIf: {
+              questionId: 'q0',
+              operator: operator as any,
+              value: 'test'
+            }
           }
         });
         ValidationTestHelpers.expectValidationSuccess(TextQuestionSchema, question);
       });
     });
 
-    it('should accept all conditional actions', () => {
-      const actions: Array<'show' | 'hide' | 'require'> = ['show', 'hide', 'require'];
-
-      actions.forEach((action) => {
-        const question = TestDataFactory.createValidTextQuestion({
-          conditional: {
-            dependsOn: 'q0',
+    it('should accept all conditional logic types', () => {
+      // Test showIf
+      const showIfQuestion = TestDataFactory.createValidTextQuestion({
+        conditional: {
+          showIf: {
+            questionId: 'q0',
             operator: 'equals',
-            value: 'test',
-            action
+            value: 'test'
           }
-        });
-        ValidationTestHelpers.expectValidationSuccess(TextQuestionSchema, question);
+        }
       });
+      ValidationTestHelpers.expectValidationSuccess(TextQuestionSchema, showIfQuestion);
+
+      // Test hideIf
+      const hideIfQuestion = TestDataFactory.createValidTextQuestion({
+        conditional: {
+          hideIf: {
+            questionId: 'q0',
+            operator: 'equals',
+            value: 'test'
+          }
+        }
+      });
+      ValidationTestHelpers.expectValidationSuccess(TextQuestionSchema, hideIfQuestion);
+
+      // Test skipIf
+      const skipIfQuestion = TestDataFactory.createValidTextQuestion({
+        conditional: {
+          skipIf: {
+            questionId: 'q0',
+            operator: 'equals',
+            value: 'test'
+          }
+        }
+      });
+      ValidationTestHelpers.expectValidationSuccess(TextQuestionSchema, skipIfQuestion);
+
+      // Test requiredIf
+      const requiredIfQuestion = TestDataFactory.createValidTextQuestion({
+        conditional: {
+          requiredIf: {
+            questionId: 'q0',
+            operator: 'equals',
+            value: 'test'
+          }
+        }
+      });
+      ValidationTestHelpers.expectValidationSuccess(TextQuestionSchema, requiredIfQuestion);
     });
   });
 });

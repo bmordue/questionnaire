@@ -38,6 +38,8 @@ export interface SessionData {
   updatedAt: string;
   /** Session status */
   status: 'active' | 'completed' | 'abandoned';
+  /** Flow state data */
+  state?: any;
   /** Additional metadata */
   metadata?: Record<string, any>;
 }

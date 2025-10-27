@@ -72,13 +72,42 @@ export const QuestionOptionSchema = z.object({
 });
 
 /**
+ * Condition operator types for advanced conditional logic
+ */
+export const ConditionOperatorSchema = z.enum([
+  'equals',
+  'notEquals',
+  'greaterThan',
+  'lessThan',
+  'greaterThanOrEqual',
+  'lessThanOrEqual',
+  'contains',
+  'notContains',
+  'in',
+  'notIn',
+  'isEmpty',
+  'isNotEmpty'
+]);
+
+/**
+ * Single condition for evaluating question visibility and requirements
+ */
+export const ConditionSchema = z.object({
+  questionId: z.string(),
+  operator: ConditionOperatorSchema,
+  value: z.any().optional(),
+  values: z.array(z.any()).optional()
+});
+
+/**
  * Conditional logic for dynamic questionnaires
+ * Supports advanced show/hide/skip/require logic
  */
 export const ConditionalLogicSchema = z.object({
-  dependsOn: z.string(),
-  operator: z.enum(['equals', 'notEquals', 'contains', 'greaterThan', 'lessThan']),
-  value: z.any(),
-  action: z.enum(['show', 'hide', 'require'])
+  showIf: z.union([ConditionSchema, z.array(ConditionSchema)]).optional(),
+  hideIf: z.union([ConditionSchema, z.array(ConditionSchema)]).optional(),
+  skipIf: z.union([ConditionSchema, z.array(ConditionSchema)]).optional(),
+  requiredIf: z.union([ConditionSchema, z.array(ConditionSchema)]).optional()
 });
 
 /**
@@ -194,4 +223,5 @@ export type BooleanQuestion = z.infer<typeof BooleanQuestionSchema>;
 export type DateQuestion = z.infer<typeof DateQuestionSchema>;
 export type RatingQuestion = z.infer<typeof RatingQuestionSchema>;
 export type QuestionOption = z.infer<typeof QuestionOptionSchema>;
+export type Condition = z.infer<typeof ConditionSchema>;
 export type ConditionalLogic = z.infer<typeof ConditionalLogicSchema>;
