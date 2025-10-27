@@ -21,7 +21,7 @@ export class ValidationTestHelpers {
         throw new Error('Expected validation to fail but it succeeded');
       } catch (error) {
         if (error instanceof z.ZodError) {
-          const errorMessage = error.errors.map(e => e.message).join(', ');
+          const errorMessage = error.issues.map((e) => e.message).join(', ');
           expect(errorMessage).toContain(expectedMessage);
         }
       }
@@ -57,8 +57,8 @@ export class ValidationTestHelpers {
    * Format Zod errors into a readable string
    */
   static formatZodError(error: z.ZodError): string {
-    return error.errors
-      .map(e => `${e.path.join('.')}: ${e.message}`)
+    return error.issues
+      .map((e) => `${e.path.join('.')}: ${e.message}`)
       .join('\n');
   }
 
