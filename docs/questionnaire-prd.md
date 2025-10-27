@@ -110,3 +110,23 @@ questionnaire continue <session-id>      # Resume incomplete session
 ## 10. Open Questions
 
 - What's the maximum questionnaire size we should support?
+
+## Critical path
+
+PHASE 1:
+Schemas (9h) 
+    ├──> Storage (12h) ──────────────────┐
+    ├──> Fixtures (11h) ─────────────────┼──> Phase 2
+    └──> Schema Tests (15h) ─────────────┘
+
+PHASE 2:
+├─> Components (18h) ──┐
+│                      ├──> Validation (16h) ──┐
+├─> Flow Logic (18h) ──┤                       ├──> Phase 3
+                       └──> Persistence (16h) ─┘
+
+PHASE 3:
+├─> Conditional Logic (18h) ──┐
+├─> Analytics (18h) ───────────┼──┐
+├─> Export (18h) ──────────────┘  │
+└─> Polish (16h) ← EVERYTHING ────┘
