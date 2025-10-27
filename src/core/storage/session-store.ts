@@ -147,6 +147,7 @@ export class SessionStore {
           sessions.push(session);
         }
       } catch (error) {
+        // TODO: Replace console.warn with proper logging framework
         // Skip files that can't be parsed
         console.warn(`Failed to read session file ${file}:`, error);
       }
@@ -187,6 +188,7 @@ export class SessionStore {
           await FileOperations.delete(filePath);
         }
       } catch (error) {
+        // TODO: Replace console.warn with proper logging framework
         // Skip files that can't be processed
         console.warn(`Failed to cleanup session file ${file}:`, error);
       }

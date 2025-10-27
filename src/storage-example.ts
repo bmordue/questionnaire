@@ -5,7 +5,7 @@
  */
 
 import { createStorageService } from './core/storage.js';
-import { QuestionType } from './core/schema.js';
+import { QuestionType, ResponseStatus } from './core/schema.js';
 import type { Questionnaire } from './core/schema.js';
 
 async function main() {
@@ -138,7 +138,7 @@ async function main() {
 
   // Complete the session
   console.log('7. Completing session...');
-  response.status = 'completed' as any;
+  response.status = ResponseStatus.COMPLETED;
   response.completedAt = new Date().toISOString();
   response.progress.currentQuestionIndex = questionnaire.questions.length;
   await storage.saveResponse(response);
