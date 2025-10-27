@@ -1,8 +1,12 @@
 {
   "id": "maximum-length-v1",
-  "title": "Comprehensive Survey - Maximum Length",
-  "description": "A very long questionnaire with 50+ questions for stress testing",
   "version": "1.0.0",
+  "metadata": {
+    "title": "Comprehensive Survey - Maximum Length",
+    "createdAt": "2025-10-27T17:29:31.847Z",
+    "updatedAt": "2025-10-27T17:29:31.847Z",
+    "description": "A very long questionnaire with 50+ questions for stress testing"
+  },
   "questions": [
     {
       "id": "question_1",
@@ -26,10 +30,22 @@
       "text": "Question 3: What is your answer?",
       "required": true,
       "options": [
-        "Option A",
-        "Option B",
-        "Option C",
-        "Option D"
+        {
+          "value": "option_a",
+          "label": "Option A"
+        },
+        {
+          "value": "option_b",
+          "label": "Option B"
+        },
+        {
+          "value": "option_c",
+          "label": "Option C"
+        },
+        {
+          "value": "option_d",
+          "label": "Option D"
+        }
       ]
     },
     {
@@ -73,10 +89,22 @@
       "text": "Question 8: What is your answer?",
       "required": false,
       "options": [
-        "Option A",
-        "Option B",
-        "Option C",
-        "Option D"
+        {
+          "value": "option_a",
+          "label": "Option A"
+        },
+        {
+          "value": "option_b",
+          "label": "Option B"
+        },
+        {
+          "value": "option_c",
+          "label": "Option C"
+        },
+        {
+          "value": "option_d",
+          "label": "Option D"
+        }
       ]
     },
     {
@@ -120,10 +148,22 @@
       "text": "Question 13: What is your answer?",
       "required": false,
       "options": [
-        "Option A",
-        "Option B",
-        "Option C",
-        "Option D"
+        {
+          "value": "option_a",
+          "label": "Option A"
+        },
+        {
+          "value": "option_b",
+          "label": "Option B"
+        },
+        {
+          "value": "option_c",
+          "label": "Option C"
+        },
+        {
+          "value": "option_d",
+          "label": "Option D"
+        }
       ]
     },
     {
@@ -167,10 +207,22 @@
       "text": "Question 18: What is your answer?",
       "required": true,
       "options": [
-        "Option A",
-        "Option B",
-        "Option C",
-        "Option D"
+        {
+          "value": "option_a",
+          "label": "Option A"
+        },
+        {
+          "value": "option_b",
+          "label": "Option B"
+        },
+        {
+          "value": "option_c",
+          "label": "Option C"
+        },
+        {
+          "value": "option_d",
+          "label": "Option D"
+        }
       ]
     },
     {
@@ -214,10 +266,22 @@
       "text": "Question 23: What is your answer?",
       "required": false,
       "options": [
-        "Option A",
-        "Option B",
-        "Option C",
-        "Option D"
+        {
+          "value": "option_a",
+          "label": "Option A"
+        },
+        {
+          "value": "option_b",
+          "label": "Option B"
+        },
+        {
+          "value": "option_c",
+          "label": "Option C"
+        },
+        {
+          "value": "option_d",
+          "label": "Option D"
+        }
       ]
     },
     {
@@ -261,10 +325,22 @@
       "text": "Question 28: What is your answer?",
       "required": false,
       "options": [
-        "Option A",
-        "Option B",
-        "Option C",
-        "Option D"
+        {
+          "value": "option_a",
+          "label": "Option A"
+        },
+        {
+          "value": "option_b",
+          "label": "Option B"
+        },
+        {
+          "value": "option_c",
+          "label": "Option C"
+        },
+        {
+          "value": "option_d",
+          "label": "Option D"
+        }
       ]
     },
     {
@@ -308,10 +384,22 @@
       "text": "Question 33: What is your answer?",
       "required": true,
       "options": [
-        "Option A",
-        "Option B",
-        "Option C",
-        "Option D"
+        {
+          "value": "option_a",
+          "label": "Option A"
+        },
+        {
+          "value": "option_b",
+          "label": "Option B"
+        },
+        {
+          "value": "option_c",
+          "label": "Option C"
+        },
+        {
+          "value": "option_d",
+          "label": "Option D"
+        }
       ]
     },
     {
@@ -355,10 +443,22 @@
       "text": "Question 38: What is your answer?",
       "required": false,
       "options": [
-        "Option A",
-        "Option B",
-        "Option C",
-        "Option D"
+        {
+          "value": "option_a",
+          "label": "Option A"
+        },
+        {
+          "value": "option_b",
+          "label": "Option B"
+        },
+        {
+          "value": "option_c",
+          "label": "Option C"
+        },
+        {
+          "value": "option_d",
+          "label": "Option D"
+        }
       ]
     },
     {
@@ -402,10 +502,22 @@
       "text": "Question 43: What is your answer?",
       "required": false,
       "options": [
-        "Option A",
-        "Option B",
-        "Option C",
-        "Option D"
+        {
+          "value": "option_a",
+          "label": "Option A"
+        },
+        {
+          "value": "option_b",
+          "label": "Option B"
+        },
+        {
+          "value": "option_c",
+          "label": "Option C"
+        },
+        {
+          "value": "option_d",
+          "label": "Option D"
+        }
       ]
     },
     {
@@ -449,10 +561,22 @@
       "text": "Question 48: What is your answer?",
       "required": true,
       "options": [
-        "Option A",
-        "Option B",
-        "Option C",
-        "Option D"
+        {
+          "value": "option_a",
+          "label": "Option A"
+        },
+        {
+          "value": "option_b",
+          "label": "Option B"
+        },
+        {
+          "value": "option_c",
+          "label": "Option C"
+        },
+        {
+          "value": "option_d",
+          "label": "Option D"
+        }
       ]
     },
     {
@@ -496,10 +620,22 @@
       "text": "Question 53: What is your answer?",
       "required": false,
       "options": [
-        "Option A",
-        "Option B",
-        "Option C",
-        "Option D"
+        {
+          "value": "option_a",
+          "label": "Option A"
+        },
+        {
+          "value": "option_b",
+          "label": "Option B"
+        },
+        {
+          "value": "option_c",
+          "label": "Option C"
+        },
+        {
+          "value": "option_d",
+          "label": "Option D"
+        }
       ]
     },
     {

@@ -1,8 +1,12 @@
 {
   "id": "employee-onboarding-v1",
-  "title": "New Employee Information",
-  "description": "Welcome! Please provide your information",
   "version": "1.0.0",
+  "metadata": {
+    "title": "New Employee Information",
+    "createdAt": "2025-10-27T17:29:31.846Z",
+    "updatedAt": "2025-10-27T17:29:31.846Z",
+    "description": "Welcome! Please provide your information"
+  },
   "questions": [
     {
       "id": "full_name",
@@ -30,12 +34,30 @@
       "text": "Which department will you join?",
       "required": true,
       "options": [
-        "Engineering",
-        "Marketing",
-        "Sales",
-        "HR",
-        "Operations",
-        "Finance"
+        {
+          "value": "engineering",
+          "label": "Engineering"
+        },
+        {
+          "value": "marketing",
+          "label": "Marketing"
+        },
+        {
+          "value": "sales",
+          "label": "Sales"
+        },
+        {
+          "value": "hr",
+          "label": "HR"
+        },
+        {
+          "value": "operations",
+          "label": "Operations"
+        },
+        {
+          "value": "finance",
+          "label": "Finance"
+        }
       ]
     },
     {
@@ -54,9 +76,18 @@
       "text": "What is your preferred work location?",
       "required": true,
       "options": [
-        "Office",
-        "Remote",
-        "Hybrid"
+        {
+          "value": "office",
+          "label": "Office"
+        },
+        {
+          "value": "remote",
+          "label": "Remote"
+        },
+        {
+          "value": "hybrid",
+          "label": "Hybrid"
+        }
       ]
     },
     {
@@ -65,12 +96,30 @@
       "text": "What equipment do you need?",
       "required": false,
       "options": [
-        "Laptop",
-        "Monitor",
-        "Keyboard",
-        "Mouse",
-        "Headset",
-        "Webcam"
+        {
+          "value": "laptop",
+          "label": "Laptop"
+        },
+        {
+          "value": "monitor",
+          "label": "Monitor"
+        },
+        {
+          "value": "keyboard",
+          "label": "Keyboard"
+        },
+        {
+          "value": "mouse",
+          "label": "Mouse"
+        },
+        {
+          "value": "headset",
+          "label": "Headset"
+        },
+        {
+          "value": "webcam",
+          "label": "Webcam"
+        }
       ]
     },
     {

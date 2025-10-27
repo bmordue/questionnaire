@@ -1,8 +1,12 @@
 {
   "id": "complex-conditionals-v1",
-  "title": "Complex Conditional Logic Example",
-  "description": "Demonstrates multi-level conditional dependencies",
   "version": "1.0.0",
+  "metadata": {
+    "title": "Complex Conditional Logic Example",
+    "createdAt": "2025-10-27T17:29:31.846Z",
+    "updatedAt": "2025-10-27T17:29:31.846Z",
+    "description": "Demonstrates multi-level conditional dependencies"
+  },
   "questions": [
     {
       "id": "level1_question",
@@ -16,17 +20,28 @@
       "text": "What type of car do you own?",
       "required": false,
       "options": [
-        "Electric",
-        "Hybrid",
-        "Gasoline",
-        "Diesel"
+        {
+          "value": "electric",
+          "label": "Electric"
+        },
+        {
+          "value": "hybrid",
+          "label": "Hybrid"
+        },
+        {
+          "value": "gasoline",
+          "label": "Gasoline"
+        },
+        {
+          "value": "diesel",
+          "label": "Diesel"
+        }
       ],
       "conditional": {
-        "showIf": {
-          "questionId": "level1_question",
-          "operator": "equals",
-          "value": true
-        }
+        "dependsOn": "level1_question",
+        "operator": "equals",
+        "value": true,
+        "action": "show"
       }
     },
     {
@@ -35,17 +50,28 @@
       "text": "Which electric car brand?",
       "required": false,
       "options": [
-        "Tesla",
-        "Rivian",
-        "Lucid",
-        "Other"
+        {
+          "value": "tesla",
+          "label": "Tesla"
+        },
+        {
+          "value": "rivian",
+          "label": "Rivian"
+        },
+        {
+          "value": "lucid",
+          "label": "Lucid"
+        },
+        {
+          "value": "other",
+          "label": "Other"
+        }
       ],
       "conditional": {
-        "showIf": {
-          "questionId": "level2_car_type",
-          "operator": "equals",
-          "value": "Electric"
-        }
+        "dependsOn": "level2_car_type",
+        "operator": "equals",
+        "value": "Electric",
+        "action": "show"
       }
     },
     {
@@ -54,18 +80,32 @@
       "text": "Which Tesla model?",
       "required": false,
       "options": [
-        "Model S",
-        "Model 3",
-        "Model X",
-        "Model Y",
-        "Cybertruck"
+        {
+          "value": "model_s",
+          "label": "Model S"
+        },
+        {
+          "value": "model_3",
+          "label": "Model 3"
+        },
+        {
+          "value": "model_x",
+          "label": "Model X"
+        },
+        {
+          "value": "model_y",
+          "label": "Model Y"
+        },
+        {
+          "value": "cybertruck",
+          "label": "Cybertruck"
+        }
       ],
       "conditional": {
-        "showIf": {
-          "questionId": "level3_electric_brand",
-          "operator": "equals",
-          "value": "Tesla"
-        }
+        "dependsOn": "level3_electric_brand",
+        "operator": "equals",
+        "value": "Tesla",
+        "action": "show"
       }
     },
     {
@@ -78,11 +118,10 @@
         "max": 5
       },
       "conditional": {
-        "showIf": {
-          "questionId": "level3_electric_brand",
-          "operator": "equals",
-          "value": "Tesla"
-        }
+        "dependsOn": "level3_electric_brand",
+        "operator": "equals",
+        "value": "Tesla",
+        "action": "show"
       }
     },
     {
@@ -94,11 +133,10 @@
         "maxLength": 300
       },
       "conditional": {
-        "showIf": {
-          "questionId": "level2_car_type",
-          "operator": "equals",
-          "value": "Hybrid"
-        }
+        "dependsOn": "level2_car_type",
+        "operator": "equals",
+        "value": "Hybrid",
+        "action": "show"
       }
     },
     {
@@ -107,19 +145,36 @@
       "text": "What alternative transportation do you use?",
       "required": false,
       "options": [
-        "Public Transit",
-        "Bicycle",
-        "Walking",
-        "Ride Share",
-        "Motorcycle",
-        "Scooter"
+        {
+          "value": "public_transit",
+          "label": "Public Transit"
+        },
+        {
+          "value": "bicycle",
+          "label": "Bicycle"
+        },
+        {
+          "value": "walking",
+          "label": "Walking"
+        },
+        {
+          "value": "ride_share",
+          "label": "Ride Share"
+        },
+        {
+          "value": "motorcycle",
+          "label": "Motorcycle"
+        },
+        {
+          "value": "scooter",
+          "label": "Scooter"
+        }
       ],
       "conditional": {
-        "showIf": {
-          "questionId": "level1_question",
-          "operator": "equals",
-          "value": false
-        }
+        "dependsOn": "level1_question",
+        "operator": "equals",
+        "value": false,
+        "action": "show"
       }
     }
   ]

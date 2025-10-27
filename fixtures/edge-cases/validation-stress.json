@@ -1,8 +1,12 @@
 {
   "id": "validation-stress-v1",
-  "title": "Validation Stress Test",
-  "description": "Tests all validation rule types and edge cases",
   "version": "1.0.0",
+  "metadata": {
+    "title": "Validation Stress Test",
+    "createdAt": "2025-10-27T17:29:31.847Z",
+    "updatedAt": "2025-10-27T17:29:31.847Z",
+    "description": "Tests all validation rule types and edge cases"
+  },
   "questions": [
     {
       "id": "min_length_text",
@@ -73,11 +77,26 @@
       "text": "Select exactly 2 options",
       "required": true,
       "options": [
-        "Option A",
-        "Option B",
-        "Option C",
-        "Option D",
-        "Option E"
+        {
+          "value": "option_a",
+          "label": "Option A"
+        },
+        {
+          "value": "option_b",
+          "label": "Option B"
+        },
+        {
+          "value": "option_c",
+          "label": "Option C"
+        },
+        {
+          "value": "option_d",
+          "label": "Option D"
+        },
+        {
+          "value": "option_e",
+          "label": "Option E"
+        }
       ],
       "validation": {
         "minSelections": 2,
@@ -90,13 +109,34 @@
       "text": "Select at least 3 options",
       "required": true,
       "options": [
-        "Option 1",
-        "Option 2",
-        "Option 3",
-        "Option 4",
-        "Option 5",
-        "Option 6",
-        "Option 7"
+        {
+          "value": "option_1",
+          "label": "Option 1"
+        },
+        {
+          "value": "option_2",
+          "label": "Option 2"
+        },
+        {
+          "value": "option_3",
+          "label": "Option 3"
+        },
+        {
+          "value": "option_4",
+          "label": "Option 4"
+        },
+        {
+          "value": "option_5",
+          "label": "Option 5"
+        },
+        {
+          "value": "option_6",
+          "label": "Option 6"
+        },
+        {
+          "value": "option_7",
+          "label": "Option 7"
+        }
       ],
       "validation": {
         "minSelections": 3

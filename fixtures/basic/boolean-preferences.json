@@ -1,8 +1,12 @@
 {
   "id": "boolean-preferences-v1",
-  "title": "User Preferences",
-  "description": "Boolean yes/no questions for user preferences",
   "version": "1.0.0",
+  "metadata": {
+    "title": "User Preferences",
+    "createdAt": "2025-10-27T17:29:31.839Z",
+    "updatedAt": "2025-10-27T17:29:31.840Z",
+    "description": "Boolean yes/no questions for user preferences"
+  },
   "questions": [
     {
       "id": "newsletter_subscribe",

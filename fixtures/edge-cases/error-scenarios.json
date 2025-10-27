@@ -1,8 +1,12 @@
 {
   "id": "error-scenarios-v1",
-  "title": "Error Scenario Testing",
-  "description": "Tests edge cases and potential error conditions",
   "version": "1.0.0",
+  "metadata": {
+    "title": "Error Scenario Testing",
+    "createdAt": "2025-10-27T17:29:31.846Z",
+    "updatedAt": "2025-10-27T17:29:31.846Z",
+    "description": "Tests edge cases and potential error conditions"
+  },
   "questions": [
     {
       "id": "empty_string_ok",
@@ -46,7 +50,10 @@
       "text": "Only one option available",
       "required": false,
       "options": [
-        "Only Option"
+        {
+          "value": "only_option",
+          "label": "Only Option"
+        }
       ]
     },
     {
@@ -55,9 +62,66 @@
       "text": "Select from many options",
       "required": false,
       "options": [
-        "Option 1", "Option 2", "Option 3", "Option 4", "Option 5",
-        "Option 6", "Option 7", "Option 8", "Option 9", "Option 10",
-        "Option 11", "Option 12", "Option 13", "Option 14", "Option 15"
+        {
+          "value": "option_1",
+          "label": "Option 1"
+        },
+        {
+          "value": "option_2",
+          "label": "Option 2"
+        },
+        {
+          "value": "option_3",
+          "label": "Option 3"
+        },
+        {
+          "value": "option_4",
+          "label": "Option 4"
+        },
+        {
+          "value": "option_5",
+          "label": "Option 5"
+        },
+        {
+          "value": "option_6",
+          "label": "Option 6"
+        },
+        {
+          "value": "option_7",
+          "label": "Option 7"
+        },
+        {
+          "value": "option_8",
+          "label": "Option 8"
+        },
+        {
+          "value": "option_9",
+          "label": "Option 9"
+        },
+        {
+          "value": "option_10",
+          "label": "Option 10"
+        },
+        {
+          "value": "option_11",
+          "label": "Option 11"
+        },
+        {
+          "value": "option_12",
+          "label": "Option 12"
+        },
+        {
+          "value": "option_13",
+          "label": "Option 13"
+        },
+        {
+          "value": "option_14",
+          "label": "Option 14"
+        },
+        {
+          "value": "option_15",
+          "label": "Option 15"
+        }
       ]
     },
     {
@@ -66,9 +130,18 @@
       "text": "Select as many as you want (or none)",
       "required": false,
       "options": [
-        "Choice A",
-        "Choice B",
-        "Choice C"
+        {
+          "value": "choice_a",
+          "label": "Choice A"
+        },
+        {
+          "value": "choice_b",
+          "label": "Choice B"
+        },
+        {
+          "value": "choice_c",
+          "label": "Choice C"
+        }
       ]
     },
     {
@@ -83,11 +156,10 @@
       "text": "This appears when previous answer is false",
       "required": false,
       "conditional": {
-        "showIf": {
-          "questionId": "conditional_on_false",
-          "operator": "equals",
-          "value": false
-        }
+        "dependsOn": "conditional_on_false",
+        "operator": "equals",
+        "value": false,
+        "action": "show"
       }
     },
     {

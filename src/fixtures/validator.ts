@@ -135,7 +135,7 @@ export class FixtureValidator {
     // Check conditional references
     questionnaire.questions.forEach(question => {
       if (question.conditional) {
-        const refId = question.conditional.showIf.questionId;
+        const refId = question.conditional.dependsOn;
         if (!questionIds.has(refId)) {
           issues.push(`Question ${question.id} references non-existent question: ${refId}`);
         }

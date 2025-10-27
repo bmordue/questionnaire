@@ -1,8 +1,12 @@
 {
   "id": "customer-feedback-v1",
-  "title": "Customer Satisfaction Survey",
-  "description": "Help us improve our service",
   "version": "1.0.0",
+  "metadata": {
+    "title": "Customer Satisfaction Survey",
+    "createdAt": "2025-10-27T17:29:31.845Z",
+    "updatedAt": "2025-10-27T17:29:31.845Z",
+    "description": "Help us improve our service"
+  },
   "questions": [
     {
       "id": "overall_satisfaction",
@@ -20,19 +24,36 @@
       "text": "Which areas need improvement?",
       "required": false,
       "options": [
-        "Customer Support",
-        "Product Quality",
-        "Delivery Speed",
-        "Pricing",
-        "Website Experience",
-        "Communication"
+        {
+          "value": "customer_support",
+          "label": "Customer Support"
+        },
+        {
+          "value": "product_quality",
+          "label": "Product Quality"
+        },
+        {
+          "value": "delivery_speed",
+          "label": "Delivery Speed"
+        },
+        {
+          "value": "pricing",
+          "label": "Pricing"
+        },
+        {
+          "value": "website_experience",
+          "label": "Website Experience"
+        },
+        {
+          "value": "communication",
+          "label": "Communication"
+        }
       ],
       "conditional": {
-        "showIf": {
-          "questionId": "overall_satisfaction",
-          "operator": "lessThan",
-          "value": 4
-        }
+        "dependsOn": "overall_satisfaction",
+        "operator": "lessThan",
+        "value": 4,
+        "action": "show"
       }
     },
     {
@@ -44,11 +65,10 @@
         "maxLength": 1000
       },
       "conditional": {
-        "showIf": {
-          "questionId": "overall_satisfaction",
-          "operator": "lessThan",
-          "value": 4
-        }
+        "dependsOn": "overall_satisfaction",
+        "operator": "lessThan",
+        "value": 4,
+        "action": "show"
       }
     },
     {
@@ -76,11 +96,10 @@
         "maxLength": 255
       },
       "conditional": {
-        "showIf": {
-          "questionId": "contact_followup",
-          "operator": "equals",
-          "value": true
-        }
+        "dependsOn": "contact_followup",
+        "operator": "equals",
+        "value": true,
+        "action": "show"
       }
     }
   ]

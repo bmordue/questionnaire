@@ -1,6 +1,7 @@
 import { describe, it, expect } from '@jest/globals';
 import { FixtureValidator } from '../../fixtures/validator.js';
 import { FixtureLoader } from '../../fixtures/loader.js';
+import { QuestionType } from '../../core/schemas/question.js';
 
 describe('FixtureValidator', () => {
   describe('validateQuestionnaire', () => {
@@ -106,25 +107,29 @@ describe('FixtureValidator', () => {
     it('should detect duplicate question IDs', () => {
       const invalidQuestionnaire = {
         id: 'test',
-        title: 'Test',
         version: '1.0.0',
+        metadata: {
+          title: 'Test',
+          createdAt: '2025-01-01T00:00:00.000Z',
+          updatedAt: '2025-01-01T00:00:00.000Z'
+        },
         questions: [
           {
             id: 'q1',
-            type: 'text' as const,
+            type: QuestionType.TEXT,
             text: 'Question 1?',
             required: false
           },
           {
             id: 'q1', // duplicate
-            type: 'text' as const,
+            type: QuestionType.TEXT,
             text: 'Question 2?',
             required: false
           }
         ]
       };
       
-      const result = FixtureValidator.testQuestionnaireFlow(invalidQuestionnaire);
+      const result = FixtureValidator.testQuestionnaireFlow(invalidQuestionnaire as any);
       
       expect(result.valid).toBe(false);
       expect(result.issues.length).toBeGreaterThan(0);
@@ -134,26 +139,29 @@ describe('FixtureValidator', () => {
     it('should detect invalid conditional references', () => {
       const invalidQuestionnaire = {
         id: 'test',
-        title: 'Test',
         version: '1.0.0',
+        metadata: {
+          title: 'Test',
+          createdAt: '2025-01-01T00:00:00.000Z',
+          updatedAt: '2025-01-01T00:00:00.000Z'
+        },
         questions: [
           {
             id: 'q1',
-            type: 'text' as const,
+            type: QuestionType.TEXT,
             text: 'Question 1?',
             required: false,
             conditional: {
-              showIf: {
-                questionId: 'nonexistent',
-                operator: 'equals' as const,
-                value: 'test'
-              }
+              dependsOn: 'nonexistent',
+              operator: 'equals' as const,
+              value: 'test',
+              action: 'show' as const
             }
           }
         ]
       };
       
-      const result = FixtureValidator.testQuestionnaireFlow(invalidQuestionnaire);
+      const result = FixtureValidator.testQuestionnaireFlow(invalidQuestionnaire as any);
       
       expect(result.valid).toBe(false);
       expect(result.issues.length).toBeGreaterThan(0);

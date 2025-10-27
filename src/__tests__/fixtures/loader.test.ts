@@ -16,7 +16,8 @@ describe('FixtureLoader', () => {
       
       fixtures.forEach(fixture => {
         expect(fixture).toHaveProperty('id');
-        expect(fixture).toHaveProperty('title');
+        expect(fixture).toHaveProperty('metadata');
+        expect(fixture.metadata).toHaveProperty('title');
         expect(fixture).toHaveProperty('questions');
         expect(Array.isArray(fixture.questions)).toBe(true);
       });

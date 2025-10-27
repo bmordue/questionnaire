@@ -1,8 +1,12 @@
 {
   "id": "simple-text-survey-v1",
-  "title": "Simple Text Survey",
-  "description": "A basic questionnaire with text and number questions",
   "version": "1.0.0",
+  "metadata": {
+    "title": "Simple Text Survey",
+    "createdAt": "2025-10-27T17:29:31.845Z",
+    "updatedAt": "2025-10-27T17:29:31.845Z",
+    "description": "A basic questionnaire with text and number questions"
+  },
   "questions": [
     {
       "id": "name",

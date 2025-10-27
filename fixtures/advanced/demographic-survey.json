@@ -1,8 +1,12 @@
 {
   "id": "demographic-survey-v1",
-  "title": "Demographic Information Survey",
-  "description": "Help us understand our audience better",
   "version": "1.0.0",
+  "metadata": {
+    "title": "Demographic Information Survey",
+    "createdAt": "2025-10-27T17:29:31.845Z",
+    "updatedAt": "2025-10-27T17:29:31.845Z",
+    "description": "Help us understand our audience better"
+  },
   "questions": [
     {
       "id": "age_range",
@@ -10,13 +14,34 @@
       "text": "What is your age range?",
       "required": true,
       "options": [
-        "Under 18",
-        "18-24",
-        "25-34",
-        "35-44",
-        "45-54",
-        "55-64",
-        "65 or older"
+        {
+          "value": "under_18",
+          "label": "Under 18"
+        },
+        {
+          "value": "18-24",
+          "label": "18-24"
+        },
+        {
+          "value": "25-34",
+          "label": "25-34"
+        },
+        {
+          "value": "35-44",
+          "label": "35-44"
+        },
+        {
+          "value": "45-54",
+          "label": "45-54"
+        },
+        {
+          "value": "55-64",
+          "label": "55-64"
+        },
+        {
+          "value": "65_or_older",
+          "label": "65 or older"
+        }
       ]
     },
     {
@@ -25,14 +50,38 @@
       "text": "In which country do you reside?",
       "required": true,
       "options": [
-        "United States",
-        "United Kingdom",
-        "Canada",
-        "Australia",
-        "Germany",
-        "France",
-        "India",
-        "Other"
+        {
+          "value": "united_states",
+          "label": "United States"
+        },
+        {
+          "value": "united_kingdom",
+          "label": "United Kingdom"
+        },
+        {
+          "value": "canada",
+          "label": "Canada"
+        },
+        {
+          "value": "australia",
+          "label": "Australia"
+        },
+        {
+          "value": "germany",
+          "label": "Germany"
+        },
+        {
+          "value": "france",
+          "label": "France"
+        },
+        {
+          "value": "india",
+          "label": "India"
+        },
+        {
+          "value": "other",
+          "label": "Other"
+        }
       ]
     },
     {
@@ -41,12 +90,30 @@
       "text": "What is your highest level of education?",
       "required": false,
       "options": [
-        "High School",
-        "Some College",
-        "Bachelor's Degree",
-        "Master's Degree",
-        "Doctoral Degree",
-        "Other"
+        {
+          "value": "high_school",
+          "label": "High School"
+        },
+        {
+          "value": "some_college",
+          "label": "Some College"
+        },
+        {
+          "value": "bachelor's_degree",
+          "label": "Bachelor's Degree"
+        },
+        {
+          "value": "master's_degree",
+          "label": "Master's Degree"
+        },
+        {
+          "value": "doctoral_degree",
+          "label": "Doctoral Degree"
+        },
+        {
+          "value": "other",
+          "label": "Other"
+        }
       ]
     },
     {
@@ -55,12 +122,30 @@
       "text": "What is your employment status?",
       "required": false,
       "options": [
-        "Employed Full-time",
-        "Employed Part-time",
-        "Self-employed",
-        "Student",
-        "Retired",
-        "Unemployed"
+        {
+          "value": "employed_full-time",
+          "label": "Employed Full-time"
+        },
+        {
+          "value": "employed_part-time",
+          "label": "Employed Part-time"
+        },
+        {
+          "value": "self-employed",
+          "label": "Self-employed"
+        },
+        {
+          "value": "student",
+          "label": "Student"
+        },
+        {
+          "value": "retired",
+          "label": "Retired"
+        },
+        {
+          "value": "unemployed",
+          "label": "Unemployed"
+        }
       ]
     },
     {
@@ -69,20 +154,40 @@
       "text": "In which industry do you work?",
       "required": false,
       "options": [
-        "Technology",
-        "Healthcare",
-        "Finance",
-        "Education",
-        "Retail",
-        "Manufacturing",
-        "Other"
+        {
+          "value": "technology",
+          "label": "Technology"
+        },
+        {
+          "value": "healthcare",
+          "label": "Healthcare"
+        },
+        {
+          "value": "finance",
+          "label": "Finance"
+        },
+        {
+          "value": "education",
+          "label": "Education"
+        },
+        {
+          "value": "retail",
+          "label": "Retail"
+        },
+        {
+          "value": "manufacturing",
+          "label": "Manufacturing"
+        },
+        {
+          "value": "other",
+          "label": "Other"
+        }
       ],
       "conditional": {
-        "showIf": {
-          "questionId": "employment_status",
-          "operator": "equals",
-          "value": "Employed Full-time"
-        }
+        "dependsOn": "employment_status",
+        "operator": "equals",
+        "value": "Employed Full-time",
+        "action": "show"
       }
     },
     {
@@ -102,14 +207,38 @@
       "text": "What are your main interests?",
       "required": false,
       "options": [
-        "Technology",
-        "Sports",
-        "Arts & Culture",
-        "Travel",
-        "Food & Cooking",
-        "Health & Fitness",
-        "Business",
-        "Science"
+        {
+          "value": "technology",
+          "label": "Technology"
+        },
+        {
+          "value": "sports",
+          "label": "Sports"
+        },
+        {
+          "value": "arts_&_culture",
+          "label": "Arts & Culture"
+        },
+        {
+          "value": "travel",
+          "label": "Travel"
+        },
+        {
+          "value": "food_&_cooking",
+          "label": "Food & Cooking"
+        },
+        {
+          "value": "health_&_fitness",
+          "label": "Health & Fitness"
+        },
+        {
+          "value": "business",
+          "label": "Business"
+        },
+        {
+          "value": "science",
+          "label": "Science"
+        }
       ],
       "validation": {
         "maxSelections": 5
