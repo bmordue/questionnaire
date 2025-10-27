@@ -133,3 +133,4 @@ console.log('\n✓ Answer added to response');
 console.log(`  - Progress: ${response.progress.answeredCount}/${response.progress.totalQuestions} answered`);
 
 console.log('\n✓ Schema demonstration complete!');
+console.log('Test change for validation');
