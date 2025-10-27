@@ -204,4 +204,3 @@ src/core/
 - crypto (for session IDs)
 - mkdirp (directory creation)
 
-## Estimated Duration: 12 hours

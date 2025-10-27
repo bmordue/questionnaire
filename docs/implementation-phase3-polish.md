@@ -917,4 +917,3 @@ src/core/
 - Internationalization libraries
 - Accessibility testing tools
 
-## Estimated Duration: 16 hours

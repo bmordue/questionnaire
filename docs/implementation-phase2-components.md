@@ -517,4 +517,3 @@ class MessageFormatter {
 - Validator.js (input validation)
 - Date-fns (date handling)
 
-## Estimated Duration: 18 hours

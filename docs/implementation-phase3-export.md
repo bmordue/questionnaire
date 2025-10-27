@@ -763,4 +763,3 @@ src/export/
 - Cloud storage SDKs
 - Compression libraries (for large exports)
 
-## Estimated Duration: 18 hours

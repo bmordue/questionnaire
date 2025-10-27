@@ -633,4 +633,3 @@ src/analytics/
 - PDF generation libraries
 - Date/time utilities
 
-## Estimated Duration: 18 hours

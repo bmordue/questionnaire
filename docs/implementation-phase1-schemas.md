@@ -131,4 +131,3 @@ src/core/
 - TypeScript (type definitions)
 - Jest (testing framework)
 
-## Estimated Duration: 9 hours
