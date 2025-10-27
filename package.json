@@ -10,7 +10,8 @@
     "build": "tsc",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "validate": "npm run build && node validate-fixtures.js",
-    "flow-example": "npm run build && node dist/flow-example.js"
+    "flow-example": "npm run build && node dist/flow-example.js",
+    "components-example": "npm run build && node dist/components-example.js"
   },
   "devDependencies": {
     "@types/inquirer": "^9.0.9",
