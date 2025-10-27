@@ -1,0 +1,103 @@
+{
+  "id": "error-scenarios-v1",
+  "title": "Error Scenario Testing",
+  "description": "Tests edge cases and potential error conditions",
+  "version": "1.0.0",
+  "questions": [
+    {
+      "id": "empty_string_ok",
+      "type": "text",
+      "text": "This field accepts empty strings (not required)",
+      "required": false
+    },
+    {
+      "id": "single_char_allowed",
+      "type": "text",
+      "text": "Single character is allowed",
+      "required": false,
+      "validation": {
+        "minLength": 1,
+        "maxLength": 1
+      }
+    },
+    {
+      "id": "zero_allowed",
+      "type": "number",
+      "text": "Zero is a valid answer",
+      "required": false,
+      "validation": {
+        "min": 0,
+        "max": 0
+      }
+    },
+    {
+      "id": "negative_numbers",
+      "type": "number",
+      "text": "Negative numbers are allowed",
+      "required": false,
+      "validation": {
+        "min": -100,
+        "max": -1
+      }
+    },
+    {
+      "id": "single_option_choice",
+      "type": "single_choice",
+      "text": "Only one option available",
+      "required": false,
+      "options": [
+        "Only Option"
+      ]
+    },
+    {
+      "id": "many_options",
+      "type": "single_choice",
+      "text": "Select from many options",
+      "required": false,
+      "options": [
+        "Option 1", "Option 2", "Option 3", "Option 4", "Option 5",
+        "Option 6", "Option 7", "Option 8", "Option 9", "Option 10",
+        "Option 11", "Option 12", "Option 13", "Option 14", "Option 15"
+      ]
+    },
+    {
+      "id": "optional_multiple_no_limit",
+      "type": "multiple_choice",
+      "text": "Select as many as you want (or none)",
+      "required": false,
+      "options": [
+        "Choice A",
+        "Choice B",
+        "Choice C"
+      ]
+    },
+    {
+      "id": "conditional_on_false",
+      "type": "boolean",
+      "text": "Answer false to see next question",
+      "required": false
+    },
+    {
+      "id": "shown_on_false",
+      "type": "text",
+      "text": "This appears when previous answer is false",
+      "required": false,
+      "conditional": {
+        "showIf": {
+          "questionId": "conditional_on_false",
+          "operator": "equals",
+          "value": false
+        }
+      }
+    },
+    {
+      "id": "date_past_only",
+      "type": "date",
+      "text": "Select a date in the past",
+      "required": false,
+      "validation": {
+        "maxDate": "today"
+      }
+    }
+  ]
+}

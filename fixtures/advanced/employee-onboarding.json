@@ -1,0 +1,108 @@
+{
+  "id": "employee-onboarding-v1",
+  "title": "New Employee Information",
+  "description": "Welcome! Please provide your information",
+  "version": "1.0.0",
+  "questions": [
+    {
+      "id": "full_name",
+      "type": "text",
+      "text": "What is your full name?",
+      "required": true,
+      "validation": {
+        "minLength": 2,
+        "maxLength": 100
+      }
+    },
+    {
+      "id": "start_date",
+      "type": "date",
+      "text": "What is your start date?",
+      "required": true,
+      "validation": {
+        "minDate": "today",
+        "maxDate": "2025-12-31"
+      }
+    },
+    {
+      "id": "department",
+      "type": "single_choice",
+      "text": "Which department will you join?",
+      "required": true,
+      "options": [
+        "Engineering",
+        "Marketing",
+        "Sales",
+        "HR",
+        "Operations",
+        "Finance"
+      ]
+    },
+    {
+      "id": "position",
+      "type": "text",
+      "text": "What is your job title?",
+      "required": true,
+      "validation": {
+        "minLength": 2,
+        "maxLength": 100
+      }
+    },
+    {
+      "id": "work_location",
+      "type": "single_choice",
+      "text": "What is your preferred work location?",
+      "required": true,
+      "options": [
+        "Office",
+        "Remote",
+        "Hybrid"
+      ]
+    },
+    {
+      "id": "equipment_needed",
+      "type": "multiple_choice",
+      "text": "What equipment do you need?",
+      "required": false,
+      "options": [
+        "Laptop",
+        "Monitor",
+        "Keyboard",
+        "Mouse",
+        "Headset",
+        "Webcam"
+      ]
+    },
+    {
+      "id": "previous_experience",
+      "type": "number",
+      "text": "How many years of experience do you have in your field?",
+      "required": false,
+      "validation": {
+        "min": 0,
+        "max": 50,
+        "integer": true
+      }
+    },
+    {
+      "id": "emergency_contact",
+      "type": "text",
+      "text": "Emergency contact name",
+      "required": true,
+      "validation": {
+        "minLength": 2,
+        "maxLength": 100
+      }
+    },
+    {
+      "id": "emergency_phone",
+      "type": "text",
+      "text": "Emergency contact phone number",
+      "required": true,
+      "validation": {
+        "minLength": 10,
+        "maxLength": 20
+      }
+    }
+  ]
+}

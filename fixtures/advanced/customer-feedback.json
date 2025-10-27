@@ -1,0 +1,87 @@
+{
+  "id": "customer-feedback-v1",
+  "title": "Customer Satisfaction Survey",
+  "description": "Help us improve our service",
+  "version": "1.0.0",
+  "questions": [
+    {
+      "id": "overall_satisfaction",
+      "type": "rating",
+      "text": "How satisfied are you with our service?",
+      "required": true,
+      "validation": {
+        "min": 1,
+        "max": 5
+      }
+    },
+    {
+      "id": "improvement_areas",
+      "type": "multiple_choice",
+      "text": "Which areas need improvement?",
+      "required": false,
+      "options": [
+        "Customer Support",
+        "Product Quality",
+        "Delivery Speed",
+        "Pricing",
+        "Website Experience",
+        "Communication"
+      ],
+      "conditional": {
+        "showIf": {
+          "questionId": "overall_satisfaction",
+          "operator": "lessThan",
+          "value": 4
+        }
+      }
+    },
+    {
+      "id": "additional_feedback",
+      "type": "text",
+      "text": "Please provide any additional feedback",
+      "required": false,
+      "validation": {
+        "maxLength": 1000
+      },
+      "conditional": {
+        "showIf": {
+          "questionId": "overall_satisfaction",
+          "operator": "lessThan",
+          "value": 4
+        }
+      }
+    },
+    {
+      "id": "recommend",
+      "type": "rating",
+      "text": "How likely are you to recommend us to a friend? (1-10)",
+      "required": true,
+      "validation": {
+        "min": 1,
+        "max": 10
+      }
+    },
+    {
+      "id": "contact_followup",
+      "type": "boolean",
+      "text": "May we contact you for follow-up?",
+      "required": false
+    },
+    {
+      "id": "contact_email",
+      "type": "email",
+      "text": "Please provide your email address",
+      "required": false,
+      "validation": {
+        "maxLength": 255
+      },
+      "conditional": {
+        "showIf": {
+          "questionId": "contact_followup",
+          "operator": "equals",
+          "value": true
+        }
+      }
+    }
+  ]
+}

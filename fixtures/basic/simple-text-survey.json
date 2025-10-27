@@ -1,0 +1,47 @@
+{
+  "id": "simple-text-survey-v1",
+  "title": "Simple Text Survey",
+  "description": "A basic questionnaire with text and number questions",
+  "version": "1.0.0",
+  "questions": [
+    {
+      "id": "name",
+      "type": "text",
+      "text": "What is your name?",
+      "required": true,
+      "validation": {
+        "minLength": 2,
+        "maxLength": 100
+      }
+    },
+    {
+      "id": "age",
+      "type": "number",
+      "text": "What is your age?",
+      "required": true,
+      "validation": {
+        "min": 0,
+        "max": 120,
+        "integer": true
+      }
+    },
+    {
+      "id": "email",
+      "type": "email",
+      "text": "What is your email address?",
+      "required": false,
+      "validation": {
+        "maxLength": 255
+      }
+    },
+    {
+      "id": "comments",
+      "type": "text",
+      "text": "Any additional comments?",
+      "required": false,
+      "validation": {
+        "maxLength": 500
+      }
+    }
+  ]
+}

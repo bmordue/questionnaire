@@ -1,0 +1,126 @@
+{
+  "id": "complex-conditionals-v1",
+  "title": "Complex Conditional Logic Example",
+  "description": "Demonstrates multi-level conditional dependencies",
+  "version": "1.0.0",
+  "questions": [
+    {
+      "id": "level1_question",
+      "type": "boolean",
+      "text": "Do you own a car?",
+      "required": true
+    },
+    {
+      "id": "level2_car_type",
+      "type": "single_choice",
+      "text": "What type of car do you own?",
+      "required": false,
+      "options": [
+        "Electric",
+        "Hybrid",
+        "Gasoline",
+        "Diesel"
+      ],
+      "conditional": {
+        "showIf": {
+          "questionId": "level1_question",
+          "operator": "equals",
+          "value": true
+        }
+      }
+    },
+    {
+      "id": "level3_electric_brand",
+      "type": "single_choice",
+      "text": "Which electric car brand?",
+      "required": false,
+      "options": [
+        "Tesla",
+        "Rivian",
+        "Lucid",
+        "Other"
+      ],
+      "conditional": {
+        "showIf": {
+          "questionId": "level2_car_type",
+          "operator": "equals",
+          "value": "Electric"
+        }
+      }
+    },
+    {
+      "id": "level4_tesla_model",
+      "type": "single_choice",
+      "text": "Which Tesla model?",
+      "required": false,
+      "options": [
+        "Model S",
+        "Model 3",
+        "Model X",
+        "Model Y",
+        "Cybertruck"
+      ],
+      "conditional": {
+        "showIf": {
+          "questionId": "level3_electric_brand",
+          "operator": "equals",
+          "value": "Tesla"
+        }
+      }
+    },
+    {
+      "id": "level5_satisfaction",
+      "type": "rating",
+      "text": "How satisfied are you with your Tesla?",
+      "required": false,
+      "validation": {
+        "min": 1,
+        "max": 5
+      },
+      "conditional": {
+        "showIf": {
+          "questionId": "level3_electric_brand",
+          "operator": "equals",
+          "value": "Tesla"
+        }
+      }
+    },
+    {
+      "id": "level3_hybrid_reason",
+      "type": "text",
+      "text": "Why did you choose a hybrid vehicle?",
+      "required": false,
+      "validation": {
+        "maxLength": 300
+      },
+      "conditional": {
+        "showIf": {
+          "questionId": "level2_car_type",
+          "operator": "equals",
+          "value": "Hybrid"
+        }
+      }
+    },
+    {
+      "id": "alternative_transport",
+      "type": "multiple_choice",
+      "text": "What alternative transportation do you use?",
+      "required": false,
+      "options": [
+        "Public Transit",
+        "Bicycle",
+        "Walking",
+        "Ride Share",
+        "Motorcycle",
+        "Scooter"
+      ],
+      "conditional": {
+        "showIf": {
+          "questionId": "level1_question",
+          "operator": "equals",
+          "value": false
+        }
+      }
+    }
+  ]
+}

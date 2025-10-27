@@ -1,0 +1,119 @@
+{
+  "id": "demographic-survey-v1",
+  "title": "Demographic Information Survey",
+  "description": "Help us understand our audience better",
+  "version": "1.0.0",
+  "questions": [
+    {
+      "id": "age_range",
+      "type": "single_choice",
+      "text": "What is your age range?",
+      "required": true,
+      "options": [
+        "Under 18",
+        "18-24",
+        "25-34",
+        "35-44",
+        "45-54",
+        "55-64",
+        "65 or older"
+      ]
+    },
+    {
+      "id": "country",
+      "type": "single_choice",
+      "text": "In which country do you reside?",
+      "required": true,
+      "options": [
+        "United States",
+        "United Kingdom",
+        "Canada",
+        "Australia",
+        "Germany",
+        "France",
+        "India",
+        "Other"
+      ]
+    },
+    {
+      "id": "education_level",
+      "type": "single_choice",
+      "text": "What is your highest level of education?",
+      "required": false,
+      "options": [
+        "High School",
+        "Some College",
+        "Bachelor's Degree",
+        "Master's Degree",
+        "Doctoral Degree",
+        "Other"
+      ]
+    },
+    {
+      "id": "employment_status",
+      "type": "single_choice",
+      "text": "What is your employment status?",
+      "required": false,
+      "options": [
+        "Employed Full-time",
+        "Employed Part-time",
+        "Self-employed",
+        "Student",
+        "Retired",
+        "Unemployed"
+      ]
+    },
+    {
+      "id": "industry",
+      "type": "single_choice",
+      "text": "In which industry do you work?",
+      "required": false,
+      "options": [
+        "Technology",
+        "Healthcare",
+        "Finance",
+        "Education",
+        "Retail",
+        "Manufacturing",
+        "Other"
+      ],
+      "conditional": {
+        "showIf": {
+          "questionId": "employment_status",
+          "operator": "equals",
+          "value": "Employed Full-time"
+        }
+      }
+    },
+    {
+      "id": "household_size",
+      "type": "number",
+      "text": "How many people live in your household?",
+      "required": false,
+      "validation": {
+        "min": 1,
+        "max": 20,
+        "integer": true
+      }
+    },
+    {
+      "id": "interests",
+      "type": "multiple_choice",
+      "text": "What are your main interests?",
+      "required": false,
+      "options": [
+        "Technology",
+        "Sports",
+        "Arts & Culture",
+        "Travel",
+        "Food & Cooking",
+        "Health & Fitness",
+        "Business",
+        "Science"
+      ],
+      "validation": {
+        "maxSelections": 5
+      }
+    }
+  ]
+}

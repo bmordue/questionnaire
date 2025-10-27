@@ -1,0 +1,32 @@
+{
+  "id": "boolean-preferences-v1",
+  "title": "User Preferences",
+  "description": "Boolean yes/no questions for user preferences",
+  "version": "1.0.0",
+  "questions": [
+    {
+      "id": "newsletter_subscribe",
+      "type": "boolean",
+      "text": "Would you like to subscribe to our newsletter?",
+      "required": true
+    },
+    {
+      "id": "terms_accepted",
+      "type": "boolean",
+      "text": "Do you accept the terms and conditions?",
+      "required": true
+    },
+    {
+      "id": "share_data",
+      "type": "boolean",
+      "text": "Can we share your data with third parties?",
+      "required": false
+    },
+    {
+      "id": "marketing_emails",
+      "type": "boolean",
+      "text": "Would you like to receive marketing emails?",
+      "required": false
+    }
+  ]
+}

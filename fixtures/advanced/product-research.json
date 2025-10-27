@@ -1,0 +1,109 @@
+{
+  "id": "product-research-v1",
+  "title": "Product Feature Research",
+  "description": "Help us prioritize new features",
+  "version": "1.0.0",
+  "questions": [
+    {
+      "id": "current_usage",
+      "type": "single_choice",
+      "text": "How often do you use our product?",
+      "required": true,
+      "options": [
+        "Daily",
+        "Weekly",
+        "Monthly",
+        "Rarely",
+        "Never"
+      ]
+    },
+    {
+      "id": "feature_priorities",
+      "type": "multiple_choice",
+      "text": "Which features are most important to you?",
+      "required": false,
+      "options": [
+        "Mobile App",
+        "API Integration",
+        "Advanced Analytics",
+        "Collaboration Tools",
+        "Export Functionality",
+        "Customization Options"
+      ],
+      "conditional": {
+        "showIf": {
+          "questionId": "current_usage",
+          "operator": "notEquals",
+          "value": "Never"
+        }
+      }
+    },
+    {
+      "id": "satisfaction_rating",
+      "type": "rating",
+      "text": "How would you rate your overall experience?",
+      "required": true,
+      "validation": {
+        "min": 1,
+        "max": 5
+      },
+      "conditional": {
+        "showIf": {
+          "questionId": "current_usage",
+          "operator": "notEquals",
+          "value": "Never"
+        }
+      }
+    },
+    {
+      "id": "missing_features",
+      "type": "text",
+      "text": "What features are you missing?",
+      "required": false,
+      "validation": {
+        "maxLength": 500
+      },
+      "conditional": {
+        "showIf": {
+          "questionId": "current_usage",
+          "operator": "notEquals",
+          "value": "Never"
+        }
+      }
+    },
+    {
+      "id": "competitor_usage",
+      "type": "boolean",
+      "text": "Do you use any competing products?",
+      "required": false
+    },
+    {
+      "id": "competitor_names",
+      "type": "text",
+      "text": "Which competing products do you use?",
+      "required": false,
+      "validation": {
+        "maxLength": 200
+      },
+      "conditional": {
+        "showIf": {
+          "questionId": "competitor_usage",
+          "operator": "equals",
+          "value": true
+        }
+      }
+    },
+    {
+      "id": "price_sensitivity",
+      "type": "single_choice",
+      "text": "How important is pricing in your decision?",
+      "required": false,
+      "options": [
+        "Very Important",
+        "Important",
+        "Neutral",
+        "Not Important"
+      ]
+    }
+  ]
+}

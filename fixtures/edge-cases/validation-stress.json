@@ -1,0 +1,127 @@
+{
+  "id": "validation-stress-v1",
+  "title": "Validation Stress Test",
+  "description": "Tests all validation rule types and edge cases",
+  "version": "1.0.0",
+  "questions": [
+    {
+      "id": "min_length_text",
+      "type": "text",
+      "text": "Enter at least 10 characters",
+      "required": true,
+      "validation": {
+        "minLength": 10,
+        "maxLength": 50
+      }
+    },
+    {
+      "id": "pattern_text",
+      "type": "text",
+      "text": "Enter a text matching pattern (alphanumeric only)",
+      "required": true,
+      "validation": {
+        "pattern": "^[a-zA-Z0-9]+$",
+        "minLength": 5,
+        "maxLength": 20
+      }
+    },
+    {
+      "id": "strict_email",
+      "type": "email",
+      "text": "Enter a valid email address",
+      "required": true,
+      "validation": {
+        "minLength": 5,
+        "maxLength": 100
+      }
+    },
+    {
+      "id": "strict_number_range",
+      "type": "number",
+      "text": "Enter a number between 10 and 100",
+      "required": true,
+      "validation": {
+        "min": 10,
+        "max": 100,
+        "integer": true
+      }
+    },
+    {
+      "id": "decimal_number",
+      "type": "number",
+      "text": "Enter a decimal number (0.0 to 1.0)",
+      "required": true,
+      "validation": {
+        "min": 0,
+        "max": 1,
+        "integer": false
+      }
+    },
+    {
+      "id": "date_range",
+      "type": "date",
+      "text": "Select a date in the future",
+      "required": true,
+      "validation": {
+        "minDate": "today",
+        "maxDate": "2030-12-31"
+      }
+    },
+    {
+      "id": "limited_multiple_choice",
+      "type": "multiple_choice",
+      "text": "Select exactly 2 options",
+      "required": true,
+      "options": [
+        "Option A",
+        "Option B",
+        "Option C",
+        "Option D",
+        "Option E"
+      ],
+      "validation": {
+        "minSelections": 2,
+        "maxSelections": 2
+      }
+    },
+    {
+      "id": "min_selections_only",
+      "type": "multiple_choice",
+      "text": "Select at least 3 options",
+      "required": true,
+      "options": [
+        "Option 1",
+        "Option 2",
+        "Option 3",
+        "Option 4",
+        "Option 5",
+        "Option 6",
+        "Option 7"
+      ],
+      "validation": {
+        "minSelections": 3
+      }
+    },
+    {
+      "id": "rating_scale",
+      "type": "rating",
+      "text": "Rate on a scale from 1 to 10",
+      "required": true,
+      "validation": {
+        "min": 1,
+        "max": 10
+      }
+    },
+    {
+      "id": "optional_with_validation",
+      "type": "text",
+      "text": "Optional field but if filled, must meet validation",
+      "required": false,
+      "validation": {
+        "minLength": 15,
+        "maxLength": 30,
+        "pattern": "^[A-Z][a-zA-Z ]*$"
+      }
+    }
+  ]
+}
