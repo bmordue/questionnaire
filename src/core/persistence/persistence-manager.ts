@@ -150,7 +150,8 @@ export class PersistenceManager {
           const response = this.currentBuilder.getResponse();
           await this.storage.saveResponse(response);
         } catch (error) {
-          console.warn('Auto-save failed:', error);
+          const sessionId = this.currentBuilder.getResponse().sessionId;
+          console.warn(`Auto-save failed for session ${sessionId}:`, error);
         }
       }
     }, this.autoSaveInterval);
