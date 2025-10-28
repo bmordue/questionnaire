@@ -447,6 +447,192 @@ describe('ConditionalLogicEngine', () => {
         expect(engine.evaluateCondition(condition, responses)).toBe(true);
       });
     });
+
+    describe('matches operator', () => {
+      it('should return true when string matches pattern', () => {
+        responses.set('q1', 'hello world');
+        const condition: Condition = {
+          questionId: 'q1',
+          operator: 'matches',
+          value: 'hello.*'
+        };
+
+        expect(engine.evaluateCondition(condition, responses)).toBe(true);
+      });
+
+      it('should return false when string does not match pattern', () => {
+        responses.set('q1', 'goodbye world');
+        const condition: Condition = {
+          questionId: 'q1',
+          operator: 'matches',
+          value: '^hello'
+        };
+
+        expect(engine.evaluateCondition(condition, responses)).toBe(false);
+      });
+
+      it('should return false for non-string responses', () => {
+        responses.set('q1', 123);
+        const condition: Condition = {
+          questionId: 'q1',
+          operator: 'matches',
+          value: '\\d+'
+        };
+
+        expect(engine.evaluateCondition(condition, responses)).toBe(false);
+      });
+    });
+
+    describe('notMatches operator', () => {
+      it('should return true when string does not match pattern', () => {
+        responses.set('q1', 'goodbye world');
+        const condition: Condition = {
+          questionId: 'q1',
+          operator: 'notMatches',
+          value: '^hello'
+        };
+
+        expect(engine.evaluateCondition(condition, responses)).toBe(true);
+      });
+
+      it('should return false when string matches pattern', () => {
+        responses.set('q1', 'hello world');
+        const condition: Condition = {
+          questionId: 'q1',
+          operator: 'notMatches',
+          value: 'hello'
+        };
+
+        expect(engine.evaluateCondition(condition, responses)).toBe(false);
+      });
+
+      it('should return true for non-string responses', () => {
+        responses.set('q1', 123);
+        const condition: Condition = {
+          questionId: 'q1',
+          operator: 'notMatches',
+          value: '\\d+'
+        };
+
+        expect(engine.evaluateCondition(condition, responses)).toBe(true);
+      });
+    });
+
+    describe('hasLength operator', () => {
+      it('should return true when string has exact length', () => {
+        responses.set('q1', 'hello');
+        const condition: Condition = {
+          questionId: 'q1',
+          operator: 'hasLength',
+          value: 5
+        };
+
+        expect(engine.evaluateCondition(condition, responses)).toBe(true);
+      });
+
+      it('should return true when array has exact length', () => {
+        responses.set('q1', ['a', 'b', 'c']);
+        const condition: Condition = {
+          questionId: 'q1',
+          operator: 'hasLength',
+          value: 3
+        };
+
+        expect(engine.evaluateCondition(condition, responses)).toBe(true);
+      });
+
+      it('should return false when length does not match', () => {
+        responses.set('q1', 'hello');
+        const condition: Condition = {
+          questionId: 'q1',
+          operator: 'hasLength',
+          value: 3
+        };
+
+        expect(engine.evaluateCondition(condition, responses)).toBe(false);
+      });
+
+      it('should return false for non-string/array responses', () => {
+        responses.set('q1', 123);
+        const condition: Condition = {
+          questionId: 'q1',
+          operator: 'hasLength',
+          value: 3
+        };
+
+        expect(engine.evaluateCondition(condition, responses)).toBe(false);
+      });
+    });
+
+    describe('hasMinLength operator', () => {
+      it('should return true when string meets minimum length', () => {
+        responses.set('q1', 'hello');
+        const condition: Condition = {
+          questionId: 'q1',
+          operator: 'hasMinLength',
+          value: 3
+        };
+
+        expect(engine.evaluateCondition(condition, responses)).toBe(true);
+      });
+
+      it('should return true when array meets minimum length', () => {
+        responses.set('q1', ['a', 'b', 'c']);
+        const condition: Condition = {
+          questionId: 'q1',
+          operator: 'hasMinLength',
+          value: 2
+        };
+
+        expect(engine.evaluateCondition(condition, responses)).toBe(true);
+      });
+
+      it('should return false when length is below minimum', () => {
+        responses.set('q1', 'hi');
+        const condition: Condition = {
+          questionId: 'q1',
+          operator: 'hasMinLength',
+          value: 5
+        };
+
+        expect(engine.evaluateCondition(condition, responses)).toBe(false);
+      });
+    });
+
+    describe('hasMaxLength operator', () => {
+      it('should return true when string is within maximum length', () => {
+        responses.set('q1', 'hello');
+        const condition: Condition = {
+          questionId: 'q1',
+          operator: 'hasMaxLength',
+          value: 10
+        };
+
+        expect(engine.evaluateCondition(condition, responses)).toBe(true);
+      });
+
+      it('should return true when array is within maximum length', () => {
+        responses.set('q1', ['a', 'b']);
+        const condition: Condition = {
+          questionId: 'q1',
+          operator: 'hasMaxLength',
+          value: 5
+        };
+
+        expect(engine.evaluateCondition(condition, responses)).toBe(true);
+      });
+
+      it('should return false when length exceeds maximum', () => {
+        responses.set('q1', 'hello world');
+        const condition: Condition = {
+          questionId: 'q1',
+          operator: 'hasMaxLength',
+          value: 5
+        };
+
+        expect(engine.evaluateCondition(condition, responses)).toBe(false);
+      });
+    });
   });
 
   describe('evaluateConditionGroup', () => {

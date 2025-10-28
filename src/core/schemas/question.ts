@@ -85,8 +85,13 @@ export const ConditionOperatorSchema = z.enum([
   'notContains',
   'in',
   'notIn',
+  'matches',
+  'notMatches',
   'isEmpty',
-  'isNotEmpty'
+  'isNotEmpty',
+  'hasLength',
+  'hasMinLength',
+  'hasMaxLength'
 ]);
 
 /**

@@ -20,8 +20,13 @@ type ConditionOperator =
   | 'notContains'
   | 'in'
   | 'notIn'
+  | 'matches'
+  | 'notMatches'
   | 'isEmpty'
-  | 'isNotEmpty';
+  | 'isNotEmpty'
+  | 'hasLength'
+  | 'hasMinLength'
+  | 'hasMaxLength';
 
 /**
  * Error thrown when condition evaluation fails
@@ -79,6 +84,16 @@ export class ConditionalLogicEngine {
         case 'notIn':
           return !Array.isArray(condition.values) || !condition.values.includes(response);
         
+        case 'matches':
+          return typeof response === 'string' 
+            && typeof condition.value === 'string'
+            && new RegExp(condition.value).test(response);
+        
+        case 'notMatches':
+          return typeof response !== 'string'
+            || typeof condition.value !== 'string'
+            || !new RegExp(condition.value).test(response);
+        
         case 'isEmpty':
           return response === null 
             || response === undefined 
@@ -90,6 +105,21 @@ export class ConditionalLogicEngine {
             && response !== undefined 
             && response !== '' 
             && (!Array.isArray(response) || response.length > 0);
+        
+        case 'hasLength':
+          return (typeof response === 'string' || Array.isArray(response))
+            && typeof condition.value === 'number'
+            && response.length === condition.value;
+        
+        case 'hasMinLength':
+          return (typeof response === 'string' || Array.isArray(response))
+            && typeof condition.value === 'number'
+            && response.length >= condition.value;
+        
+        case 'hasMaxLength':
+          return (typeof response === 'string' || Array.isArray(response))
+            && typeof condition.value === 'number'
+            && response.length <= condition.value;
         
         default: {
           const exhaustiveCheck: never = condition.operator;
