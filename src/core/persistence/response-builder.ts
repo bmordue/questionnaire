@@ -211,8 +211,10 @@ export class ResponseBuilder {
       });
     } catch (error) {
       // Log but don't throw - incremental saves should not block user
-      console.warn('Failed to save incremental response:', error);
-    }
+      console.warn(
+        `Failed to save incremental response for sessionId=${this.response.sessionId}:`,
+        error
+      );
   }
 
   /**
