@@ -9,7 +9,8 @@ A TypeScript-based Terminal User Interface (TUI) application for executing inter
 - ✅ **Advanced Validation**: Min/max length, patterns, ranges, date constraints, and selection limits
 - ✅ **Conditional Logic**: Show/hide questions based on previous answers
 - ✅ **Fixture Library**: 11 sample questionnaires for testing and demonstration
-- ✅ **Test Coverage**: Comprehensive test suite with 21 passing tests
+- ✅ **Test Coverage**: Comprehensive test suite with 354 passing tests
+- ✅ **Markdown Export**: Convert responses to LLM-optimized markdown format
 
 ## Quick Start
 
@@ -43,10 +44,33 @@ This will:
 - Generate a coverage report
 - Test questionnaire flows
 
+### Convert Response to Markdown
+
+Convert a questionnaire response JSON to markdown format:
+
+```bash
+npm run markdown-convert -- <response.json> <questionnaire.json> [output.md]
+```
+
+Examples:
+```bash
+# Output to stdout
+npm run markdown-convert -- examples/sample-response.json fixtures/basic/simple-text-survey.json
+
+# Output to file
+npm run markdown-convert -- examples/sample-response.json fixtures/basic/simple-text-survey.json output.md
+```
+
+The markdown format is optimized for LLM consumption with clear structure, formatted answers, and complete metadata. See [examples/README.md](examples/README.md) for more details.
+
 ## Project Structure
 
 ```
 questionnaire/
+├── examples/              # Sample responses and markdown outputs
+│   ├── sample-response.json           # Example response
+│   ├── sample-response.md             # Generated markdown
+│   └── README.md                      # Examples documentation
 ├── fixtures/              # Sample questionnaires
 │   ├── basic/            # Simple examples (3 fixtures)
 │   ├── advanced/         # Real-world scenarios (4 fixtures)
@@ -62,6 +86,9 @@ questionnaire/
 │   │   ├── loader.ts           # Fixture loading utilities
 │   │   ├── validator.ts        # Fixture validation
 │   │   └── index.ts            # Exports
+│   ├── utils/
+│   │   └── markdown-converter.ts # Markdown conversion utility
+│   ├── markdown-convert.ts     # CLI script for markdown conversion
 │   └── __tests__/              # Test suite
 ├── docs/                       # Documentation
 └── package.json

@@ -11,6 +11,7 @@
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "validate": "npm run build && node validate-fixtures.js",
     "flow-example": "npm run build && node dist/flow-example.js",
+    "markdown-convert": "npm run build && node dist/markdown-convert.js",
     "components-example": "npm run build && node dist/components-example.js"
   },
   "devDependencies": {
