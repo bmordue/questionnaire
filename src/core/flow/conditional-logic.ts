@@ -4,7 +4,7 @@
  * Evaluates conditions to determine question visibility, requirements, and skipping logic
  */
 
-import type { Question, Condition, Questionnaire } from '../schema.js';
+import type { Question, Condition, Questionnaire, ConditionalLogic } from '../schema.js';
 import { DependencyGraph } from './dependency-graph.js';
 import { ConditionalFunctionRegistry, type EvaluationContext } from './conditional-functions.js';
 
@@ -248,7 +248,7 @@ export class ConditionalLogicEngine {
   /**
    * Extract all question IDs that a conditional logic depends on
    */
-  private extractDependencies(conditional: Conditional): string[] {
+  private extractDependencies(conditional: ConditionalLogic): string[] {
     const dependencies = new Set<string>();
 
     const extractFromCondition = (condition: Condition | Condition[]) => {

@@ -103,7 +103,7 @@ export class DependencyGraph {
 
     let i = 0;
     while (i < queue.length) {
-      const current = queue[i++];
+      const current = queue[i++]!;
       if (current === to) return true;
 
       if (visited.has(current)) continue;
