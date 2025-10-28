@@ -9,6 +9,9 @@ import type { Questionnaire } from '../schema.js';
 import { validateQuestionnaire } from '../schemas/questionnaire.js';
 import type { QuestionnaireMetadataListing, StorageConfig } from './types.js';
 import { FileOperations, FileOperationError } from './file-operations.js';
+import { getLogger } from '../logging/index.js';
+
+const logger = getLogger();
 
 /**
  * Questionnaire-specific storage operations
@@ -115,9 +118,8 @@ export class QuestionnaireStore {
           ...(questionnaire.metadata.tags !== undefined && { tags: questionnaire.metadata.tags })
         });
       } catch (error) {
-        // TODO: Replace console.warn with proper logging framework
         // Skip files that can't be parsed
-        console.warn(`Failed to read questionnaire file ${file}:`, error);
+        logger.warn(`Failed to read questionnaire file ${file}:`, error);
       }
     }
 

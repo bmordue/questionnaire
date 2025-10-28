@@ -8,32 +8,7 @@ import {
   type ErrorContext,
   type ErrorHandlingResult
 } from './error-types.js';
-
-/**
- * Simple logger interface
- */
-interface Logger {
-  error(message: string, context?: any): void;
-  warn(message: string, context?: any): void;
-  info(message: string, context?: any): void;
-}
-
-/**
- * Console logger implementation
- */
-class ConsoleLogger implements Logger {
-  error(message: string, context?: any): void {
-    console.error(message, context || '');
-  }
-
-  warn(message: string, context?: any): void {
-    console.warn(message, context || '');
-  }
-
-  info(message: string, context?: any): void {
-    console.info(message, context || '');
-  }
-}
+import { getLogger, type Logger } from '../logging/index.js';
 
 /**
  * Simple error reporter interface
@@ -59,7 +34,7 @@ export class ErrorHandler {
   private errorReporter: ErrorReporter;
 
   constructor(logger?: Logger, errorReporter?: ErrorReporter) {
-    this.logger = logger || new ConsoleLogger();
+    this.logger = logger || getLogger();
     this.errorReporter = errorReporter || new ConsoleErrorReporter();
   }
 
