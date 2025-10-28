@@ -4,7 +4,9 @@
  * Evaluates conditions to determine question visibility, requirements, and skipping logic
  */
 
-import type { Question, Condition } from '../schema.js';
+import type { Question, Condition, Questionnaire } from '../schema.js';
+import { DependencyGraph } from './dependency-graph.js';
+import { ConditionalFunctionRegistry, type EvaluationContext } from './conditional-functions.js';
 
 /**
  * Condition operator type
@@ -39,9 +41,32 @@ export class ConditionEvaluationError extends Error {
 }
 
 /**
+ * Validation result for conditional logic
+ */
+export interface ValidationResult {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+/**
  * Engine for evaluating conditional logic
  */
 export class ConditionalLogicEngine {
+  private functionRegistry: ConditionalFunctionRegistry;
+  private evaluationCache = new Map<string, boolean>();
+
+  constructor() {
+    this.functionRegistry = new ConditionalFunctionRegistry();
+  }
+
+  /**
+   * Clear the evaluation cache
+   */
+  clearCache(): void {
+    this.evaluationCache.clear();
+  }
+
   /**
    * Evaluate a single condition against responses
    */
@@ -199,5 +224,154 @@ export class ConditionalLogicEngine {
     }
 
     return false;
+  }
+
+  /**
+   * Build a dependency graph for a questionnaire
+   */
+  buildDependencyGraph(questionnaire: Questionnaire): DependencyGraph {
+    const graph = new DependencyGraph();
+
+    for (const question of questionnaire.questions) {
+      if (question.conditional) {
+        const dependencies = this.extractDependencies(question.conditional);
+        
+        for (const dependency of dependencies) {
+          graph.addDependency(question.id, dependency);
+        }
+      }
+    }
+
+    return graph;
+  }
+
+  /**
+   * Extract all question IDs that a conditional logic depends on
+   */
+  private extractDependencies(conditional: any): string[] {
+    const dependencies = new Set<string>();
+
+    const extractFromCondition = (condition: Condition | Condition[]) => {
+      if (Array.isArray(condition)) {
+        condition.forEach(c => dependencies.add(c.questionId));
+      } else {
+        dependencies.add(condition.questionId);
+      }
+    };
+
+    if (conditional.showIf) {
+      extractFromCondition(conditional.showIf);
+    }
+    if (conditional.hideIf) {
+      extractFromCondition(conditional.hideIf);
+    }
+    if (conditional.skipIf) {
+      extractFromCondition(conditional.skipIf);
+    }
+    if (conditional.requiredIf) {
+      extractFromCondition(conditional.requiredIf);
+    }
+
+    return Array.from(dependencies);
+  }
+
+  /**
+   * Validate conditional logic in a questionnaire
+   */
+  validateConditionalLogic(questionnaire: Questionnaire): ValidationResult {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    // Build dependency graph
+    const dependencyGraph = this.buildDependencyGraph(questionnaire);
+
+    // Check for circular dependencies
+    const cycles = dependencyGraph.findCycles();
+    if (cycles.length > 0) {
+      cycles.forEach(cycle => {
+        errors.push(`Circular dependency detected: ${cycle.join(' -> ')}`);
+      });
+    }
+
+    // Validate all conditional expressions
+    const questionIds = new Set(questionnaire.questions.map(q => q.id));
+    
+    for (const question of questionnaire.questions) {
+      if (question.conditional) {
+        const deps = this.extractDependencies(question.conditional);
+        
+        // Check for references to non-existent questions
+        for (const dep of deps) {
+          if (!questionIds.has(dep)) {
+            errors.push(
+              `Question "${question.id}" references non-existent question "${dep}" in conditional logic`
+            );
+          }
+        }
+
+        // Check for self-reference
+        if (deps.includes(question.id)) {
+          errors.push(
+            `Question "${question.id}" references itself in conditional logic`
+          );
+        }
+      }
+    }
+
+    // Check for potentially unreachable questions
+    const unreachableQuestions = this.findUnreachableQuestions(questionnaire);
+    if (unreachableQuestions.length > 0) {
+      warnings.push(
+        `Potentially unreachable questions: ${unreachableQuestions.join(', ')}`
+      );
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings
+    };
+  }
+
+  /**
+   * Find questions that may be unreachable due to conditional logic
+   */
+  private findUnreachableQuestions(questionnaire: Questionnaire): string[] {
+    const unreachable: string[] = [];
+
+    // This is a simplified heuristic - a question is potentially unreachable if:
+    // 1. It has a showIf condition that depends on a question that comes after it
+    // 2. All paths to show it are blocked
+    
+    const questionOrder = new Map<string, number>();
+    questionnaire.questions.forEach((q, index) => {
+      questionOrder.set(q.id, index);
+    });
+
+    for (const question of questionnaire.questions) {
+      if (question.conditional?.showIf) {
+        const deps = this.extractDependencies({ showIf: question.conditional.showIf });
+        
+        // Check if any dependency comes after this question
+        const currentIndex = questionOrder.get(question.id)!;
+        const hasForwardDependency = deps.some(dep => {
+          const depIndex = questionOrder.get(dep);
+          return depIndex !== undefined && depIndex > currentIndex;
+        });
+
+        if (hasForwardDependency) {
+          unreachable.push(question.id);
+        }
+      }
+    }
+
+    return unreachable;
+  }
+
+  /**
+   * Get the function registry for custom function registration
+   */
+  getFunctionRegistry(): ConditionalFunctionRegistry {
+    return this.functionRegistry;
   }
 }

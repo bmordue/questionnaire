@@ -873,4 +873,148 @@ describe('ConditionalLogicEngine', () => {
       expect(engine.isQuestionRequired(question, responses)).toBe(true);
     });
   });
+
+  describe('validateConditionalLogic', () => {
+    it('should validate questionnaire without conditional logic', () => {
+      const questionnaire = TestDataFactory.createValidQuestionnaire({
+        questions: [
+          TestDataFactory.createValidTextQuestion({ id: 'q1' }),
+          TestDataFactory.createValidTextQuestion({ id: 'q2' })
+        ]
+      });
+
+      const result = engine.validateConditionalLogic(questionnaire);
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should detect circular dependencies', () => {
+      const questionnaire = TestDataFactory.createValidQuestionnaire({
+        questions: [
+          TestDataFactory.createValidTextQuestion({
+            id: 'q1',
+            conditional: {
+              showIf: { questionId: 'q2', operator: 'equals', value: 'yes' }
+            }
+          }),
+          TestDataFactory.createValidTextQuestion({
+            id: 'q2',
+            conditional: {
+              showIf: { questionId: 'q1', operator: 'equals', value: 'yes' }
+            }
+          })
+        ]
+      });
+
+      const result = engine.validateConditionalLogic(questionnaire);
+      expect(result.isValid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.errors[0]).toContain('Circular dependency');
+    });
+
+    it('should detect references to non-existent questions', () => {
+      const questionnaire = TestDataFactory.createValidQuestionnaire({
+        questions: [
+          TestDataFactory.createValidTextQuestion({
+            id: 'q1',
+            conditional: {
+              showIf: { questionId: 'nonexistent', operator: 'equals', value: 'yes' }
+            }
+          })
+        ]
+      });
+
+      const result = engine.validateConditionalLogic(questionnaire);
+      expect(result.isValid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.errors[0]).toContain('non-existent');
+    });
+
+    it('should detect self-references', () => {
+      const questionnaire = TestDataFactory.createValidQuestionnaire({
+        questions: [
+          TestDataFactory.createValidTextQuestion({
+            id: 'q1',
+            conditional: {
+              showIf: { questionId: 'q1', operator: 'equals', value: 'yes' }
+            }
+          })
+        ]
+      });
+
+      const result = engine.validateConditionalLogic(questionnaire);
+      expect(result.isValid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+      // Self-references are detected as circular dependencies
+      expect(result.errors[0]).toContain('Circular dependency');
+    });
+
+    it('should warn about potentially unreachable questions', () => {
+      const questionnaire = TestDataFactory.createValidQuestionnaire({
+        questions: [
+          TestDataFactory.createValidTextQuestion({ id: 'q1' }),
+          TestDataFactory.createValidTextQuestion({
+            id: 'q2',
+            conditional: {
+              showIf: { questionId: 'q3', operator: 'equals', value: 'yes' }
+            }
+          }),
+          TestDataFactory.createValidTextQuestion({ id: 'q3' })
+        ]
+      });
+
+      const result = engine.validateConditionalLogic(questionnaire);
+      expect(result.warnings.length).toBeGreaterThan(0);
+      expect(result.warnings[0]).toContain('unreachable');
+    });
+  });
+
+  describe('buildDependencyGraph', () => {
+    it('should build dependency graph from questionnaire', () => {
+      const questionnaire = TestDataFactory.createValidQuestionnaire({
+        questions: [
+          TestDataFactory.createValidTextQuestion({ id: 'q1' }),
+          TestDataFactory.createValidTextQuestion({
+            id: 'q2',
+            conditional: {
+              showIf: { questionId: 'q1', operator: 'equals', value: 'yes' }
+            }
+          }),
+          TestDataFactory.createValidTextQuestion({
+            id: 'q3',
+            conditional: {
+              showIf: { questionId: 'q2', operator: 'equals', value: 'yes' }
+            }
+          })
+        ]
+      });
+
+      const graph = engine.buildDependencyGraph(questionnaire);
+      
+      expect(graph.getDependencies('q2')).toEqual(['q1']);
+      expect(graph.getDependencies('q3')).toEqual(['q2']);
+    });
+
+    it('should handle multiple conditional types', () => {
+      const questionnaire = TestDataFactory.createValidQuestionnaire({
+        questions: [
+          TestDataFactory.createValidTextQuestion({ id: 'q1' }),
+          TestDataFactory.createValidTextQuestion({ id: 'q2' }),
+          TestDataFactory.createValidTextQuestion({
+            id: 'q3',
+            conditional: {
+              showIf: { questionId: 'q1', operator: 'equals', value: 'yes' },
+              hideIf: { questionId: 'q2', operator: 'equals', value: 'no' }
+            }
+          })
+        ]
+      });
+
+      const graph = engine.buildDependencyGraph(questionnaire);
+      
+      const deps = graph.getDependencies('q3');
+      expect(deps).toContain('q1');
+      expect(deps).toContain('q2');
+    });
+  });
 });
