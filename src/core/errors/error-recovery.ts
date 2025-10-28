@@ -114,7 +114,7 @@ export class ErrorRecoveryManager {
    * Register default recovery strategies
    */
   private registerDefaultStrategies(): void {
-    this.recoveryStrategies.set('retry', new ValidationRecoveryHandler());
+    this.recoveryStrategies.set('validate', new ValidationRecoveryHandler());
     this.recoveryStrategies.set('fallback', new StorageRecoveryHandler());
     this.recoveryStrategies.set('retry', new NetworkRecoveryHandler());
     this.recoveryStrategies.set('reset', new FlowRecoveryHandler());
