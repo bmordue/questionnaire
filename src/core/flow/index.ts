@@ -14,8 +14,19 @@ export {
 // Export conditional logic
 export {
   ConditionalLogicEngine,
-  ConditionEvaluationError
+  ConditionEvaluationError,
+  type ValidationResult
 } from './conditional-logic.js';
+
+// Export dependency graph
+export { DependencyGraph } from './dependency-graph.js';
+
+// Export conditional functions
+export {
+  ConditionalFunctionRegistry,
+  type ConditionalFunction,
+  type EvaluationContext
+} from './conditional-functions.js';
 
 // Export navigation
 export { NavigationManager } from './navigation-manager.js';
