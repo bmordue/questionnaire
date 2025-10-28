@@ -2,12 +2,15 @@ import { z } from 'zod';
 
 /**
  * Answer Schema
- * Represents a single answer to a question
+ * Represents a single answer to a question with metadata
  */
 const AnswerSchema = z.object({
   questionId: z.string(),
   value: z.any(),
-  answeredAt: z.string().datetime()
+  answeredAt: z.string().datetime(),
+  duration: z.number().min(0).optional(), // Time spent on question in milliseconds
+  attempts: z.number().int().min(0).optional(), // Number of times answer was changed
+  skipped: z.boolean().optional() // Whether question was skipped
 });
 
 /**
@@ -25,7 +28,9 @@ export enum ResponseStatus {
 const ResponseProgressSchema = z.object({
   currentQuestionIndex: z.number().int().min(0),
   totalQuestions: z.number().int().min(1),
-  answeredCount: z.number().int().min(0)
+  answeredCount: z.number().int().min(0),
+  skippedCount: z.number().int().min(0).optional(),
+  percentComplete: z.number().min(0).max(100).optional()
 });
 
 /**
@@ -38,10 +43,13 @@ export const QuestionnaireResponseSchema = z.object({
   sessionId: z.string(),
   startedAt: z.string().datetime(),
   completedAt: z.string().datetime().optional(),
+  lastSavedAt: z.string().datetime().optional(),
+  totalDuration: z.number().min(0).optional(), // Total time in milliseconds
   status: z.nativeEnum(ResponseStatus),
   answers: z.array(AnswerSchema),
   progress: ResponseProgressSchema,
-  metadata: z.record(z.string(), z.any()).optional()
+  metadata: z.record(z.string(), z.any()).optional(),
+  version: z.string().default('1.0') // Response schema version (default applied by Zod when parsing incomplete objects; createResponse() sets this explicitly)
 });
 
 /**
@@ -91,12 +99,16 @@ export function createResponse(
     questionnaireVersion,
     sessionId,
     startedAt: now,
+    lastSavedAt: now,
     status: ResponseStatus.IN_PROGRESS,
     answers: [],
     progress: {
       currentQuestionIndex: 0,
       totalQuestions,
-      answeredCount: 0
-    }
+      answeredCount: 0,
+      skippedCount: 0,
+      percentComplete: 0
+    },
+    version: '1.0'
   });
 }
