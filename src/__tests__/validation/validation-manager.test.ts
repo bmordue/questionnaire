@@ -1,6 +1,7 @@
 import { describe, it, expect } from '@jest/globals';
 import { ValidationManager } from '../../core/validation/validation-manager.js';
 import type { Question } from '../../core/schemas/question.js';
+import { QuestionType } from '../../core/schemas/question.js';
 
 describe('ValidationManager', () => {
   const manager = new ValidationManager();
@@ -9,7 +10,7 @@ describe('ValidationManager', () => {
     it('should validate text question with minLength', () => {
       const question: Question = {
         id: 'q1',
-        type: 'text',
+        type: QuestionType.TEXT,
         text: 'Enter text',
         required: true,
         validation: {
@@ -26,7 +27,7 @@ describe('ValidationManager', () => {
     it('should validate text question with pattern', () => {
       const question: Question = {
         id: 'q1',
-        type: 'text',
+        type: QuestionType.TEXT,
         text: 'Enter text',
         required: false,
         validation: {
@@ -45,7 +46,7 @@ describe('ValidationManager', () => {
     it('should validate number question with range', () => {
       const question: Question = {
         id: 'q1',
-        type: 'number',
+        type: QuestionType.NUMBER,
         text: 'Enter number',
         required: true,
         validation: {
@@ -62,7 +63,7 @@ describe('ValidationManager', () => {
     it('should validate number question requiring integer', () => {
       const question: Question = {
         id: 'q1',
-        type: 'number',
+        type: QuestionType.NUMBER,
         text: 'Enter number',
         required: false,
         validation: {
@@ -80,7 +81,7 @@ describe('ValidationManager', () => {
     it('should validate single choice question', () => {
       const question: Question = {
         id: 'q1',
-        type: 'single_choice',
+        type: QuestionType.SINGLE_CHOICE,
         text: 'Choose one',
         required: true,
         options: [
@@ -97,7 +98,7 @@ describe('ValidationManager', () => {
     it('should validate multiple choice question', () => {
       const question: Question = {
         id: 'q1',
-        type: 'multiple_choice',
+        type: QuestionType.MULTIPLE_CHOICE,
         text: 'Choose multiple',
         required: true,
         options: [
@@ -120,7 +121,7 @@ describe('ValidationManager', () => {
     it('should validate date format', () => {
       const question: Question = {
         id: 'q1',
-        type: 'date',
+        type: QuestionType.DATE,
         text: 'Enter date',
         required: true
       };
@@ -133,7 +134,7 @@ describe('ValidationManager', () => {
     it('should validate date range', () => {
       const question: Question = {
         id: 'q1',
-        type: 'date',
+        type: QuestionType.DATE,
         text: 'Enter date',
         required: false,
         validation: {
@@ -152,7 +153,7 @@ describe('ValidationManager', () => {
     it('should validate email format', () => {
       const question: Question = {
         id: 'q1',
-        type: 'email',
+        type: QuestionType.EMAIL,
         text: 'Enter email',
         required: true
       };
@@ -167,7 +168,7 @@ describe('ValidationManager', () => {
     it('should validate rating range', () => {
       const question: Question = {
         id: 'q1',
-        type: 'rating',
+        type: QuestionType.RATING,
         text: 'Rate this',
         required: true,
         validation: {
@@ -186,7 +187,7 @@ describe('ValidationManager', () => {
     it('should validate boolean type', () => {
       const question: Question = {
         id: 'q1',
-        type: 'boolean',
+        type: QuestionType.BOOLEAN,
         text: 'Yes or no',
         required: true
       };
@@ -202,20 +203,20 @@ describe('ValidationManager', () => {
       const questions: Question[] = [
         {
           id: 'q1',
-          type: 'text',
+          type: QuestionType.TEXT,
           text: 'Question 1',
           required: true
         },
         {
           id: 'q2',
-          type: 'number',
+          type: QuestionType.NUMBER,
           text: 'Question 2',
           required: true,
           validation: { min: 1, max: 10 }
         }
       ];
 
-      const responses = new Map([
+      const responses = new Map<string, any>([
         ['q1', ''],
         ['q2', 15]
       ]);

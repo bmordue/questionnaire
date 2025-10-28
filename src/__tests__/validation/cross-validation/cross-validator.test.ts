@@ -2,6 +2,7 @@ import { describe, it, expect } from '@jest/globals';
 import { CrossQuestionValidator } from '../../../core/validation/cross-validation/cross-validator.js';
 import type { DependencyRule, ConsistencyRule, CompletenessRule } from '../../../core/validation/types.js';
 import type { Question } from '../../../core/schemas/question.js';
+import { QuestionType } from '../../../core/schemas/question.js';
 
 describe('CrossQuestionValidator', () => {
   const validator = new CrossQuestionValidator();
@@ -9,19 +10,19 @@ describe('CrossQuestionValidator', () => {
   const mockQuestions: Question[] = [
     {
       id: 'q1',
-      type: 'text',
+      type: QuestionType.TEXT,
       text: 'Question 1',
       required: false
     },
     {
       id: 'q2',
-      type: 'text',
+      type: QuestionType.TEXT,
       text: 'Question 2',
       required: false
     },
     {
       id: 'q3',
-      type: 'text',
+      type: QuestionType.TEXT,
       text: 'Question 3',
       required: false
     }
