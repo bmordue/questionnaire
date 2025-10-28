@@ -13,7 +13,8 @@
     "flow-example": "npm run build && node dist/flow-example.js",
     "markdown-convert": "npm run build && node dist/markdown-convert.js",
     "components-example": "npm run build && node dist/components-example.js",
-    "persistence-example": "npm run build && node dist/persistence-example.js"
+    "persistence-example": "npm run build && node dist/persistence-example.js",
+    "conditional-logic-example": "npm run build && node dist/conditional-logic-example.js"
   },
   "devDependencies": {
     "@types/inquirer": "^9.0.9",
