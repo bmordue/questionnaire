@@ -42,25 +42,36 @@ export class ConsoleLogger implements Logger {
 
   debug(message: string, context?: any): void {
     if (this.level <= LogLevel.DEBUG) {
-      console.debug(message, context !== undefined ? context : '');
+      this.logToConsole(console.debug, message, context);
     }
   }
 
   info(message: string, context?: any): void {
     if (this.level <= LogLevel.INFO) {
-      console.info(message, context !== undefined ? context : '');
+      this.logToConsole(console.info, message, context);
     }
   }
 
   warn(message: string, context?: any): void {
     if (this.level <= LogLevel.WARN) {
-      console.warn(message, context !== undefined ? context : '');
+      this.logToConsole(console.warn, message, context);
     }
   }
 
   error(message: string, context?: any): void {
     if (this.level <= LogLevel.ERROR) {
-      console.error(message, context !== undefined ? context : '');
+      this.logToConsole(console.error, message, context);
+    }
+  }
+
+  /**
+   * Helper method to log to console with optional context
+   */
+  private logToConsole(logFn: (...args: any[]) => void, message: string, context?: any): void {
+    if (context !== undefined) {
+      logFn(message, context);
+    } else {
+      logFn(message);
     }
   }
 }

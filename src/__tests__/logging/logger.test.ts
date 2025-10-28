@@ -100,7 +100,7 @@ describe('Logging Framework', () => {
       logger = new ConsoleLogger(LogLevel.INFO);
       logger.info('test message');
       
-      expect(consoleInfoSpy).toHaveBeenCalledWith('test message', '');
+      expect(consoleInfoSpy).toHaveBeenCalledWith('test message');
     });
 
     it('should allow changing log level', () => {
