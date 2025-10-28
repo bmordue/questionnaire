@@ -1,5 +1,5 @@
 import inquirer from 'inquirer';
-import type { ValidationResult } from '../../core/validation/types.js';
+import type { ValidationResult, ValidationError } from '../../core/validation/types.js';
 import type { Question } from '../../core/schemas/question.js';
 import { ErrorDisplayComponent } from './error-display.js';
 
@@ -86,11 +86,17 @@ export class ValidationFeedbackManager {
    */
   showInlineHint(result: ValidationResult): string {
     if (!result.isValid && result.errors.length > 0) {
-      return this.errorDisplay.renderInline(result.errors[0]!);
+      const firstError = result.errors[0];
+      if (firstError) {
+        return this.errorDisplay.renderInline(firstError);
+      }
     }
     
     if (result.warnings.length > 0) {
-      return this.errorDisplay.renderInlineWarning(result.warnings[0]!);
+      const firstWarning = result.warnings[0];
+      if (firstWarning) {
+        return this.errorDisplay.renderInlineWarning(firstWarning);
+      }
     }
     
     return '';
@@ -99,7 +105,7 @@ export class ValidationFeedbackManager {
   /**
    * Show detailed error information
    */
-  showDetailedErrors(errors: import('../../core/validation/types.js').ValidationError[]): void {
+  showDetailedErrors(errors: ValidationError[]): void {
     if (errors.length === 0) {
       console.log(this.errorDisplay.renderSummary(0, 0));
       return;
