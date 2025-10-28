@@ -83,7 +83,7 @@ async function main() {
   await storage.saveQuestionnaire(questionnaire);
   console.log('✓ Questionnaire saved');
 
-  // Create persistence manager with 5-second auto-save
+  // Create persistence manager with 5000ms auto-save interval
   const persistenceManager = new PersistenceManager(storage, 5000);
 
   // PART 1: Start a new session and record answers

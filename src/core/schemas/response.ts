@@ -49,7 +49,7 @@ export const QuestionnaireResponseSchema = z.object({
   answers: z.array(AnswerSchema),
   progress: ResponseProgressSchema,
   metadata: z.record(z.string(), z.any()).optional(),
-  version: z.string().default('1.0') // Response schema version
+  version: z.string().default('1.0') // Response schema version (default applied by Zod when parsing incomplete objects; createResponse() sets this explicitly)
 });
 
 /**

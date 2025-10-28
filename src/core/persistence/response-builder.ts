@@ -215,6 +215,7 @@ export class ResponseBuilder {
         `Failed to save incremental response for sessionId=${this.response.sessionId}:`,
         error
       );
+    }
   }
 
   /**
