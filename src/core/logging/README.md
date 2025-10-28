@@ -124,6 +124,12 @@ Run the logging example to see the framework in action:
 npm run logging-example
 ```
 
+This will demonstrate:
+- Different log levels (DEBUG, INFO, WARN, ERROR)
+- Changing log levels at runtime
+- Logging with context objects
+- How the framework filters messages based on current log level
+
 ## Migration from console.warn
 
 The logging framework replaces direct `console.warn` calls throughout the codebase:
