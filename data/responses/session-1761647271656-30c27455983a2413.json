@@ -1,0 +1,53 @@
+{
+  "id": "response-1761647271657-t9il3a5",
+  "questionnaireId": "customer-feedback",
+  "questionnaireVersion": "1.0.0",
+  "sessionId": "session-1761647271656-30c27455983a2413",
+  "startedAt": "2025-10-28T10:27:51.657Z",
+  "completedAt": "2025-10-28T10:27:51.671Z",
+  "lastSavedAt": "2025-10-28T10:27:51.669Z",
+  "totalDuration": 7500,
+  "status": "completed",
+  "answers": [
+    {
+      "questionId": "q1",
+      "value": "John Doe",
+      "answeredAt": "2025-10-28T10:27:51.660Z",
+      "duration": 2000,
+      "attempts": 1,
+      "skipped": false
+    },
+    {
+      "questionId": "q2",
+      "value": 4,
+      "answeredAt": "2025-10-28T10:27:51.669Z",
+      "duration": 4000,
+      "attempts": 2,
+      "skipped": false
+    },
+    {
+      "questionId": "q3",
+      "value": true,
+      "answeredAt": "2025-10-28T10:27:51.665Z",
+      "duration": 1500,
+      "attempts": 1,
+      "skipped": false
+    },
+    {
+      "questionId": "q4",
+      "value": null,
+      "answeredAt": "2025-10-28T10:27:51.667Z",
+      "duration": 0,
+      "attempts": 0,
+      "skipped": true
+    }
+  ],
+  "progress": {
+    "currentQuestionIndex": 0,
+    "totalQuestions": 4,
+    "answeredCount": 3,
+    "skippedCount": 1,
+    "percentComplete": 100
+  },
+  "version": "1.0"
+}

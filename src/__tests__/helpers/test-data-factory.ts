@@ -224,7 +224,8 @@ export class TestDataFactory {
         currentQuestionIndex: 0,
         totalQuestions: 2,
         answeredCount: 0
-      }
+      },
+      version: '1.0'
     };
     
     return {

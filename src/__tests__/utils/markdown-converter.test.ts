@@ -84,7 +84,8 @@ describe('MarkdownConverter', () => {
       currentQuestionIndex: 6,
       totalQuestions: 6,
       answeredCount: 6
-    }
+    },
+    version: '1.0'
   };
 
   describe('convertResponse', () => {

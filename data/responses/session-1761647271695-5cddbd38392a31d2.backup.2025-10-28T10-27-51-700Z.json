@@ -1,0 +1,35 @@
+{
+  "id": "response-1761647271695-94hbuf3",
+  "questionnaireId": "customer-feedback",
+  "questionnaireVersion": "1.0.0",
+  "sessionId": "session-1761647271695-5cddbd38392a31d2",
+  "startedAt": "2025-10-28T10:27:51.695Z",
+  "lastSavedAt": "2025-10-28T10:27:51.698Z",
+  "status": "in_progress",
+  "answers": [
+    {
+      "questionId": "q1",
+      "value": "Carol White",
+      "answeredAt": "2025-10-28T10:27:51.696Z",
+      "duration": 2000,
+      "attempts": 1,
+      "skipped": false
+    },
+    {
+      "questionId": "q2",
+      "value": 3,
+      "answeredAt": "2025-10-28T10:27:51.698Z",
+      "duration": 2500,
+      "attempts": 1,
+      "skipped": false
+    }
+  ],
+  "progress": {
+    "currentQuestionIndex": 0,
+    "totalQuestions": 4,
+    "answeredCount": 2,
+    "skippedCount": 0,
+    "percentComplete": 50
+  },
+  "version": "1.0"
+}

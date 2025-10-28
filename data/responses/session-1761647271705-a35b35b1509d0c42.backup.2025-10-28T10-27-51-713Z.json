@@ -1,0 +1,51 @@
+{
+  "id": "response-1761647271705-il9kjs0",
+  "questionnaireId": "customer-feedback",
+  "questionnaireVersion": "1.0.0",
+  "sessionId": "session-1761647271705-a35b35b1509d0c42",
+  "startedAt": "2025-10-28T10:27:51.705Z",
+  "lastSavedAt": "2025-10-28T10:27:51.711Z",
+  "status": "in_progress",
+  "answers": [
+    {
+      "questionId": "q1",
+      "value": "David Brown",
+      "answeredAt": "2025-10-28T10:27:51.706Z",
+      "duration": 2000,
+      "attempts": 1,
+      "skipped": false
+    },
+    {
+      "questionId": "q2",
+      "value": 5,
+      "answeredAt": "2025-10-28T10:27:51.708Z",
+      "duration": 2500,
+      "attempts": 1,
+      "skipped": false
+    },
+    {
+      "questionId": "q3",
+      "value": true,
+      "answeredAt": "2025-10-28T10:27:51.709Z",
+      "duration": 1500,
+      "attempts": 1,
+      "skipped": false
+    },
+    {
+      "questionId": "q4",
+      "value": null,
+      "answeredAt": "2025-10-28T10:27:51.711Z",
+      "duration": 0,
+      "attempts": 0,
+      "skipped": true
+    }
+  ],
+  "progress": {
+    "currentQuestionIndex": 0,
+    "totalQuestions": 4,
+    "answeredCount": 3,
+    "skippedCount": 1,
+    "percentComplete": 75
+  },
+  "version": "1.0"
+}
