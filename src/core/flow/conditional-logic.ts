@@ -248,7 +248,7 @@ export class ConditionalLogicEngine {
   /**
    * Extract all question IDs that a conditional logic depends on
    */
-  private extractDependencies(conditional: any): string[] {
+  private extractDependencies(conditional: Conditional): string[] {
     const dependencies = new Set<string>();
 
     const extractFromCondition = (condition: Condition | Condition[]) => {
