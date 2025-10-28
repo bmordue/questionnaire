@@ -74,6 +74,6 @@ export class DateValidator extends BaseValidator<string, DateValidationRules> {
    */
   private formatDate(date: Date): string {
     const isoString = date.toISOString().split('T')[0];
-    return isoString!;
+    return isoString;
   }
 }
