@@ -101,8 +101,9 @@ export class DependencyGraph {
     const visited = new Set<string>();
     const queue = [from];
 
-    while (queue.length > 0) {
-      const current = queue.shift()!;
+    let i = 0;
+    while (i < queue.length) {
+      const current = queue[i++];
       if (current === to) return true;
 
       if (visited.has(current)) continue;
