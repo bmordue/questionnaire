@@ -8,7 +8,8 @@ import {
   type ErrorContext,
   type ErrorHandlingResult
 } from './error-types.js';
-import { getLogger, type Logger } from '../logging/index.js';
+import { getLogger } from '../logging/index.js';
+import type { Logger } from '../logging/logger.js';
 
 /**
  * Simple error reporter interface
