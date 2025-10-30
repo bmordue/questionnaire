@@ -8,6 +8,9 @@ import type { Questionnaire, QuestionnaireResponse } from '../schema.js';
 import { createResponse } from '../schemas/response.js';
 import type { StorageService } from '../storage/types.js';
 import { ResponseBuilder } from './response-builder.js';
+import { getLogger } from '../logging/index.js';
+
+const logger = getLogger();
 
 /**
  * Active response session
@@ -151,7 +154,7 @@ export class PersistenceManager {
           await this.storage.saveResponse(response);
         } catch (error) {
           const sessionId = this.currentBuilder.getResponse().sessionId;
-          console.warn(`Auto-save failed for session ${sessionId}:`, error);
+          logger.warn(`Auto-save failed for session ${sessionId}:`, error);
         }
       }
     }, this.autoSaveInterval);

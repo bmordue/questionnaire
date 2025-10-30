@@ -7,6 +7,9 @@
 import type { Questionnaire, QuestionnaireResponse, Answer } from '../schema.js';
 import { ResponseStatus } from '../schemas/response.js';
 import type { StorageService } from '../storage/types.js';
+import { getLogger } from '../logging/index.js';
+
+const logger = getLogger();
 
 /**
  * Metadata for recording an answer
@@ -211,7 +214,7 @@ export class ResponseBuilder {
       });
     } catch (error) {
       // Log but don't throw - incremental saves should not block user
-      console.warn(
+      logger.warn(
         `Failed to save incremental response for sessionId=${this.response.sessionId}:`,
         error
       );
