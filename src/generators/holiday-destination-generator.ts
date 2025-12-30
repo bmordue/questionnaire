@@ -1,0 +1,396 @@
+/**
+ * Generator for Holiday Destination Questionnaire
+ * This file uses TypeScript types to ensure the generated questionnaire is valid
+ */
+
+import type { Questionnaire } from '../core/schema.js';
+import { QuestionType } from '../core/schema.js';
+import { writeFile } from 'fs/promises';
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+export const holidayDestinationQuestionnaire: Questionnaire = {
+  id: "holiday-destination-2025",
+  version: "1.0.0",
+  metadata: {
+    title: "Find Your Perfect Summer Holiday Destination",
+    description: "A fun questionnaire to help you discover the ideal summer holiday destination based on your preferences, budget, and travel style.",
+    author: "Questionnaire TUI",
+    createdAt: "2025-06-01T10:00:00Z",
+    updatedAt: "2025-06-01T10:00:00Z",
+    tags: ["travel", "vacation", "summer", "recommendations", "lifestyle"]
+  },
+  questions: [
+    {
+      id: "travel_dates",
+      type: QuestionType.TEXT,
+      text: "When are you planning to travel? (e.g., 'July 2025', 'August 15-30')",
+      required: true,
+      validation: {
+        minLength: 3,
+        maxLength: 50
+      }
+    },
+    {
+      id: "flexible_dates",
+      type: QuestionType.BOOLEAN,
+      text: "Are your travel dates flexible?",
+      required: true
+    },
+    {
+      id: "budget_per_person",
+      type: QuestionType.NUMBER,
+      text: "What's your budget per person (in USD)?",
+      description: "Include flights, accommodation, food, and activities",
+      required: true,
+      validation: {
+        min: 100,
+        max: 50000,
+        integer: true
+      }
+    },
+    {
+      id: "budget_category",
+      type: QuestionType.SINGLE_CHOICE,
+      text: "How would you describe your budget?",
+      required: true,
+      options: [
+        {
+          value: "budget",
+          label: "Budget-friendly (hostels, street food, free activities)"
+        },
+        {
+          value: "mid_range",
+          label: "Mid-range (comfortable hotels, mix of dining)"
+        },
+        {
+          value: "luxury",
+          label: "Luxury (high-end hotels, fine dining, premium experiences)"
+        },
+        {
+          value: "splurge",
+          label: "Once-in-a-lifetime splurge (no budget constraints)"
+        }
+      ]
+    },
+    {
+      id: "travel_companions",
+      type: QuestionType.SINGLE_CHOICE,
+      text: "Who will you be traveling with?",
+      required: true,
+      options: [
+        { value: "solo", label: "Solo traveler" },
+        { value: "partner", label: "Partner/Spouse" },
+        { value: "friends", label: "Friends" },
+        { value: "family_young", label: "Family with young children" },
+        { value: "family_teens", label: "Family with teenagers" }
+      ]
+    },
+    {
+      id: "group_size",
+      type: QuestionType.NUMBER,
+      text: "How many people total (including yourself)?",
+      required: true,
+      validation: {
+        min: 1,
+        max: 20,
+        integer: true
+      },
+      conditional: {
+        showIf: {
+          questionId: "travel_companions",
+          operator: "notEquals",
+          value: "solo"
+        }
+      }
+    },
+    {
+      id: "vacation_duration",
+      type: QuestionType.SINGLE_CHOICE,
+      text: "How long is your vacation?",
+      required: true,
+      options: [
+        { value: "weekend", label: "Long weekend (3-4 days)" },
+        { value: "week", label: "One week" },
+        { value: "two_weeks", label: "Two weeks" },
+        { value: "three_plus", label: "Three weeks or more" }
+      ]
+    },
+    {
+      id: "climate_preference",
+      type: QuestionType.SINGLE_CHOICE,
+      text: "What's your ideal summer climate?",
+      required: true,
+      options: [
+        { value: "hot_beach", label: "Hot and sunny (beach weather, 30°C+)" },
+        { value: "warm_pleasant", label: "Warm and pleasant (20-28°C)" },
+        { value: "mild_cool", label: "Mild to cool (15-22°C)" },
+        { value: "variety", label: "I want variety/don't mind the weather" }
+      ]
+    },
+    {
+      id: "activity_level",
+      type: QuestionType.RATING,
+      text: "How active do you want your vacation to be?",
+      description: "1 = Pure relaxation, 10 = Action-packed adventure",
+      required: true,
+      validation: {
+        min: 1,
+        max: 10
+      }
+    },
+    {
+      id: "relaxation_activities",
+      type: QuestionType.MULTIPLE_CHOICE,
+      text: "What relaxation activities appeal to you?",
+      description: "Select all that apply",
+      required: true,
+      options: [
+        { value: "beach", label: "Beach lounging" },
+        { value: "spa", label: "Spa and wellness" },
+        { value: "pool", label: "Pool time at resort" },
+        { value: "nature_walks", label: "Gentle nature walks" },
+        { value: "reading", label: "Reading and doing nothing" }
+      ],
+      validation: {
+        minSelections: 1,
+        maxSelections: 5
+      },
+      conditional: {
+        showIf: {
+          questionId: "activity_level",
+          operator: "lessThanOrEqual",
+          value: 5
+        }
+      }
+    },
+    {
+      id: "adventure_activities",
+      type: QuestionType.MULTIPLE_CHOICE,
+      text: "What adventure activities interest you?",
+      description: "Select all that apply",
+      required: true,
+      options: [
+        { value: "hiking", label: "Hiking and trekking" },
+        { value: "water_sports", label: "Water sports (surfing, diving, kayaking)" },
+        { value: "cycling", label: "Cycling tours" },
+        { value: "extreme", label: "Extreme sports (paragliding, bungee, etc.)" },
+        { value: "wildlife", label: "Wildlife safaris" },
+        { value: "rock_climbing", label: "Rock climbing or mountaineering" }
+      ],
+      validation: {
+        minSelections: 1,
+        maxSelections: 6
+      },
+      conditional: {
+        showIf: {
+          questionId: "activity_level",
+          operator: "greaterThan",
+          value: 5
+        }
+      }
+    },
+    {
+      id: "interests",
+      type: QuestionType.MULTIPLE_CHOICE,
+      text: "What are your main vacation interests?",
+      description: "Select your top 3-5",
+      required: true,
+      options: [
+        { value: "culture", label: "Culture and history (museums, monuments)" },
+        { value: "food", label: "Food and culinary experiences" },
+        { value: "nature", label: "Natural beauty and landscapes" },
+        { value: "nightlife", label: "Nightlife and entertainment" },
+        { value: "shopping", label: "Shopping and markets" },
+        { value: "photography", label: "Photography opportunities" },
+        { value: "local_life", label: "Experiencing local life" },
+        { value: "beach", label: "Beach and ocean" },
+        { value: "festivals", label: "Festivals and events" }
+      ],
+      validation: {
+        minSelections: 3,
+        maxSelections: 5
+      }
+    },
+    {
+      id: "accommodation_style",
+      type: QuestionType.SINGLE_CHOICE,
+      text: "What's your preferred accommodation style?",
+      required: true,
+      options: [
+        { value: "hostel", label: "Hostel (social, budget-friendly)" },
+        { value: "hotel", label: "Hotel (comfortable, convenient)" },
+        { value: "boutique", label: "Boutique hotel or B&B (unique, personal)" },
+        { value: "resort", label: "All-inclusive resort (everything on-site)" },
+        { value: "vacation_rental", label: "Vacation rental (apartment, villa)" },
+        { value: "unique", label: "Unique stays (treehouse, castle, eco-lodge)" }
+      ]
+    },
+    {
+      id: "family_friendly",
+      type: QuestionType.BOOLEAN,
+      text: "Do you need family-friendly facilities and activities?",
+      required: true,
+      conditional: {
+        showIf: {
+          questionId: "travel_companions",
+          operator: "contains",
+          value: "family"
+        }
+      }
+    },
+    {
+      id: "destination_type",
+      type: QuestionType.SINGLE_CHOICE,
+      text: "What type of destination appeals to you most?",
+      required: true,
+      options: [
+        { value: "beach_island", label: "Beach/island paradise" },
+        { value: "city", label: "Vibrant city" },
+        { value: "mountains", label: "Mountains and nature" },
+        { value: "countryside", label: "Countryside and villages" },
+        { value: "mix", label: "Mix of city and nature" }
+      ]
+    },
+    {
+      id: "crowd_preference",
+      type: QuestionType.RATING,
+      text: "How do you feel about crowds and tourist hotspots?",
+      description: "1 = Avoid crowds at all costs, 10 = Love the energy of popular places",
+      required: true,
+      validation: {
+        min: 1,
+        max: 10
+      }
+    },
+    {
+      id: "flight_duration",
+      type: QuestionType.SINGLE_CHOICE,
+      text: "How long are you willing to fly?",
+      required: true,
+      options: [
+        { value: "short", label: "Short haul (1-3 hours)" },
+        { value: "medium", label: "Medium haul (3-6 hours)" },
+        { value: "long", label: "Long haul (6-12 hours)" },
+        { value: "ultra_long", label: "Ultra long haul (12+ hours)" },
+        { value: "no_preference", label: "No preference / Worth it for the right destination" }
+      ]
+    },
+    {
+      id: "language_barrier",
+      type: QuestionType.RATING,
+      text: "How comfortable are you with language barriers?",
+      description: "1 = Need English everywhere, 10 = Love the challenge",
+      required: true,
+      validation: {
+        min: 1,
+        max: 10
+      }
+    },
+    {
+      id: "deal_breakers",
+      type: QuestionType.MULTIPLE_CHOICE,
+      text: "What are absolute deal-breakers for you?",
+      description: "Select all that apply",
+      required: false,
+      options: [
+        { value: "long_flights", label: "Long flights" },
+        { value: "hot_weather", label: "Extreme heat" },
+        { value: "cold_weather", label: "Cold weather" },
+        { value: "crowds", label: "Heavy tourist crowds" },
+        { value: "expensive", label: "Expensive destinations" },
+        { value: "visa_hassle", label: "Complicated visa requirements" },
+        { value: "safety_concerns", label: "Safety concerns" },
+        { value: "limited_food", label: "Limited food options" }
+      ],
+      validation: {
+        minSelections: 0,
+        maxSelections: 8
+      }
+    },
+    {
+      id: "must_haves",
+      type: QuestionType.MULTIPLE_CHOICE,
+      text: "What are absolute must-haves?",
+      description: "Select your top priorities",
+      required: true,
+      options: [
+        { value: "beach_access", label: "Beach access" },
+        { value: "good_food", label: "Amazing food scene" },
+        { value: "historical_sites", label: "Historical sites" },
+        { value: "natural_beauty", label: "Stunning natural scenery" },
+        { value: "good_weather", label: "Guaranteed good weather" },
+        { value: "safe", label: "Very safe destination" },
+        { value: "instagram_worthy", label: "Instagram-worthy spots" },
+        { value: "unique_culture", label: "Unique culture" }
+      ],
+      validation: {
+        minSelections: 2,
+        maxSelections: 5
+      }
+    },
+    {
+      id: "previous_summer_destinations",
+      type: QuestionType.TEXT,
+      text: "Where have you traveled in recent summers? (optional)",
+      description: "List destinations you've already visited to avoid repetition",
+      required: false,
+      validation: {
+        maxLength: 200
+      }
+    },
+    {
+      id: "dream_destination",
+      type: QuestionType.TEXT,
+      text: "Is there a dream destination you've always wanted to visit?",
+      required: false,
+      validation: {
+        maxLength: 100
+      }
+    },
+    {
+      id: "recommendation_preference",
+      type: QuestionType.SINGLE_CHOICE,
+      text: "What type of recommendation are you looking for?",
+      required: true,
+      options: [
+        { value: "specific", label: "One specific destination recommendation" },
+        { value: "shortlist", label: "A shortlist of 3-5 options" },
+        { value: "categories", label: "Options grouped by style (adventure, relaxation, culture)" }
+      ]
+    },
+    {
+      id: "booking_timeline",
+      type: QuestionType.SINGLE_CHOICE,
+      text: "When are you planning to book?",
+      required: true,
+      options: [
+        { value: "asap", label: "As soon as possible" },
+        { value: "month", label: "Within a month" },
+        { value: "few_months", label: "In a few months" },
+        { value: "just_dreaming", label: "Just dreaming for now" }
+      ]
+    },
+    {
+      id: "additional_notes",
+      type: QuestionType.TEXT,
+      text: "Any other preferences or requirements we should know about?",
+      required: false,
+      validation: {
+        maxLength: 500
+      }
+    }
+  ],
+  config: {
+    allowBack: true,
+    showProgress: true,
+    allowSkip: false,
+    shuffleQuestions: false
+  }
+};
+
+// Export for use in other modules
+export default holidayDestinationQuestionnaire;
