@@ -30,7 +30,7 @@ describe('FixtureLoader', () => {
       
       expect(fixtures).toBeDefined();
       expect(fixtures.length).toBeGreaterThan(0);
-      expect(fixtures.length).toBe(4); // customer-feedback, employee-onboarding, product-research, demographic-survey
+      expect(fixtures.length).toBe(5); // customer-feedback, employee-onboarding, product-research, demographic-survey, holiday-destination
     });
 
     it('should include fixtures with conditional logic', async () => {
@@ -67,7 +67,7 @@ describe('FixtureLoader', () => {
       const fixtures = await FixtureLoader.loadAllFixtures();
       
       expect(fixtures).toBeDefined();
-      expect(fixtures.length).toBe(11); // 3 basic + 4 advanced + 4 edge cases
+      expect(fixtures.length).toBe(12); // 3 basic + 5 advanced + 4 edge cases
     });
 
     it('should have unique IDs across all fixtures', async () => {
