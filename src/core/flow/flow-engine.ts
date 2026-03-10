@@ -10,7 +10,8 @@ import type {
   FlowEngine,
   FlowState,
   FlowResult,
-  ProgressInfo
+  ProgressInfo,
+  FlowStartOptions
 } from '../types/flow-types.js';
 import { ConditionalLogicEngine } from './conditional-logic.js';
 import { ProgressTracker } from './progress-tracker.js';
@@ -59,7 +60,18 @@ export class QuestionnaireFlowEngine implements FlowEngine {
   /**
    * Start a new questionnaire session
    */
-  async start(questionnaireId: string): Promise<void> {
+  async start(
+    questionnaireId: string,
+    options: FlowStartOptions = {}
+  ): Promise<void> {
+    const {
+      sessionId,
+      initialResponses,
+      skippedQuestions,
+      currentQuestionId,
+      startTime
+    } = options;
+
     // Load questionnaire
     this.questionnaire = await this.storage.loadQuestionnaire(questionnaireId);
 
@@ -70,7 +82,9 @@ export class QuestionnaireFlowEngine implements FlowEngine {
       );
     }
 
-    const firstQuestion = this.questionnaire.questions[0];
+    const firstQuestion = currentQuestionId
+      ? this.findQuestionById(currentQuestionId) ?? this.questionnaire.questions[0]
+      : this.questionnaire.questions[0];
     if (!firstQuestion) {
       throw new FlowError(
         'Questionnaire has no questions',
@@ -79,20 +93,24 @@ export class QuestionnaireFlowEngine implements FlowEngine {
     }
 
     // Create new session
-    const sessionId = await this.storage.createSession(questionnaireId);
+    const sessionIdentifier = sessionId ?? await this.storage.createSession(questionnaireId);
+    const responses = initialResponses ? new Map(initialResponses) : new Map<string, any>();
+    const skipped = skippedQuestions ? new Set(skippedQuestions) : new Set<string>();
+    const visited = new Set<string>([firstQuestion.id, ...responses.keys()]);
+    const currentQuestionIndex = Math.max(0, this.findQuestionIndex(firstQuestion.id));
 
     // Initialize state
     this.state = {
       questionnaireId: this.questionnaire.id,
-      sessionId,
-      currentQuestionIndex: 0,
+      sessionId: sessionIdentifier,
+      currentQuestionIndex,
       currentQuestionId: firstQuestion.id,
-      responses: new Map(),
-      visitedQuestions: new Set([firstQuestion.id]),
-      skippedQuestions: new Set(),
+      responses,
+      visitedQuestions: visited,
+      skippedQuestions: skipped,
       questionHistory: [firstQuestion.id],
       isCompleted: false,
-      startTime: new Date(),
+      startTime: startTime ?? new Date(),
       lastUpdateTime: new Date()
     };
 

@@ -26,6 +26,24 @@ npm install
 npm run build
 ```
 
+### Run a Questionnaire
+
+```bash
+npm start -- --questionnaire fixtures/basic/simple-text-survey.json
+```
+
+Resume a saved session:
+
+```bash
+npm start -- --questionnaire fixtures/basic/simple-text-survey.json --resume <sessionId>
+```
+
+For iterative runs without rebuilding:
+
+```bash
+npm run start:dev -- --questionnaire fixtures/basic/simple-text-survey.json
+```
+
 ### Run Tests
 
 ```bash
