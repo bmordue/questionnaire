@@ -1,8 +1,9 @@
 import process from 'node:process';
+import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { existsSync } from 'fs';
-import { runQuestionnaire } from './runner.js';
+import { QuestionnaireInterruptedError, runQuestionnaire } from './runner.js';
 import type { RunnerOptions } from './runner.js';
 import { MessageFormatter } from './ui/components/index.js';
 
@@ -91,6 +92,10 @@ export async function main(): Promise<void> {
 
     await runQuestionnaire(runOptions);
   } catch (error) {
+    if (error instanceof QuestionnaireInterruptedError) {
+      process.exit(0);
+    }
+
     console.error(
       MessageFormatter.formatError(
         error instanceof Error ? error.message : String(error)
@@ -100,7 +105,8 @@ export async function main(): Promise<void> {
   }
 }
 
-const entrypoint = fileURLToPath(import.meta.url);
-if (process.argv[1] === entrypoint) {
+const entrypoint = path.resolve(fileURLToPath(import.meta.url));
+const invokedPath = process.argv[1] ? path.resolve(process.argv[1]) : '';
+if (invokedPath === entrypoint) {
   void main();
 }

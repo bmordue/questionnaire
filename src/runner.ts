@@ -29,6 +29,13 @@ export interface RunnerResult {
   completed: boolean;
 }
 
+export class QuestionnaireInterruptedError extends Error {
+  constructor(sessionId: string) {
+    super(`Questionnaire interrupted for session ${sessionId}`);
+    this.name = 'QuestionnaireInterruptedError';
+  }
+}
+
 type SignalHandler = (() => void) | null;
 
 function buildResponseMap(response: QuestionnaireResponse): Map<string, any> {
@@ -43,14 +50,31 @@ function buildResponseMap(response: QuestionnaireResponse): Map<string, any> {
   return map;
 }
 
-function findFirstPendingQuestion(
-  questionnaire: Questionnaire,
-  responses: Map<string, any>
-): { question: Question | null; skipped: Set<string> } {
-  const logic = new ConditionalLogicEngine();
+function buildPersistedSkipped(response: QuestionnaireResponse): Set<string> {
   const skipped = new Set<string>();
 
+  for (const answer of response.answers) {
+    if (answer.skipped) {
+      skipped.add(answer.questionId);
+    }
+  }
+
+  return skipped;
+}
+
+function findFirstPendingQuestion(
+  questionnaire: Questionnaire,
+  responses: Map<string, any>,
+  alreadySkipped: Set<string> = new Set()
+): { question: Question | null; skipped: Set<string> } {
+  const logic = new ConditionalLogicEngine();
+  const skipped = new Set<string>(alreadySkipped);
+
   for (const question of questionnaire.questions) {
+    if (skipped.has(question.id)) {
+      continue;
+    }
+
     if (!logic.shouldShowQuestion(question, responses) || logic.shouldSkipQuestion(question, responses)) {
       skipped.add(question.id);
       continue;
@@ -192,8 +216,10 @@ export async function runQuestionnaire(options: RunnerOptions): Promise<RunnerRe
 
   const responseSnapshot = session.responseBuilder.getResponse();
   const responsesMap = buildResponseMap(responseSnapshot);
-  const pending = findFirstPendingQuestion(questionnaire, responsesMap);
+  const persistedSkipped = buildPersistedSkipped(responseSnapshot);
+  const pending = findFirstPendingQuestion(questionnaire, responsesMap, persistedSkipped);
   const startQuestionId = pending.question?.id ?? questionnaire.questions[0]!.id;
+  const skippedQuestions = new Set<string>([...pending.skipped, ...persistedSkipped]);
 
   if (usedResume) {
     try {
@@ -202,7 +228,7 @@ export async function runQuestionnaire(options: RunnerOptions): Promise<RunnerRe
       await engine.start(questionnaire.id, {
         sessionId: session.sessionId,
         initialResponses: responsesMap,
-        skippedQuestions: pending.skipped,
+        skippedQuestions,
         currentQuestionId: startQuestionId,
         startTime: new Date(responseSnapshot.startedAt)
       });
@@ -211,7 +237,7 @@ export async function runQuestionnaire(options: RunnerOptions): Promise<RunnerRe
     await engine.start(questionnaire.id, {
       sessionId: session.sessionId,
       initialResponses: responsesMap,
-      skippedQuestions: pending.skipped,
+      skippedQuestions,
       currentQuestionId: startQuestionId,
       startTime: new Date(responseSnapshot.startedAt)
     });
@@ -243,22 +269,23 @@ export async function runQuestionnaire(options: RunnerOptions): Promise<RunnerRe
     sigtermHandler = null;
   };
 
-  const handleInterrupt = async () => {
+  const handleInterrupt = async (): Promise<never> => {
     await navManager.handleNavigation({ type: 'exit' });
+    await session.responseBuilder.refreshFromStorage();
     await persistenceManager.endSession();
     console.log(
       MessageFormatter.formatMuted(
         `Progress saved. Run with --resume ${session.sessionId} to continue.`
       )
     );
-    process.exit(0);
+    throw new QuestionnaireInterruptedError(session.sessionId);
   };
 
   sigintHandler = () => {
-    void handleInterrupt();
+    void handleInterrupt().catch(() => {});
   };
   sigtermHandler = () => {
-    void handleInterrupt();
+    void handleInterrupt().catch(() => {});
   };
 
   process.once('SIGINT', sigintHandler);
@@ -283,21 +310,20 @@ export async function runQuestionnaire(options: RunnerOptions): Promise<RunnerRe
       const component = ComponentFactory.create(question);
       const answer = await component.render(question, priorAnswer?.value);
 
-      await session.responseBuilder.recordAnswer(question.id, answer, {
-        timestamp: new Date().toISOString()
-      });
-
       const navResult = await navManager.handleNavigation({ type: 'next', answer });
 
       if (!navResult.success) {
         throw new Error(navResult.error || 'Navigation failed');
       }
 
+      await session.responseBuilder.refreshFromStorage();
+
       if (navResult.result?.type === 'complete') {
         break;
       }
     }
 
+    await session.responseBuilder.refreshFromStorage();
     const completedResponse = await session.responseBuilder.complete();
     await persistenceManager.endSession();
     console.log(formatCompletionSummary(completedResponse, dataDirectory));

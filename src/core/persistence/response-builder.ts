@@ -185,6 +185,21 @@ export class ResponseBuilder {
   }
 
   /**
+   * Refresh in-memory response from storage
+   */
+  async refreshFromStorage(): Promise<void> {
+    try {
+      const latest = await this.storage.loadResponse(this.response.sessionId);
+      this.response = latest;
+    } catch (error) {
+      logger.warn(
+        `Failed to refresh response for sessionId=${this.response.sessionId}:`,
+        error
+      );
+    }
+  }
+
+  /**
    * Update progress tracking
    */
   private updateProgress(): void {
