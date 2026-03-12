@@ -59,7 +59,7 @@ export type FlowResult = QuestionResult | FlowComplete;
  * Main flow engine interface
  */
 export interface FlowEngine {
-  start(questionnaireId: string): Promise<void>;
+  start(questionnaireId: string, options?: FlowStartOptions): Promise<void>;
   next(): Promise<FlowResult>;
   previous(): Promise<Question | null>;
   jumpTo(questionId: string): Promise<Question>;
@@ -68,4 +68,15 @@ export interface FlowEngine {
   recordResponse(questionId: string, answer: any): Promise<void>;
   saveState(): Promise<void>;
   loadState(sessionId: string): Promise<void>;
+}
+
+/**
+ * Options for starting a flow session with an existing session/state
+ */
+export interface FlowStartOptions {
+  sessionId?: string;
+  initialResponses?: Map<string, any>;
+  skippedQuestions?: Set<string>;
+  currentQuestionId?: string;
+  startTime?: Date;
 }

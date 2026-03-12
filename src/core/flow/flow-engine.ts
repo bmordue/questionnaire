@@ -10,7 +10,8 @@ import type {
   FlowEngine,
   FlowState,
   FlowResult,
-  ProgressInfo
+  ProgressInfo,
+  FlowStartOptions
 } from '../types/flow-types.js';
 import { ConditionalLogicEngine } from './conditional-logic.js';
 import { ProgressTracker } from './progress-tracker.js';
@@ -59,7 +60,18 @@ export class QuestionnaireFlowEngine implements FlowEngine {
   /**
    * Start a new questionnaire session
    */
-  async start(questionnaireId: string): Promise<void> {
+  async start(
+    questionnaireId: string,
+    options: FlowStartOptions = {}
+  ): Promise<void> {
+    const {
+      sessionId,
+      initialResponses,
+      skippedQuestions,
+      currentQuestionId,
+      startTime
+    } = options;
+
     // Load questionnaire
     this.questionnaire = await this.storage.loadQuestionnaire(questionnaireId);
 
@@ -70,7 +82,9 @@ export class QuestionnaireFlowEngine implements FlowEngine {
       );
     }
 
-    const firstQuestion = this.questionnaire.questions[0];
+    const firstQuestion = currentQuestionId
+      ? this.findQuestionById(currentQuestionId) ?? this.questionnaire.questions[0]
+      : this.questionnaire.questions[0];
     if (!firstQuestion) {
       throw new FlowError(
         'Questionnaire has no questions',
@@ -79,20 +93,25 @@ export class QuestionnaireFlowEngine implements FlowEngine {
     }
 
     // Create new session
-    const sessionId = await this.storage.createSession(questionnaireId);
+    const sessionIdentifier = sessionId ?? await this.storage.createSession(questionnaireId);
+    const responses = initialResponses ? new Map(initialResponses) : new Map<string, any>();
+    const skipped = skippedQuestions ? new Set(skippedQuestions) : new Set<string>();
+    const visited = new Set<string>([...responses.keys(), ...skipped, firstQuestion.id]);
+    const currentQuestionIndex = Math.max(0, this.findQuestionIndex(firstQuestion.id));
+    const questionHistory = this.buildInitialHistory(firstQuestion.id, responses);
 
     // Initialize state
     this.state = {
       questionnaireId: this.questionnaire.id,
-      sessionId,
-      currentQuestionIndex: 0,
+      sessionId: sessionIdentifier,
+      currentQuestionIndex,
       currentQuestionId: firstQuestion.id,
-      responses: new Map(),
-      visitedQuestions: new Set([firstQuestion.id]),
-      skippedQuestions: new Set(),
-      questionHistory: [firstQuestion.id],
+      responses,
+      visitedQuestions: visited,
+      skippedQuestions: skipped,
+      questionHistory,
       isCompleted: false,
-      startTime: new Date(),
+      startTime: startTime ?? new Date(),
       lastUpdateTime: new Date()
     };
 
@@ -115,7 +134,6 @@ export class QuestionnaireFlowEngine implements FlowEngine {
 
     // Mark current question as visited
     this.state!.visitedQuestions.add(currentQuestion.id);
-    this.state!.questionHistory.push(currentQuestion.id);
 
     // Find next visible question
     const nextQuestion = await this.findNextVisibleQuestion();
@@ -128,6 +146,10 @@ export class QuestionnaireFlowEngine implements FlowEngine {
         type: 'complete', 
         responses: new Map(this.state!.responses)
       };
+    }
+
+    if (this.state!.questionHistory[this.state!.questionHistory.length - 1] !== nextQuestion.id) {
+      this.state!.questionHistory.push(nextQuestion.id);
     }
 
     // Update state to next question
@@ -188,7 +210,9 @@ export class QuestionnaireFlowEngine implements FlowEngine {
     // Update state
     this.state!.currentQuestionId = question.id;
     this.state!.currentQuestionIndex = this.findQuestionIndex(question.id);
-    this.state!.questionHistory.push(question.id);
+    if (this.state!.questionHistory[this.state!.questionHistory.length - 1] !== question.id) {
+      this.state!.questionHistory.push(question.id);
+    }
     this.state!.lastUpdateTime = new Date();
     
     await this.saveState();
@@ -228,16 +252,42 @@ export class QuestionnaireFlowEngine implements FlowEngine {
     this.ensureLoaded();
 
     this.state!.responses.set(questionId, answer);
+    this.state!.visitedQuestions.add(questionId);
+    this.state!.skippedQuestions.delete(questionId);
     this.state!.lastUpdateTime = new Date();
     
     // Update the response in storage
     const response = await this.storage.loadResponse(this.state!.sessionId);
-    response.answers.push({
+    const existingIndex = response.answers.findIndex(a => a.questionId === questionId);
+    const attempts = existingIndex >= 0 ? (response.answers[existingIndex]!.attempts || 0) + 1 : 1;
+    const updatedAnswer = {
       questionId,
       value: answer,
-      answeredAt: new Date().toISOString()
-    });
+      answeredAt: new Date().toISOString(),
+      duration:
+        existingIndex >= 0
+          ? response.answers[existingIndex]!.duration
+          : 0,
+      attempts,
+      skipped: false
+    };
+
+    if (existingIndex >= 0) {
+      response.answers[existingIndex] = {
+        ...response.answers[existingIndex],
+        ...updatedAnswer
+      };
+    } else {
+      response.answers.push(updatedAnswer);
+    }
+
     response.progress.answeredCount = this.state!.responses.size;
+    response.progress.skippedCount = this.state!.skippedQuestions.size;
+    response.progress.percentComplete = Math.round(
+      (response.progress.answeredCount / response.progress.totalQuestions) * 100
+    );
+    response.lastSavedAt = new Date().toISOString();
+
     await this.storage.saveResponse(response);
     
     await this.saveState();
@@ -299,6 +349,13 @@ export class QuestionnaireFlowEngine implements FlowEngine {
       startTime: new Date(sessionData.startTime),
       lastUpdateTime: new Date(sessionData.lastUpdateTime)
     };
+
+    if (!this.state.questionHistory || this.state.questionHistory.length === 0) {
+      this.state.questionHistory = this.buildInitialHistory(
+        this.state.currentQuestionId,
+        this.state.responses
+      );
+    }
   }
 
   /**
@@ -354,6 +411,23 @@ export class QuestionnaireFlowEngine implements FlowEngine {
   private findQuestionIndex(questionId: string): number {
     if (!this.questionnaire) return -1;
     return this.questionnaire.questions.findIndex(q => q.id === questionId);
+  }
+
+  private buildInitialHistory(
+    currentQuestionId: string,
+    responses: Map<string, any>
+  ): string[] {
+    if (!this.questionnaire) return [currentQuestionId];
+
+    const answeredInOrder = this.questionnaire.questions
+      .filter(question => responses.has(question.id))
+      .map(question => question.id);
+
+    if (!answeredInOrder.includes(currentQuestionId)) {
+      answeredInOrder.push(currentQuestionId);
+    }
+
+    return answeredInOrder;
   }
 
   /**
