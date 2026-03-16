@@ -1,0 +1,25 @@
+{
+  "$schema": "https://stryker-mutator.io/schemas/stryker-schema.json#",
+  "testRunner": "jest",
+  "jest": {
+    "projectType": "custom",
+    "configFile": "jest.config.js"
+  },
+  "checkers": ["typescript"],
+  "tsconfigFile": "tsconfig.json",
+  "reporters": ["html", "clear-text", "progress", "dashboard"],
+  "dashboard": {
+    "project": "github.com/bmordue/questionnaire",
+    "module": "questionnaire",
+    "version": "main",
+    "baseUrl": "https://dashboard.stryker-mutator.io/",
+    "reportType": "full"
+  },
+  "coverageAnalysis": "perTest",
+  "mutate": [
+    "src/**/*.ts",
+    "!src/**/__tests__/**/*.ts",
+    "!src/**/*.test.ts",
+    "!src/**/*.d.ts"
+  ]
+}
