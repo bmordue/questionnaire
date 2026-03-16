@@ -1,6 +1,7 @@
 {
   "$schema": "https://stryker-mutator.io/schemas/stryker-schema.json#",
   "testRunner": "jest",
+  "testRunnerNodeArgs": ["--experimental-vm-modules"],
   "jest": {
     "projectType": "custom",
     "configFile": "jest.config.js"
