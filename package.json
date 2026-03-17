@@ -17,9 +17,13 @@
     "components-example": "npm run build && node dist/components-example.js",
     "persistence-example": "npm run build && node dist/persistence-example.js",
     "conditional-logic-example": "npm run build && node dist/conditional-logic-example.js",
-    "logging-example": "npm run build && node dist/logging-example.js"
+    "logging-example": "npm run build && node dist/logging-example.js",
+    "stryker": "stryker run"
   },
   "devDependencies": {
+    "@stryker-mutator/core": "^9.6.0",
+    "@stryker-mutator/jest-runner": "^9.6.0",
+    "@stryker-mutator/typescript-checker": "^9.6.0",
     "@types/inquirer": "^9.0.9",
     "@types/jest": "^30.0.0",
     "@types/node": "^24.9.1",
