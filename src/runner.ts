@@ -247,9 +247,11 @@ export async function runQuestionnaire(options: RunnerOptions): Promise<RunnerRe
     const completed = responseSnapshot.status === ResponseStatus.COMPLETED
       ? responseSnapshot
       : await session.responseBuilder.complete();
-    await persistenceManager.endSession();
+    const cleanupResult = await persistenceManager.endSession();
     console.log(formatCompletionSummary(completed, dataDirectory));
-    console.log(MessageFormatter.formatMuted('Backup files cleaned up'));
+    if (cleanupResult.deletedCount > 0 && cleanupResult.errors.length === 0) {
+      console.log(MessageFormatter.formatMuted(`Cleaned up ${cleanupResult.deletedCount} backup files`));
+    }
 
     return {
       sessionId: session.sessionId,
@@ -326,9 +328,11 @@ export async function runQuestionnaire(options: RunnerOptions): Promise<RunnerRe
 
     await session.responseBuilder.refreshFromStorage();
     const completedResponse = await session.responseBuilder.complete();
-    await persistenceManager.endSession();
+    const cleanupResult = await persistenceManager.endSession();
     console.log(formatCompletionSummary(completedResponse, dataDirectory));
-    console.log(MessageFormatter.formatMuted('Backup files cleaned up'));
+    if (cleanupResult.deletedCount > 0 && cleanupResult.errors.length === 0) {
+      console.log(MessageFormatter.formatMuted(`Cleaned up ${cleanupResult.deletedCount} backup files`));
+    }
 
     return {
       sessionId: session.sessionId,
