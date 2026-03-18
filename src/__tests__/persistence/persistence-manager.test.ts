@@ -267,11 +267,12 @@ describe('PersistenceManager', () => {
         deleteBackupsOnCompletion: false
       });
 
-      const pm = new PersistenceManager(storageNoCleanup, 1000);
+      // Use a longer auto-save interval to prevent interference
+      const pm = new PersistenceManager(storageNoCleanup, 60000);
       await storageNoCleanup.saveQuestionnaire(questionnaire);
 
       const session = await pm.startSession(questionnaire);
-      
+
       // Create backups
       await storageNoCleanup.saveResponse(session.responseBuilder.getResponse());
       await storageNoCleanup.saveResponse(session.responseBuilder.getResponse());
@@ -279,9 +280,13 @@ describe('PersistenceManager', () => {
       // Complete the session (this also saves, creating another backup)
       await session.responseBuilder.complete();
 
+      // Wait a bit to ensure all saves are complete
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       const rDir = path.join(testDir, 'responses');
       let files = await fs.readdir(rDir);
       const backupsBefore = files.filter(f => f.includes('.backup.'));
+      const expectedCount = backupsBefore.length;
 
       // End session
       await pm.endSession();
@@ -289,7 +294,7 @@ describe('PersistenceManager', () => {
       // Backups should still exist
       files = await fs.readdir(rDir);
       const backupsAfter = files.filter(f => f.includes('.backup.'));
-      expect(backupsAfter.length).toBe(backupsBefore.length);
+      expect(backupsAfter.length).toBe(expectedCount);
     });
 
     it('should handle cleanup errors gracefully', async () => {
