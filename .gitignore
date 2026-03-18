@@ -5,3 +5,5 @@ example-data/
 test-data/
 demo-data/
 data/
+.env
+.stryker-tmp/

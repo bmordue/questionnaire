@@ -1,0 +1,352 @@
+{
+  "id": "backup-cleanup-feature-refinement",
+  "version": "1.0.0",
+  "metadata": {
+    "title": "Backup Cleanup Feature - Clarifying Questions",
+    "description": "This questionnaire helps refine the requirements for the backup file cleanup feature request. Your answers will guide the implementation approach.",
+    "author": "Feature Development Team",
+    "createdAt": "2026-03-18T00:00:00Z",
+    "updatedAt": "2026-03-18T00:00:00Z",
+    "tags": ["feature-request", "backup", "cleanup", "configuration"]
+  },
+  "config": {
+    "allowBack": true,
+    "allowSkip": true,
+    "shuffleQuestions": false,
+    "showProgress": true
+  },
+  "questions": [
+    {
+      "id": "primary_problem",
+      "type": "multiple_choice",
+      "text": "What specific problem are you trying to solve by deleting backup files after questionnaire completion?",
+      "description": "Understanding the root motivation will help us design the best solution. Select all that apply.",
+      "required": true,
+      "options": [
+        {
+          "value": "disk_space",
+          "label": "Disk space concerns - backup files are consuming too much storage"
+        },
+        {
+          "value": "visual_clutter",
+          "label": "Visual clutter - too many files in the data directory"
+        },
+        {
+          "value": "confusion",
+          "label": "User confusion - people don't understand what .backup files are for"
+        },
+        {
+          "value": "compliance",
+          "label": "Compliance/security - need to minimize retained data"
+        },
+        {
+          "value": "other",
+          "label": "Other (please describe in the next question)"
+        }
+      ],
+      "validation": {
+        "minSelections": 1,
+        "maxSelections": 5
+      }
+    },
+    {
+      "id": "problem_description",
+      "type": "text",
+      "text": "Please describe the problem you're experiencing in more detail.",
+      "description": "If you selected 'Other' above, please explain. Otherwise, add any additional context that would be helpful.",
+      "required": false,
+      "conditional": {
+        "showIf": {
+          "questionId": "primary_problem",
+          "operator": "contains",
+          "value": "other"
+        }
+      },
+      "validation": {
+        "minLength": 10,
+        "maxLength": 500
+      }
+    },
+    {
+      "id": "backup_understanding",
+      "type": "boolean",
+      "text": "Do you understand that backup files provide recovery protection if a response file becomes corrupted?",
+      "description": "This helps us gauge if we need to add educational messaging vs. implementing the feature.",
+      "required": true
+    },
+    {
+      "id": "recovery_acceptable_loss",
+      "type": "single_choice",
+      "text": "If backup files are deleted on completion, would you be comfortable losing the ability to recover a completed response if it becomes corrupted?",
+      "description": "This is the key trade-off: cleanliness vs. data protection.",
+      "required": true,
+      "options": [
+        {
+          "value": "yes_comfortable",
+          "label": "Yes, I'm comfortable with that risk"
+        },
+        {
+          "value": "no_not_comfortable",
+          "label": "No, I want to keep recovery capability"
+        },
+        {
+          "value": "unsure",
+          "label": "I'm not sure - what's the typical failure rate?"
+        }
+      ]
+    },
+    {
+      "id": "current_max_backups",
+      "type": "number",
+      "text": "Are you currently using the default maxBackups setting (5), or have you configured it differently?",
+      "description": "Enter the number you're using (or 0 if you don't know).",
+      "required": false,
+      "validation": {
+        "min": 0,
+        "max": 100,
+        "integer": true
+      }
+    },
+    {
+      "id": "cleanup_timing_preference",
+      "type": "single_choice",
+      "text": "If we implement backup cleanup, when should it happen?",
+      "description": "The timing affects both safety and effectiveness of the cleanup.",
+      "required": true,
+      "options": [
+        {
+          "value": "on_complete",
+          "label": "Immediately when questionnaire is marked complete"
+        },
+        {
+          "value": "on_export",
+          "label": "After the response is exported (JSON/CSV/Markdown)"
+        },
+        {
+          "value": "on_session_end",
+          "label": "When the session ends (could be after viewing/exporting)"
+        },
+        {
+          "value": "delayed",
+          "label": "After a grace period (e.g., 24 hours after completion)"
+        },
+        {
+          "value": "manual",
+          "label": "Only when explicitly triggered by user command"
+        }
+      ]
+    },
+    {
+      "id": "retention_period",
+      "type": "single_choice",
+      "text": "If we use a delayed cleanup approach, what retention period makes sense?",
+      "description": "This keeps backups for a safety window, then cleans them up automatically.",
+      "required": true,
+      "conditional": {
+        "showIf": {
+          "questionId": "cleanup_timing_preference",
+          "operator": "in",
+          "values": ["delayed", "on_export"]
+        }
+      },
+      "options": [
+        {
+          "value": "1_hour",
+          "label": "1 hour (minimal safety window)"
+        },
+        {
+          "value": "24_hours",
+          "label": "24 hours (reasonable safety window)"
+        },
+        {
+          "value": "7_days",
+          "label": "7 days (conservative approach)"
+        },
+        {
+          "value": "30_days",
+          "label": "30 days (maximum safety)"
+        }
+      ]
+    },
+    {
+      "id": "scope_preference",
+      "type": "single_choice",
+      "text": "Which backup files should be cleaned up?",
+      "description": "The system creates backups for both response files and questionnaire definition files.",
+      "required": true,
+      "options": [
+        {
+          "value": "responses_only",
+          "label": "Only response file backups (from incremental completion)"
+        },
+        {
+          "value": "questionnaires_only",
+          "label": "Only questionnaire definition backups"
+        },
+        {
+          "value": "both",
+          "label": "Both response and questionnaire backups"
+        },
+        {
+          "value": "completed_only",
+          "label": "Only backups for completed responses (not abandoned)"
+        }
+      ]
+    },
+    {
+      "id": "configuration_approach",
+      "type": "single_choice",
+      "text": "How should this feature be configured?",
+      "description": "Determines whether this is automatic, opt-in, or opt-out.",
+      "required": true,
+      "options": [
+        {
+          "value": "default_off",
+          "label": "Default OFF - users enable it if they want it"
+        },
+        {
+          "value": "default_on",
+          "label": "Default ON - users disable it if they want backups"
+        },
+        {
+          "value": "always_on",
+          "label": "Always on - no configuration option"
+        },
+        {
+          "value": "cli_flag",
+          "label": "Command-line flag per run (e.g., --cleanup-backups)"
+        }
+      ]
+    },
+    {
+      "id": "alternative_approaches",
+      "type": "multiple_choice",
+      "text": "Which alternative approaches would you consider instead of immediate deletion? (Select all that apply)",
+      "description": "There may be better solutions than the requested approach.",
+      "required": false,
+      "options": [
+        {
+          "value": "reduce_max_backups",
+          "label": "Reduce maxBackups setting (e.g., from 5 to 2)"
+        },
+        {
+          "value": "archive_backups",
+          "label": "Move backups to archive/ subdirectory instead of deleting"
+        },
+        {
+          "value": "compress_backups",
+          "label": "Compress backup files to save space"
+        },
+        {
+          "value": "age_based_cleanup",
+          "label": "Delete backups older than X days (configurable)"
+        },
+        {
+          "value": "status_based_cleanup",
+          "label": "Only delete backups for COMPLETED responses, keep ABANDONED ones"
+        }
+      ],
+      "validation": {
+        "minSelections": 0,
+        "maxSelections": 5
+      }
+    },
+    {
+      "id": "error_handling",
+      "type": "single_choice",
+      "text": "If backup cleanup fails during session end, what should happen?",
+      "description": "This determines how critical we treat cleanup errors.",
+      "required": true,
+      "options": [
+        {
+          "value": "log_warning",
+          "label": "Log a warning but continue - cleanup is non-critical"
+        },
+        {
+          "value": "retry_once",
+          "label": "Retry once, then log warning if it fails again"
+        },
+        {
+          "value": "block_completion",
+          "label": "Block session completion - cleanup is required"
+        },
+        {
+          "value": "queue_for_later",
+          "label": "Queue for background cleanup on next app start"
+        }
+      ]
+    },
+    {
+      "id": "notification_preference",
+      "type": "single_choice",
+      "text": "Should users be notified when backups are cleaned up?",
+      "description": "Determines if we add informational messages during cleanup.",
+      "required": true,
+      "options": [
+        {
+          "value": "no_notification",
+          "label": "No notification - silent cleanup"
+        },
+        {
+          "value": "summary_message",
+          "label": "Show summary (e.g., 'Cleaned up 3 backup files')"
+        },
+        {
+          "value": "detailed_log",
+          "label": "Detailed log of each file deleted"
+        }
+      ]
+    },
+    {
+      "id": "use_cases",
+      "type": "multiple_choice",
+      "text": "Which use cases apply to your questionnaire runs? (Select all that apply)",
+      "description": "This helps us understand the operational context.",
+      "required": false,
+      "options": [
+        {
+          "value": "one_off_surveys",
+          "label": "One-off surveys (run once, never revisit)"
+        },
+        {
+          "value": "recurring_assessments",
+          "label": "Recurring assessments (same questionnaire, multiple runs)"
+        },
+        {
+          "value": "critical_data_collection",
+          "label": "Critical data collection (data loss would be severe)"
+        },
+        {
+          "value": "experimental_testing",
+          "label": "Experimental/testing use (data is disposable)"
+        },
+        {
+          "value": "production_deployments",
+          "label": "Production deployments (multiple users, high volume)"
+        }
+      ]
+    },
+    {
+      "id": "priority_level",
+      "type": "rating",
+      "text": "How important is this feature to you?",
+      "description": "Rate from 1 (nice-to-have) to 10 (blocking adoption).",
+      "required": true,
+      "validation": {
+        "min": 1,
+        "max": 10,
+        "step": 1
+      }
+    },
+    {
+      "id": "additional_feedback",
+      "type": "text",
+      "text": "Any additional feedback or requirements we should consider?",
+      "description": "Open field for any other thoughts on this feature.",
+      "required": false,
+      "validation": {
+        "maxLength": 1000
+      }
+    }
+  ]
+}
