@@ -8,7 +8,7 @@
   },
   "checkers": ["typescript"],
   "tsconfigFile": "tsconfig.json",
-  "reporters": ["dashboard"],
+  "reporters": ["dashboard", "json"],
   "dashboard": {
     "project": "github.com/bmordue/questionnaire",
     "version": "main",
