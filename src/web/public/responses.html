@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Responses</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<nav>
+  <a class="brand" href="index.html">📋 Questionnaires</a>
+  <a href="index.html">Home</a>
+  <a href="builder.html">Builder</a>
+  <a href="responses.html">Responses</a>
+</nav>
+
+<div class="container">
+  <div class="page-header">
+    <h1>Responses</h1>
+    <a href="index.html" class="btn btn-ghost">← Back to questionnaires</a>
+  </div>
+
+  <div id="alert" class="alert hidden"></div>
+
+  <!-- List view -->
+  <div id="listView">
+    <div id="filterBar" style="margin-bottom:1rem;display:flex;gap:0.75rem;align-items:center">
+      <label style="font-size:0.875rem;font-weight:500">Filter by questionnaire:</label>
+      <select id="qFilter" style="max-width:300px">
+        <option value="">All questionnaires</option>
+      </select>
+    </div>
+    <div id="responseList"></div>
+  </div>
+
+  <!-- Detail view -->
+  <div id="detailView" class="hidden">
+    <button id="backBtn" class="btn btn-ghost" style="margin-bottom:1rem">← Back to list</button>
+    <div id="detailContent"></div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+const params         = new URLSearchParams(location.search);
+const initQId        = params.get('questionnaireId') ?? '';
+const initResponseId = params.get('responseId') ?? '';
+
+let allResponses     = [];
+let questionnaires   = {};  // id -> title
+
+// ── DOM ───────────────────────────────────────────────────────────────────────
+const alertEl      = document.getElementById('alert');
+const listView     = document.getElementById('listView');
+const detailView   = document.getElementById('detailView');
+const detailContent= document.getElementById('detailContent');
+const qFilter      = document.getElementById('qFilter');
+const responseList = document.getElementById('responseList');
+
+document.getElementById('backBtn').addEventListener('click', showList);
+qFilter.addEventListener('change', () => renderList(qFilter.value));
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+(async () => {
+  try {
+    const [responses, qList] = await Promise.all([
+      apiFetch('/api/responses'),
+      apiFetch('/api/questionnaires')
+    ]);
+
+    allResponses = responses;
+    for (const q of qList) {
+      questionnaires[q.id] = q.title;
+      const opt = document.createElement('option');
+      opt.value = q.id;
+      opt.textContent = q.title;
+      qFilter.appendChild(opt);
+    }
+
+    if (initQId) qFilter.value = initQId;
+
+    renderList(qFilter.value);
+
+    // If a specific response was requested (after running), show it
+    if (initResponseId) {
+      const found = allResponses.find(r => r.sessionId === initResponseId || r.id === initResponseId);
+      if (found) { showDetail(found); return; }
+    }
+  } catch (err) {
+    showAlert(alertEl, 'Failed to load data: ' + err.message);
+  }
+})();
+
+// ── List ──────────────────────────────────────────────────────────────────────
+function renderList(filterId) {
+  const filtered = filterId
+    ? allResponses.filter(r => r.questionnaireId === filterId)
+    : allResponses;
+
+  if (filtered.length === 0) {
+    responseList.innerHTML = `
+      <div class="empty-state">
+        <h3>No responses yet</h3>
+        <p>Run a questionnaire to record responses.</p>
+        <a href="index.html" class="btn btn-primary mt-2">Browse questionnaires</a>
+      </div>`;
+    return;
+  }
+
+  // Sort newest first
+  const sorted = [...filtered].sort((a, b) =>
+    new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()
+  );
+
+  responseList.innerHTML = sorted.map((r, idx) => `
+    <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;" data-response-idx="${idx}">
+      <div>
+        <div class="card-title">${esc(questionnaires[r.questionnaireId] ?? r.questionnaireId)}</div>
+        <div class="card-sub">
+          Started: ${fmtDate(r.startedAt)}
+          ${r.completedAt ? ' · Completed: ' + fmtDate(r.completedAt) : ''}
+        </div>
+        <div class="mt-1">
+          <span class="badge badge-${r.status}">${esc(r.status.replace('_', ' '))}</span>
+          <span style="font-size:0.8rem;color:var(--muted);margin-left:0.5rem">
+            ${r.progress.answeredCount} / ${r.progress.totalQuestions} answered
+          </span>
+        </div>
+      </div>
+      <button class="btn btn-outline view-btn" data-response-idx="${idx}">
+        View →
+      </button>
+    </div>
+  `).join('');
+
+  // Attach event listeners safely (no inline onclick)
+  responseList.querySelectorAll('.view-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = Number(btn.dataset.responseIdx);
+      showDetail(sorted[idx]);
+    });
+  });
+}
+
+// ── Detail ────────────────────────────────────────────────────────────────────
+async function showDetail(response) {
+  if (!response) return;
+
+  // Load the full questionnaire so we can show question text
+  let qMap = {};
+  try {
+    const q = await apiFetch('/api/questionnaires/' + encodeURIComponent(response.questionnaireId));
+    for (const qq of q.questions) { qMap[qq.id] = qq; }
+  } catch { /* fall back to just showing question IDs */ }
+
+  const answersHTML = response.answers.map(a => {
+    const q = qMap[a.questionId];
+    const label = q ? esc(q.text) : esc(a.questionId);
+    let value = a.skipped
+      ? '<em style="color:var(--muted)">Skipped</em>'
+      : formatValue(a.value, q);
+    return `
+      <div class="answer-item">
+        <div class="answer-q">${label}</div>
+        <div class="answer-v">${value}</div>
+      </div>`;
+  }).join('') || '<p style="color:var(--muted)">No answers recorded.</p>';
+
+  detailContent.innerHTML = `
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;flex-wrap:wrap;">
+        <h2 style="font-size:1.1rem;">${esc(questionnaires[response.questionnaireId] ?? response.questionnaireId)}</h2>
+        <span class="badge badge-${response.status}">${esc(response.status.replace('_',' '))}</span>
+      </div>
+      <div class="card-sub" style="margin-bottom:1rem">
+        Started: ${fmtDate(response.startedAt)}<br/>
+        ${response.completedAt ? 'Completed: ' + fmtDate(response.completedAt) + '<br/>' : ''}
+        Answered: ${response.progress.answeredCount} / ${response.progress.totalQuestions}
+      </div>
+      <hr style="border:none;border-top:1px solid var(--border);margin-bottom:1rem"/>
+      ${answersHTML}
+    </div>
+  `;
+
+  listView.classList.add('hidden');
+  detailView.classList.remove('hidden');
+}
+
+function showList() {
+  detailView.classList.add('hidden');
+  listView.classList.remove('hidden');
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function formatValue(value, q) {
+  if (value === null || value === undefined) return '<em style="color:var(--muted)">—</em>';
+  if (Array.isArray(value)) {
+    if (value.length === 0) return '<em style="color:var(--muted)">None selected</em>';
+    // Try to resolve option labels
+    const options = q?.options ?? [];
+    return value.map(v => {
+      const opt = options.find(o => o.value === v);
+      return esc(opt ? opt.label : v);
+    }).join(', ');
+  }
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  // Single choice option label lookup
+  if (q?.options) {
+    const opt = q.options.find(o => o.value === value);
+    if (opt) return esc(opt.label);
+  }
+  return esc(String(value));
+}
+</script>
+</body>
+</html>

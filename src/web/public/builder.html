@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Questionnaire Builder</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<nav>
+  <a class="brand" href="index.html">📋 Questionnaires</a>
+  <a href="index.html">Home</a>
+  <a href="builder.html">Builder</a>
+  <a href="responses.html">Responses</a>
+</nav>
+
+<div class="container">
+  <div class="page-header">
+    <h1 id="pageTitle">New Questionnaire</h1>
+  </div>
+
+  <div id="alert" class="alert hidden"></div>
+
+  <!-- Metadata -->
+  <div class="card">
+    <h2 style="font-size:1rem;margin-bottom:1rem;">Details</h2>
+    <div class="form-group">
+      <label for="title">Title <span class="required-star">*</span></label>
+      <input id="title" type="text" placeholder="e.g. Customer Satisfaction Survey" />
+    </div>
+    <div class="form-group">
+      <label for="desc">Description</label>
+      <textarea id="desc" placeholder="Brief description…"></textarea>
+    </div>
+    <div class="form-group">
+      <label for="author">Author</label>
+      <input id="author" type="text" placeholder="Your name or team" />
+    </div>
+    <div class="form-group">
+      <label for="tags">Tags <span style="color:var(--muted);font-weight:400">(comma-separated)</span></label>
+      <input id="tags" type="text" placeholder="e.g. feedback, ux" />
+    </div>
+  </div>
+
+  <!-- Questions -->
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+      <h2 style="font-size:1rem;">Questions</h2>
+      <button class="btn btn-outline" id="addQBtn">+ Add Question</button>
+    </div>
+    <div id="questionList"></div>
+    <div id="noQuestions" class="empty-state" style="padding:1.5rem 0">
+      <p>No questions yet. Click "+ Add Question" to begin.</p>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:0.75rem;justify-content:flex-end">
+    <a href="index.html" class="btn btn-ghost">Cancel</a>
+    <button class="btn btn-primary" id="saveBtn">Save Questionnaire</button>
+  </div>
+</div>
+
+<!-- Question template (hidden) -->
+<template id="questionTpl">
+  <div class="question-item" data-index="">
+    <div class="question-item-header">
+      <span class="question-number"></span>
+      <select class="q-type" style="flex:1;max-width:200px">
+        <option value="text">Text</option>
+        <option value="email">Email</option>
+        <option value="number">Number</option>
+        <option value="boolean">Yes / No</option>
+        <option value="date">Date</option>
+        <option value="rating">Rating</option>
+        <option value="single_choice">Single Choice</option>
+        <option value="multiple_choice">Multiple Choice</option>
+      </select>
+      <label style="font-weight:400;display:flex;align-items:center;gap:0.4rem;font-size:0.85rem;">
+        <input type="checkbox" class="q-required" /> Required
+      </label>
+      <button class="btn btn-danger q-remove" style="padding:0.3rem 0.6rem">✕</button>
+    </div>
+    <div class="form-group mt-1">
+      <label>Question text <span class="required-star">*</span></label>
+      <input type="text" class="q-text" placeholder="Enter your question…" />
+    </div>
+    <div class="form-group">
+      <label>Description / hint</label>
+      <input type="text" class="q-desc" placeholder="Optional hint for respondents…" />
+    </div>
+
+    <!-- Options panel (single_choice / multiple_choice only) -->
+    <div class="options-panel hidden">
+      <label style="font-size:0.85rem;font-weight:500;margin-bottom:0.5rem;display:block">Answer options</label>
+      <div class="option-list"></div>
+      <button class="btn btn-ghost add-option-btn" style="margin-top:0.5rem;font-size:0.8rem">+ Add option</button>
+    </div>
+
+    <!-- Rating panel -->
+    <div class="rating-panel hidden" style="display:flex;gap:1rem;">
+      <div class="form-group" style="flex:1;margin-bottom:0">
+        <label>Min</label>
+        <input type="number" class="r-min" value="1" min="0" />
+      </div>
+      <div class="form-group" style="flex:1;margin-bottom:0">
+        <label>Max</label>
+        <input type="number" class="r-max" value="5" min="1" />
+      </div>
+    </div>
+  </div>
+</template>
+
+<script src="app.js"></script>
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+const params = new URLSearchParams(location.search);
+const editId = params.get('id');
+let questions = [];   // [{id, type, text, desc, required, options?, rMin?, rMax?}]
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function genId() {
+  return 'q_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderQuestions() {
+  const list = document.getElementById('questionList');
+  const noQ  = document.getElementById('noQuestions');
+  list.innerHTML = '';
+  noQ.classList.toggle('hidden', questions.length > 0);
+
+  questions.forEach((q, idx) => {
+    const tpl = document.getElementById('questionTpl').content.cloneNode(true);
+    const item = tpl.querySelector('.question-item');
+    item.dataset.index = idx;
+
+    item.querySelector('.question-number').textContent = `Q${idx + 1}`;
+    item.querySelector('.q-type').value = q.type;
+    item.querySelector('.q-required').checked = q.required;
+    item.querySelector('.q-text').value = q.text;
+    item.querySelector('.q-desc').value = q.desc ?? '';
+
+    // Type-specific panels
+    updatePanels(item, q);
+
+    // Events
+    item.querySelector('.q-type').addEventListener('change', e => {
+      questions[idx].type = e.target.value;
+      if (!['single_choice','multiple_choice'].includes(e.target.value)) {
+        questions[idx].options = undefined;
+      }
+      renderQuestions();
+    });
+    item.querySelector('.q-required').addEventListener('change', e => { questions[idx].required = e.target.checked; });
+    item.querySelector('.q-text').addEventListener('input', e => { questions[idx].text = e.target.value; });
+    item.querySelector('.q-desc').addEventListener('input', e => { questions[idx].desc = e.target.value; });
+    item.querySelector('.q-remove').addEventListener('click', () => {
+      questions.splice(idx, 1);
+      renderQuestions();
+    });
+
+    list.appendChild(tpl);
+  });
+}
+
+function updatePanels(item, q) {
+  const optPanel    = item.querySelector('.options-panel');
+  const ratingPanel = item.querySelector('.rating-panel');
+
+  const isChoice = ['single_choice','multiple_choice'].includes(q.type);
+  const isRating = q.type === 'rating';
+
+  optPanel.classList.toggle('hidden', !isChoice);
+  ratingPanel.classList.toggle('hidden', !isRating);
+
+  if (isChoice) {
+    if (!q.options) q.options = [{ value: '', label: '' }];
+    renderOptions(item, q);
+  }
+
+  if (isRating) {
+    item.querySelector('.r-min').value = q.rMin ?? 1;
+    item.querySelector('.r-max').value = q.rMax ?? 5;
+    item.querySelector('.r-min').addEventListener('input', e => { q.rMin = Number(e.target.value); });
+    item.querySelector('.r-max').addEventListener('input', e => { q.rMax = Number(e.target.value); });
+  }
+}
+
+function renderOptions(item, q) {
+  const optList = item.querySelector('.option-list');
+  optList.innerHTML = '';
+  (q.options ?? []).forEach((opt, oi) => {
+    const row = document.createElement('div');
+    row.className = 'option-item';
+    row.innerHTML = `
+      <input type="text" value="${esc(opt.label)}" placeholder="Option ${oi + 1}" />
+      <button class="btn btn-ghost" style="padding:0.3rem 0.5rem">✕</button>
+    `;
+    row.querySelector('input').addEventListener('input', e => {
+      q.options[oi].label = e.target.value;
+      q.options[oi].value = e.target.value.toLowerCase().replace(/\s+/g, '_');
+    });
+    row.querySelector('button').addEventListener('click', () => {
+      q.options.splice(oi, 1);
+      renderOptions(item, q);
+    });
+    optList.appendChild(row);
+  });
+  item.querySelector('.add-option-btn').addEventListener('click', () => {
+    q.options.push({ value: '', label: '' });
+    renderOptions(item, q);
+  });
+}
+
+// ── Load existing questionnaire for editing ──────────────────────────────────
+if (editId) {
+  document.getElementById('pageTitle').textContent = 'Edit Questionnaire';
+  (async () => {
+    try {
+      const q = await apiFetch('/api/questionnaires/' + encodeURIComponent(editId));
+      document.getElementById('title').value  = q.metadata.title ?? '';
+      document.getElementById('desc').value   = q.metadata.description ?? '';
+      document.getElementById('author').value = q.metadata.author ?? '';
+      document.getElementById('tags').value   = (q.metadata.tags ?? []).join(', ');
+
+      questions = q.questions.map(qq => {
+        const base = { id: qq.id, type: qq.type, text: qq.text, desc: qq.description ?? '', required: qq.required };
+        if (qq.options) base.options = qq.options.map(o => ({ value: o.value, label: o.label }));
+        if (qq.validation?.min !== undefined) base.rMin = qq.validation.min;
+        if (qq.validation?.max !== undefined) base.rMax = qq.validation.max;
+        return base;
+      });
+      renderQuestions();
+    } catch (err) {
+      showAlert(document.getElementById('alert'), 'Failed to load questionnaire: ' + err.message);
+    }
+  })();
+} else {
+  renderQuestions();
+}
+
+// ── Add question ──────────────────────────────────────────────────────────────
+document.getElementById('addQBtn').addEventListener('click', () => {
+  questions.push({ id: genId(), type: 'text', text: '', required: false });
+  renderQuestions();
+  // Scroll to the new question
+  document.getElementById('questionList').lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+// ── Save ──────────────────────────────────────────────────────────────────────
+document.getElementById('saveBtn').addEventListener('click', async () => {
+  const alertEl = document.getElementById('alert');
+  hideAlert(alertEl);
+
+  const title = document.getElementById('title').value.trim();
+  if (!title) { showAlert(alertEl, 'Title is required.'); return; }
+  if (questions.length === 0) { showAlert(alertEl, 'Add at least one question.'); return; }
+
+  // Validate questions
+  for (let i = 0; i < questions.length; i++) {
+    if (!questions[i].text.trim()) {
+      showAlert(alertEl, `Question ${i + 1} has no text.`);
+      return;
+    }
+    const isChoice = ['single_choice','multiple_choice'].includes(questions[i].type);
+    if (isChoice && (!questions[i].options || questions[i].options.length === 0)) {
+      showAlert(alertEl, `Question ${i + 1} needs at least one option.`);
+      return;
+    }
+    if (isChoice) {
+      for (const opt of questions[i].options) {
+        if (!opt.label.trim()) {
+          showAlert(alertEl, `Question ${i + 1} has an empty option.`);
+          return;
+        }
+      }
+    }
+  }
+
+  const now  = new Date().toISOString();
+  const tags = document.getElementById('tags').value.split(',').map(t => t.trim()).filter(Boolean);
+
+  const body = {
+    id:      editId ?? ('q_' + Date.now().toString(36)),
+    version: '1.0',
+    metadata: {
+      title,
+      description: document.getElementById('desc').value.trim() || undefined,
+      author:      document.getElementById('author').value.trim() || undefined,
+      createdAt:   now,
+      updatedAt:   now,
+      tags
+    },
+    questions: questions.map(q => {
+      const base = { id: q.id, type: q.type, text: q.text, required: q.required };
+      if (q.desc) base.description = q.desc;
+      if (['single_choice','multiple_choice'].includes(q.type)) {
+        base.options = q.options.map(o => ({
+          value: o.value || o.label.toLowerCase().replace(/\s+/g,'_'),
+          label: o.label
+        }));
+      }
+      if (q.type === 'rating') {
+        base.validation = { min: q.rMin ?? 1, max: q.rMax ?? 5 };
+      }
+      return base;
+    }),
+    config: { allowBack: true, showProgress: true, shuffleQuestions: false, allowSkip: false }
+  };
+
+  try {
+    const method = editId ? 'PUT' : 'POST';
+    const url    = editId
+      ? '/api/questionnaires/' + encodeURIComponent(editId)
+      : '/api/questionnaires';
+    await apiFetch(url, { method, body: JSON.stringify(body) });
+    showAlert(alertEl, 'Questionnaire saved successfully!', 'success');
+    setTimeout(() => { location.href = 'index.html'; }, 1000);
+  } catch (err) {
+    showAlert(alertEl, 'Save failed: ' + err.message);
+  }
+});
+</script>
+</body>
+</html>
