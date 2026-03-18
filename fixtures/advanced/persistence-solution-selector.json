@@ -1,0 +1,539 @@
+{
+  "id": "persistence-solution-selector-v1",
+  "version": "1.0.0",
+  "metadata": {
+    "title": "Web App Persistence Solution Selector",
+    "description": "A decision-tree questionnaire to help identify the most appropriate persistence strategy for your web application, replacing the current approach of writing JSON files into a directory.",
+    "author": "Questionnaire TUI",
+    "createdAt": "2026-03-18T16:49:49.304Z",
+    "updatedAt": "2026-03-18T16:49:49.304Z",
+    "tags": [
+      "persistence",
+      "architecture",
+      "database",
+      "decision-tree",
+      "web-app"
+    ]
+  },
+  "questions": [
+    {
+      "id": "deployment_environment",
+      "type": "single_choice",
+      "text": "Where will the web application be deployed?",
+      "description": "The deployment environment constrains which persistence backends are available and practical.",
+      "required": true,
+      "options": [
+        {
+          "value": "local_only",
+          "label": "Local / developer machine only",
+          "description": "Runs on a single developer's machine, no production deployment planned"
+        },
+        {
+          "value": "single_server",
+          "label": "Single server (VPS / bare metal)",
+          "description": "One persistent server with full filesystem access"
+        },
+        {
+          "value": "paas",
+          "label": "Platform-as-a-Service (Heroku, Render, Railway, Fly.io)",
+          "description": "Managed hosting platform; ephemeral or limited filesystem"
+        },
+        {
+          "value": "serverless",
+          "label": "Serverless / edge functions (Vercel, Netlify, Cloudflare Workers)",
+          "description": "Stateless compute; no persistent filesystem between invocations"
+        },
+        {
+          "value": "container_orchestration",
+          "label": "Container orchestration (Kubernetes, ECS)",
+          "description": "Containers may be rescheduled; persistent volumes require explicit setup"
+        },
+        {
+          "value": "cloud_iaas",
+          "label": "Cloud IaaS (EC2, GCE, Azure VM) with managed services available",
+          "description": "Full cloud flexibility; managed databases available"
+        }
+      ]
+    },
+    {
+      "id": "current_pain_points",
+      "type": "multiple_choice",
+      "text": "What are the biggest pain points with the current file-based JSON approach?",
+      "description": "Select all that apply. This helps prioritise which limitations must be solved.",
+      "required": true,
+      "options": [
+        {
+          "value": "concurrent_writes",
+          "label": "Concurrent write conflicts (multiple users writing simultaneously)",
+          "description": "Race conditions when two requests write the same file"
+        },
+        {
+          "value": "no_query",
+          "label": "No query capability (must load all files to search)",
+          "description": "Cannot efficiently filter or aggregate responses"
+        },
+        {
+          "value": "scalability",
+          "label": "Poor scalability (many files slow down directory listing)",
+          "description": "Performance degrades as the number of stored documents grows"
+        },
+        {
+          "value": "no_transactions",
+          "label": "No atomic transactions (partial writes leave corrupt state)",
+          "description": "Crash mid-write can produce invalid data"
+        },
+        {
+          "value": "multi_instance",
+          "label": "Cannot share storage across multiple app instances",
+          "description": "Horizontal scaling is blocked by local filesystem dependency"
+        },
+        {
+          "value": "backup_restore",
+          "label": "Difficult backup and restore",
+          "description": "No built-in versioning, point-in-time recovery, or replication"
+        },
+        {
+          "value": "ephemeral_fs",
+          "label": "Filesystem is ephemeral in the target deployment environment",
+          "description": "Data is lost on process restart or container replacement"
+        },
+        {
+          "value": "access_control",
+          "label": "No access control on stored data",
+          "description": "All server processes can read every user's responses"
+        }
+      ],
+      "validation": {
+        "minSelections": 1
+      }
+    },
+    {
+      "id": "expected_users",
+      "type": "single_choice",
+      "text": "How many concurrent users do you expect the application to serve?",
+      "description": "Concurrency requirements drive the need for a proper database engine.",
+      "required": true,
+      "options": [
+        {
+          "value": "single",
+          "label": "1 (personal tool, single operator)",
+          "description": "Only one person will use the app at a time"
+        },
+        {
+          "value": "small",
+          "label": "2–20 concurrent users",
+          "description": "Small team or limited audience"
+        },
+        {
+          "value": "medium",
+          "label": "21–500 concurrent users",
+          "description": "Medium-scale application"
+        },
+        {
+          "value": "large",
+          "label": "500+ concurrent users",
+          "description": "High-traffic production service"
+        }
+      ]
+    },
+    {
+      "id": "data_relationships",
+      "type": "single_choice",
+      "text": "How complex are the relationships between the data entities (questionnaires, responses, users)?",
+      "description": "Relational complexity favours SQL; document-centric data fits NoSQL well.",
+      "required": true,
+      "options": [
+        {
+          "value": "flat",
+          "label": "Flat / no relationships (each questionnaire response is self-contained)",
+          "description": "Documents are independent; no joins needed"
+        },
+        {
+          "value": "simple",
+          "label": "Simple relationships (responses linked to questionnaires and users)",
+          "description": "A handful of foreign-key style links"
+        },
+        {
+          "value": "moderate",
+          "label": "Moderate relationships (users, sessions, questionnaires, responses, analytics)",
+          "description": "Several entity types with references between them"
+        },
+        {
+          "value": "complex",
+          "label": "Complex relationships (branching logic history, audit trails, role-based access)",
+          "description": "Rich domain model requiring joins, aggregations, and integrity constraints"
+        }
+      ]
+    },
+    {
+      "id": "query_requirements",
+      "type": "multiple_choice",
+      "text": "Which query capabilities do you need?",
+      "description": "Select all that your application will require.",
+      "required": true,
+      "options": [
+        {
+          "value": "fetch_by_id",
+          "label": "Fetch a single document by ID",
+          "description": "Simple key-value lookup"
+        },
+        {
+          "value": "list_all",
+          "label": "List all records for a user or questionnaire",
+          "description": "Basic enumeration without filtering"
+        },
+        {
+          "value": "filter",
+          "label": "Filter by field value (status, date range, tag)",
+          "description": "WHERE-clause style queries"
+        },
+        {
+          "value": "full_text",
+          "label": "Full-text search across response content",
+          "description": "Search inside free-text answers"
+        },
+        {
+          "value": "aggregate",
+          "label": "Aggregations and analytics (counts, averages, histograms)",
+          "description": "Statistical summaries across many responses"
+        },
+        {
+          "value": "sort_paginate",
+          "label": "Sorting and pagination",
+          "description": "Ordered result sets with offset or cursor pagination"
+        }
+      ],
+      "validation": {
+        "minSelections": 1
+      }
+    },
+    {
+      "id": "acid_requirements",
+      "type": "single_choice",
+      "text": "How important are ACID guarantees (Atomicity, Consistency, Isolation, Durability) for your data?",
+      "description": "Financial data or regulated industries typically require strong ACID guarantees.",
+      "required": true,
+      "options": [
+        {
+          "value": "not_important",
+          "label": "Not important — occasional data loss or inconsistency is acceptable",
+          "description": "Informal surveys where losing a response has no consequence"
+        },
+        {
+          "value": "eventual",
+          "label": "Eventual consistency is acceptable — data must not be permanently lost",
+          "description": "Temporary inconsistency is fine; durability is required"
+        },
+        {
+          "value": "strong",
+          "label": "Strong consistency required — partial writes must never be visible",
+          "description": "Users must see correct data immediately after a successful write"
+        },
+        {
+          "value": "full_acid",
+          "label": "Full ACID transactions required — multi-step operations must be atomic",
+          "description": "Financial, healthcare, or compliance-sensitive workflows"
+        }
+      ]
+    },
+    {
+      "id": "team_expertise",
+      "type": "multiple_choice",
+      "text": "Which data storage technologies does your team have hands-on experience with?",
+      "description": "Familiarity reduces operational risk and time-to-value.",
+      "required": true,
+      "options": [
+        {
+          "value": "filesystem",
+          "label": "Filesystem / local file storage (current approach)",
+          "description": "Reading and writing files from Node.js"
+        },
+        {
+          "value": "sqlite",
+          "label": "SQLite",
+          "description": "Embedded relational database, no separate server"
+        },
+        {
+          "value": "postgres",
+          "label": "PostgreSQL",
+          "description": "Full-featured open-source relational database"
+        },
+        {
+          "value": "mysql",
+          "label": "MySQL / MariaDB",
+          "description": "Widely-used relational database"
+        },
+        {
+          "value": "mongodb",
+          "label": "MongoDB",
+          "description": "Document-oriented NoSQL database"
+        },
+        {
+          "value": "dynamodb",
+          "label": "DynamoDB",
+          "description": "AWS managed NoSQL key-value and document store"
+        },
+        {
+          "value": "redis",
+          "label": "Redis",
+          "description": "In-memory data structure store, used for caching and sessions"
+        },
+        {
+          "value": "s3_compatible",
+          "label": "Object storage (AWS S3, R2, MinIO)",
+          "description": "Blob / object store; good for large files and JSON documents"
+        },
+        {
+          "value": "none",
+          "label": "None of the above — willing to learn",
+          "description": "No prior experience; open to any recommendation"
+        }
+      ],
+      "validation": {
+        "minSelections": 1
+      }
+    },
+    {
+      "id": "multi_instance_required",
+      "type": "boolean",
+      "text": "Does the application need to run as multiple instances simultaneously (horizontal scaling)?",
+      "description": "If yes, local filesystem storage is not viable and a shared backend is required.",
+      "required": true
+    },
+    {
+      "id": "offline_support",
+      "type": "boolean",
+      "text": "Does the application need to work offline or with intermittent connectivity?",
+      "description": "Offline-capable apps may need client-side storage (IndexedDB, SQLite WASM) with sync.",
+      "required": true
+    },
+    {
+      "id": "real_time_requirements",
+      "type": "boolean",
+      "text": "Does the application require real-time data updates pushed to clients (e.g., live results dashboard)?",
+      "description": "Real-time push typically requires a database with change streams or pub/sub (PostgreSQL LISTEN/NOTIFY, MongoDB Change Streams, Redis Pub/Sub).",
+      "required": true
+    },
+    {
+      "id": "data_volume_responses",
+      "type": "single_choice",
+      "text": "How many questionnaire responses do you expect to store in total over the lifetime of the application?",
+      "description": "Data volume affects storage cost, indexing strategy, and whether an embedded database suffices.",
+      "required": true,
+      "options": [
+        {
+          "value": "tiny",
+          "label": "Fewer than 1,000 responses",
+          "description": "Very small dataset; even flat files can work"
+        },
+        {
+          "value": "small",
+          "label": "1,000 – 100,000 responses",
+          "description": "Small-to-medium dataset; SQLite or a small hosted DB is appropriate"
+        },
+        {
+          "value": "medium",
+          "label": "100,000 – 10 million responses",
+          "description": "Medium dataset; requires a proper database with good indexing"
+        },
+        {
+          "value": "large",
+          "label": "More than 10 million responses",
+          "description": "Large scale; requires sharding, partitioning, or a managed cloud database"
+        }
+      ]
+    },
+    {
+      "id": "budget_constraint",
+      "type": "single_choice",
+      "text": "What is your budget for managed database infrastructure per month?",
+      "description": "Cost influences whether a free embedded database, a managed cloud DB, or self-hosted solution is feasible.",
+      "required": true,
+      "options": [
+        {
+          "value": "zero",
+          "label": "Zero (free tier or self-hosted only)",
+          "description": "No budget for paid managed services"
+        },
+        {
+          "value": "low",
+          "label": "Up to $50 / month",
+          "description": "Entry-level managed tiers (Supabase free/pro, PlanetScale hobby, Neon free)"
+        },
+        {
+          "value": "medium",
+          "label": "$50 – $500 / month",
+          "description": "Standard managed DB plans suitable for production workloads"
+        },
+        {
+          "value": "high",
+          "label": "More than $500 / month",
+          "description": "Enterprise-grade managed databases with high availability and SLA"
+        }
+      ]
+    },
+    {
+      "id": "compliance_requirements",
+      "type": "multiple_choice",
+      "text": "Are there regulatory or compliance requirements that apply to the stored data?",
+      "description": "Select all that apply. Compliance can restrict where and how data may be stored.",
+      "required": false,
+      "options": [
+        {
+          "value": "none",
+          "label": "None",
+          "description": "No specific regulatory requirements"
+        },
+        {
+          "value": "gdpr",
+          "label": "GDPR (EU data protection)",
+          "description": "Data must be stored in the EU or in adequate third countries; right to erasure applies"
+        },
+        {
+          "value": "hipaa",
+          "label": "HIPAA (US healthcare)",
+          "description": "Requires encryption at rest and in transit, audit logs, BAA agreements"
+        },
+        {
+          "value": "pci_dss",
+          "label": "PCI-DSS (payment card data)",
+          "description": "Strict controls on cardholder data storage"
+        },
+        {
+          "value": "data_residency",
+          "label": "Data residency (data must stay in a specific country or region)",
+          "description": "Some jurisdictions mandate data not leave their borders"
+        }
+      ]
+    },
+    {
+      "id": "migration_tolerance",
+      "type": "single_choice",
+      "text": "How much tolerance does the project have for migrating existing JSON file data to the new system?",
+      "description": "Some options require a one-time or ongoing migration of existing stored responses.",
+      "required": true,
+      "options": [
+        {
+          "value": "greenfield",
+          "label": "Greenfield — no existing data to migrate",
+          "description": "Starting fresh; no migration needed"
+        },
+        {
+          "value": "acceptable",
+          "label": "Migration is acceptable with a one-time script",
+          "description": "Willing to write and run a migration script once"
+        },
+        {
+          "value": "risky",
+          "label": "Migration is risky — existing data must not be lost",
+          "description": "Old data is business-critical; migration must be carefully validated"
+        },
+        {
+          "value": "parallel",
+          "label": "Prefer running old and new storage side-by-side during transition",
+          "description": "Dual-write or shadow-read strategy to de-risk cutover"
+        }
+      ]
+    },
+    {
+      "id": "schema_flexibility",
+      "type": "single_choice",
+      "text": "How stable is the data schema (questionnaire and response structure)?",
+      "description": "Rapidly evolving schemas favour schema-less stores; stable schemas benefit from enforced schemas in SQL.",
+      "required": true,
+      "options": [
+        {
+          "value": "stable",
+          "label": "Stable — schema is unlikely to change significantly",
+          "description": "Well-defined, versioned structure; SQL is a good fit"
+        },
+        {
+          "value": "evolving",
+          "label": "Evolving — new question types and fields will be added regularly",
+          "description": "Frequent schema changes; JSON column in SQL or document DB helps"
+        },
+        {
+          "value": "highly_dynamic",
+          "label": "Highly dynamic — structure varies widely between questionnaires",
+          "description": "Schema-less storage (document DB, JSON columns, object store) preferred"
+        }
+      ]
+    },
+    {
+      "id": "operational_complexity_tolerance",
+      "type": "rating",
+      "text": "How much operational complexity can your team manage?",
+      "description": "1 = Minimal (prefer fully managed, zero-ops solutions), 10 = High (comfortable self-hosting, tuning, and managing infrastructure)",
+      "required": true,
+      "validation": {
+        "min": 1,
+        "max": 10
+      }
+    },
+    {
+      "id": "preferred_solution_hint",
+      "type": "single_choice",
+      "text": "Do you already have a preferred persistence solution in mind?",
+      "description": "If you have a strong preference, this questionnaire can validate whether it fits your requirements.",
+      "required": false,
+      "options": [
+        {
+          "value": "no_preference",
+          "label": "No preference — recommend the best fit",
+          "description": "Fully open to the recommendation"
+        },
+        {
+          "value": "sqlite",
+          "label": "SQLite (embedded, file-based relational DB)",
+          "description": "Simple, zero-server, great for single-instance apps"
+        },
+        {
+          "value": "postgres",
+          "label": "PostgreSQL (self-hosted or managed)",
+          "description": "Powerful open-source relational DB with JSONB support"
+        },
+        {
+          "value": "mongodb",
+          "label": "MongoDB (document store)",
+          "description": "Flexible schema, good for document-centric data"
+        },
+        {
+          "value": "dynamodb",
+          "label": "DynamoDB (AWS managed NoSQL)",
+          "description": "Serverless-friendly, pay-per-use AWS service"
+        },
+        {
+          "value": "object_store",
+          "label": "Object storage (S3 / R2 / MinIO)",
+          "description": "Keep JSON files but store them in an object store instead of disk"
+        },
+        {
+          "value": "supabase",
+          "label": "Supabase (managed PostgreSQL + Auth + Realtime)",
+          "description": "Open-source Firebase alternative built on Postgres"
+        },
+        {
+          "value": "firebase",
+          "label": "Firebase / Firestore (Google managed)",
+          "description": "Real-time document store with offline sync and auth"
+        }
+      ]
+    },
+    {
+      "id": "additional_constraints",
+      "type": "text",
+      "text": "Are there any other constraints, requirements, or context that should influence the recommendation?",
+      "description": "For example: existing infrastructure, vendor lock-in concerns, team size, time constraints, open-source requirements.",
+      "required": false,
+      "validation": {
+        "maxLength": 1000
+      }
+    }
+  ],
+  "config": {
+    "allowBack": true,
+    "allowSkip": false,
+    "shuffleQuestions": false,
+    "showProgress": true
+  }
+}
