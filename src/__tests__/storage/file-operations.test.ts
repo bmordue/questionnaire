@@ -225,6 +225,63 @@ describe('FileOperations', () => {
     });
   });
 
+  describe('deleteMatchingFiles', () => {
+    it('should delete files matching pattern', async () => {
+      // Create test files
+      await fs.writeFile(path.join(TEST_DIR, 'test.backup.1.json'), 'data1', 'utf8');
+      await fs.writeFile(path.join(TEST_DIR, 'test.backup.2.json'), 'data2', 'utf8');
+      await fs.writeFile(path.join(TEST_DIR, 'test.backup.3.json'), 'data3', 'utf8');
+      await fs.writeFile(path.join(TEST_DIR, 'test.json'), 'main', 'utf8');
+
+      const pattern = new RegExp(`^test\\.backup\\..*\\.json$`);
+      const deletedCount = await FileOperations.deleteMatchingFiles(TEST_DIR, pattern);
+
+      expect(deletedCount).toBe(3);
+
+      const files = await FileOperations.listFiles(TEST_DIR, '.json');
+      expect(files).toEqual(['test.json']);
+    });
+
+    it('should return count of deleted files', async () => {
+      // Create test files
+      for (let i = 0; i < 5; i++) {
+        await fs.writeFile(
+          path.join(TEST_DIR, `file.backup.${i}.json`),
+          `data${i}`,
+          'utf8'
+        );
+      }
+
+      const pattern = new RegExp(`^file\\.backup\\..*\\.json$`);
+      const deletedCount = await FileOperations.deleteMatchingFiles(TEST_DIR, pattern);
+
+      expect(deletedCount).toBe(5);
+    });
+
+    it('should handle no matches gracefully', async () => {
+      // Create test files that don't match
+      await fs.writeFile(path.join(TEST_DIR, 'other1.json'), 'data1', 'utf8');
+      await fs.writeFile(path.join(TEST_DIR, 'other2.json'), 'data2', 'utf8');
+
+      const pattern = new RegExp(`^nonexistent\\.backup\\..*\\.json$`);
+      const deletedCount = await FileOperations.deleteMatchingFiles(TEST_DIR, pattern);
+
+      expect(deletedCount).toBe(0);
+
+      const files = await FileOperations.listFiles(TEST_DIR, '.json');
+      expect(files).toHaveLength(2);
+    });
+
+    it('should handle errors gracefully', async () => {
+      const pattern = new RegExp(`^test\\.backup\\..*\\.json$`);
+
+      // Pass invalid directory path
+      await expect(
+        FileOperations.deleteMatchingFiles('/invalid/path/that/does/not/exist', pattern)
+      ).rejects.toThrow(FileOperationError);
+    });
+  });
+
   describe('generateSessionId', () => {
     it('should generate a unique session ID', () => {
       const id1 = FileOperations.generateSessionId();

@@ -152,4 +152,17 @@ export class ResponseStore {
       this.config.maxBackups
     );
   }
+
+  /**
+   * Clean up ALL backup files for a response
+   * @param sessionId - Session ID
+   * @returns Number of backups deleted
+   */
+  async cleanupAllBackups(sessionId: string): Promise<number> {
+    const pattern = new RegExp(`^${sessionId}\\.backup\\..*\\.json$`);
+    return await FileOperations.deleteMatchingFiles(
+      this.responsesDir,
+      pattern
+    );
+  }
 }

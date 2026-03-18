@@ -156,4 +156,17 @@ export class QuestionnaireStore {
       this.config.maxBackups
     );
   }
+
+  /**
+   * Clean up ALL backup files for a questionnaire
+   * @param id - Questionnaire ID
+   * @returns Number of backups deleted
+   */
+  async cleanupAllBackups(id: string): Promise<number> {
+    const pattern = new RegExp(`^${id}\\.backup\\..*\\.json$`);
+    return await FileOperations.deleteMatchingFiles(
+      this.questionnairesDir,
+      pattern
+    );
+  }
 }

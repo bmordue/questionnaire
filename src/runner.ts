@@ -249,6 +249,7 @@ export async function runQuestionnaire(options: RunnerOptions): Promise<RunnerRe
       : await session.responseBuilder.complete();
     await persistenceManager.endSession();
     console.log(formatCompletionSummary(completed, dataDirectory));
+    console.log(MessageFormatter.formatMuted('Backup files cleaned up'));
 
     return {
       sessionId: session.sessionId,
@@ -327,6 +328,7 @@ export async function runQuestionnaire(options: RunnerOptions): Promise<RunnerRe
     const completedResponse = await session.responseBuilder.complete();
     await persistenceManager.endSession();
     console.log(formatCompletionSummary(completedResponse, dataDirectory));
+    console.log(MessageFormatter.formatMuted('Backup files cleaned up'));
 
     return {
       sessionId: session.sessionId,

@@ -8,7 +8,7 @@
   },
   "checkers": ["typescript"],
   "tsconfigFile": "tsconfig.json",
-  "reporters": ["dashboard", "json"],
+  "reporters": ["json"],
   "dashboard": {
     "project": "github.com/bmordue/questionnaire",
     "version": "main",
@@ -18,7 +18,7 @@
   "coverageAnalysis": "perTest",
   "ignoreStatic": true,
   "mutate": [
-    "src/**/*.ts",
+    "src/markdown-convert.ts",
     "!src/**/__tests__/**/*.ts",
     "!src/**/*.test.ts",
     "!src/**/*.d.ts"

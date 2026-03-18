@@ -5,7 +5,7 @@
  */
 
 import type { Questionnaire, QuestionnaireResponse } from '../schema.js';
-import { createResponse } from '../schemas/response.js';
+import { createResponse, ResponseStatus } from '../schemas/response.js';
 import type { StorageService } from '../storage/types.js';
 import { ResponseBuilder } from './response-builder.js';
 import { getLogger } from '../logging/index.js';
@@ -120,7 +120,35 @@ export class PersistenceManager {
    * End a session (stops auto-save)
    */
   async endSession(): Promise<void> {
+    // Stop auto-save
     this.stopAutoSave();
+
+    // Clean up backups if session is completed
+    if (this.currentBuilder) {
+      const response = this.currentBuilder.getResponse();
+      if (response.status === ResponseStatus.COMPLETED) {
+        try {
+          const result = await this.storage.cleanupBackups(
+            response.sessionId,
+            response.questionnaireId
+          );
+
+          if (result.deletedCount > 0) {
+            // Log summary message (per user preference)
+            logger.info(`Cleaned up ${result.deletedCount} backup files`);
+          }
+
+          if (result.errors.length > 0) {
+            // Log warnings (per user preference - non-blocking)
+            result.errors.forEach(err => logger.warn(err));
+          }
+        } catch (error) {
+          // Log but don't block (per user preference)
+          logger.warn('Backup cleanup failed:', error);
+        }
+      }
+    }
+
     this.currentBuilder = null;
   }
 
