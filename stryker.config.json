@@ -11,12 +11,12 @@
   "reporters": ["html", "clear-text", "progress", "dashboard"],
   "dashboard": {
     "project": "github.com/bmordue/questionnaire",
-    "module": "questionnaire",
     "version": "main",
     "baseUrl": "https://dashboard.stryker-mutator.io/",
     "reportType": "full"
   },
   "coverageAnalysis": "perTest",
+  "ignoreStatic": true,
   "mutate": [
     "src/**/*.ts",
     "!src/**/__tests__/**/*.ts",
