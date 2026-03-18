@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Run Questionnaire</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<nav>
+  <a class="brand" href="index.html">📋 Questionnaires</a>
+  <a href="index.html">Home</a>
+  <a href="builder.html">Builder</a>
+  <a href="responses.html">Responses</a>
+</nav>
+
+<div class="container" style="max-width:680px">
+
+  <!-- Loading / error state -->
+  <div id="loadingState">
+    <div class="empty-state"><p>Loading questionnaire…</p></div>
+  </div>
+
+  <div id="alert" class="alert hidden"></div>
+
+  <!-- Running state -->
+  <div id="runState" class="hidden">
+    <div style="margin-bottom:1.5rem">
+      <h1 id="qTitle" style="font-size:1.3rem;margin-bottom:0.5rem"></h1>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+      </div>
+      <div class="progress-label" id="progressLabel"></div>
+    </div>
+
+    <div class="question-card" id="questionCard">
+      <div class="question-text" id="questionText"></div>
+      <div class="question-desc" id="questionDesc"></div>
+      <div id="answerArea"></div>
+    </div>
+
+    <div style="display:flex;gap:0.75rem;justify-content:flex-end">
+      <button id="skipBtn" class="btn btn-ghost hidden">Skip</button>
+      <button id="nextBtn" class="btn btn-primary">Next →</button>
+    </div>
+  </div>
+
+  <!-- Completion state -->
+  <div id="doneState" class="hidden">
+    <div class="card" style="text-align:center;padding:3rem">
+      <div style="font-size:3rem;margin-bottom:1rem">✅</div>
+      <h2 style="margin-bottom:0.5rem">All done!</h2>
+      <p style="color:var(--muted);margin-bottom:1.5rem">Your responses have been saved.</p>
+      <div style="display:flex;gap:0.75rem;justify-content:center">
+        <a href="index.html" class="btn btn-ghost">← Back to list</a>
+        <a id="viewResponseLink" href="responses.html" class="btn btn-outline">View Response</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="app.js"></script>
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+const params          = new URLSearchParams(location.search);
+const questionnaireId = params.get('id');
+
+let sessionId       = null;
+let currentQuestion = null;
+let isLastQuestion  = false;
+let allowSkip       = false;
+let totalQuestions  = 0;
+
+// ── DOM refs ──────────────────────────────────────────────────────────────────
+const loadingEl   = document.getElementById('loadingState');
+const runEl       = document.getElementById('runState');
+const doneEl      = document.getElementById('doneState');
+const alertEl     = document.getElementById('alert');
+const titleEl     = document.getElementById('qTitle');
+const fillEl      = document.getElementById('progressFill');
+const labelEl     = document.getElementById('progressLabel');
+const textEl      = document.getElementById('questionText');
+const descEl      = document.getElementById('questionDesc');
+const answerEl    = document.getElementById('answerArea');
+const nextBtn     = document.getElementById('nextBtn');
+const skipBtn     = document.getElementById('skipBtn');
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+if (!questionnaireId) {
+  showFatalError('No questionnaire selected. <a href="index.html">Go back</a>');
+} else {
+  startSession();
+}
+
+async function startSession() {
+  try {
+    const s = await apiFetch('/api/sessions', {
+      method: 'POST',
+      body: JSON.stringify({ questionnaireId })
+    });
+    sessionId = s.sessionId;
+    await loadCurrentQuestion();
+  } catch (err) {
+    showFatalError('Could not start session: ' + err.message);
+  }
+}
+
+async function loadCurrentQuestion() {
+  try {
+    const state = await apiFetch('/api/sessions/' + encodeURIComponent(sessionId));
+    titleEl.textContent = state.questionnaire.title;
+    allowSkip     = state.questionnaire.config?.allowSkip ?? false;
+    totalQuestions = state.questionnaire.totalQuestions;
+
+    if (state.currentQuestion === null || state.progress.currentQuestionIndex >= totalQuestions) {
+      await completeSession();
+      return;
+    }
+
+    updateProgress(state.progress, totalQuestions);
+    renderQuestion(state.currentQuestion, totalQuestions, state.progress.currentQuestionIndex);
+    currentQuestion = state.currentQuestion;
+    isLastQuestion  = state.progress.currentQuestionIndex === totalQuestions - 1;
+    nextBtn.textContent = isLastQuestion ? 'Finish ✓' : 'Next →';
+    skipBtn.classList.toggle('hidden', !allowSkip);
+
+    loadingEl.classList.add('hidden');
+    runEl.classList.remove('hidden');
+  } catch (err) {
+    showFatalError('Failed to load question: ' + err.message);
+  }
+}
+
+// ── Render question ───────────────────────────────────────────────────────────
+function renderQuestion(q, total, idx) {
+  textEl.innerHTML = esc(q.text) + (q.required ? '<span class="required-star">*</span>' : '');
+  descEl.textContent = q.description ?? '';
+  descEl.classList.toggle('hidden', !q.description);
+  answerEl.innerHTML = '';
+
+  switch (q.type) {
+    case 'text':
+      answerEl.innerHTML = `<textarea id="ans" rows="3" placeholder="Type your answer…"></textarea>`;
+      break;
+    case 'email':
+      answerEl.innerHTML = `<input id="ans" type="email" placeholder="name@example.com" />`;
+      break;
+    case 'number':
+      answerEl.innerHTML = `<input id="ans" type="number" ${q.validation?.min !== undefined ? `min="${q.validation.min}"` : ''} ${q.validation?.max !== undefined ? `max="${q.validation.max}"` : ''} />`;
+      break;
+    case 'date':
+      answerEl.innerHTML = `<input id="ans" type="date" />`;
+      break;
+    case 'boolean':
+      answerEl.innerHTML = `
+        <div class="radio-group">
+          <label><input type="radio" name="ans" value="true" /> Yes</label>
+          <label><input type="radio" name="ans" value="false" /> No</label>
+        </div>`;
+      break;
+    case 'single_choice':
+      answerEl.innerHTML = `<div class="radio-group">${(q.options ?? []).map(o =>
+        `<label><input type="radio" name="ans" value="${esc(o.value)}" /> ${esc(o.label)}</label>`
+      ).join('')}</div>`;
+      break;
+    case 'multiple_choice':
+      answerEl.innerHTML = `<div class="checkbox-group">${(q.options ?? []).map(o =>
+        `<label><input type="checkbox" name="ans" value="${esc(o.value)}" /> ${esc(o.label)}</label>`
+      ).join('')}</div>`;
+      break;
+    case 'rating': {
+      const min = q.validation?.min ?? 1;
+      const max = q.validation?.max ?? 5;
+      const buttons = [];
+      for (let v = min; v <= max; v++) {
+        buttons.push(`
+          <label>
+            <input type="radio" name="ans" value="${v}" />
+            <div class="rating-btn">${v}</div>
+          </label>`);
+      }
+      answerEl.innerHTML = `<div class="rating-group">${buttons.join('')}</div>`;
+      break;
+    }
+    default:
+      answerEl.innerHTML = `<input id="ans" type="text" />`;
+  }
+}
+
+// ── Get current answer value ──────────────────────────────────────────────────
+function getAnswerValue(q) {
+  switch (q.type) {
+    case 'text':
+    case 'email':
+    case 'number':
+    case 'date':
+      return document.getElementById('ans')?.value ?? null;
+    case 'boolean': {
+      const checked = document.querySelector('input[name="ans"]:checked');
+      return checked ? checked.value === 'true' : null;
+    }
+    case 'single_choice': {
+      const checked = document.querySelector('input[name="ans"]:checked');
+      return checked ? checked.value : null;
+    }
+    case 'multiple_choice': {
+      const checked = [...document.querySelectorAll('input[name="ans"]:checked')];
+      return checked.map(el => el.value);
+    }
+    case 'rating': {
+      const checked = document.querySelector('input[name="ans"]:checked');
+      return checked ? Number(checked.value) : null;
+    }
+    default:
+      return document.getElementById('ans')?.value ?? null;
+  }
+}
+
+// ── Update progress ───────────────────────────────────────────────────────────
+function updateProgress(progress, total) {
+  const pct = progress.percentComplete ?? Math.round((progress.currentQuestionIndex / total) * 100);
+  fillEl.style.width  = pct + '%';
+  labelEl.textContent = `Question ${progress.currentQuestionIndex + 1} of ${total}`;
+}
+
+// ── Submit answer ─────────────────────────────────────────────────────────────
+nextBtn.addEventListener('click', () => submitAnswer(false));
+skipBtn.addEventListener('click', () => submitAnswer(true));
+
+async function submitAnswer(skipped) {
+  hideAlert(alertEl);
+
+  const value = skipped ? null : getAnswerValue(currentQuestion);
+
+  // Basic required validation
+  if (!skipped && currentQuestion.required) {
+    const empty = value === null || value === '' || (Array.isArray(value) && value.length === 0);
+    if (empty) {
+      showAlert(alertEl, 'This question is required.');
+      return;
+    }
+  }
+
+  nextBtn.disabled = true;
+  skipBtn.disabled = true;
+
+  try {
+    const result = await apiFetch('/api/sessions/' + encodeURIComponent(sessionId) + '/answer', {
+      method: 'POST',
+      body: JSON.stringify({ questionId: currentQuestion.id, value, skipped })
+    });
+
+    if (result.isComplete) {
+      await completeSession();
+    } else {
+      currentQuestion = result.nextQuestion;
+      isLastQuestion  = result.nextQuestionIndex === (totalQuestions - 1);
+      nextBtn.textContent = isLastQuestion ? 'Finish ✓' : 'Next →';
+      updateProgress(result.progress, totalQuestions);
+      renderQuestion(result.nextQuestion, totalQuestions, result.nextQuestionIndex);
+    }
+  } catch (err) {
+    showAlert(alertEl, 'Failed to save answer: ' + err.message);
+  } finally {
+    nextBtn.disabled = false;
+    skipBtn.disabled = false;
+  }
+}
+
+// ── Complete ──────────────────────────────────────────────────────────────────
+async function completeSession() {
+  try {
+    const result = await apiFetch('/api/sessions/' + encodeURIComponent(sessionId) + '/complete', {
+      method: 'POST',
+      body: JSON.stringify({})
+    });
+    document.getElementById('viewResponseLink').href =
+      'responses.html?responseId=' + encodeURIComponent(sessionId);
+    runEl.classList.add('hidden');
+    loadingEl.classList.add('hidden');
+    doneEl.classList.remove('hidden');
+  } catch (err) {
+    showAlert(alertEl, 'Failed to complete session: ' + err.message);
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showFatalError(msg) {
+  loadingEl.innerHTML = `<div class="alert alert-error">${esc(msg)}</div>`;
+}
+}
+</script>
+</body>
+</html>

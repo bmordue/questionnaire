@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Questionnaires</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<nav>
+  <a class="brand" href="index.html">📋 Questionnaires</a>
+  <a href="index.html">Home</a>
+  <a href="builder.html">Builder</a>
+  <a href="responses.html">Responses</a>
+</nav>
+
+<div class="container">
+  <div class="page-header">
+    <h1>Questionnaires</h1>
+    <a href="builder.html" class="btn btn-primary">+ New Questionnaire</a>
+  </div>
+
+  <div id="alert" class="alert hidden"></div>
+  <div id="list" class="card-grid"></div>
+</div>
+
+<script src="app.js"></script>
+<script>
+(async () => {
+  const listEl = document.getElementById('list');
+  const alertEl = document.getElementById('alert');
+
+  let questionnaires = [];
+  try {
+    questionnaires = await apiFetch('/api/questionnaires');
+  } catch (err) {
+    showAlert(alertEl, 'Failed to load questionnaires: ' + err.message);
+    return;
+  }
+
+  if (questionnaires.length === 0) {
+    listEl.innerHTML = `
+      <div class="empty-state" style="grid-column:1/-1">
+        <h3>No questionnaires yet</h3>
+        <p>Create your first questionnaire using the Builder.</p>
+        <a href="builder.html" class="btn btn-primary mt-2">Open Builder</a>
+      </div>`;
+    return;
+  }
+
+  listEl.innerHTML = questionnaires.map(q => `
+    <div class="card">
+      <div class="card-title">${esc(q.title)}</div>
+      ${q.description ? `<div class="card-sub">${esc(q.description)}</div>` : ''}
+      <div class="card-sub mt-1">Updated: ${fmtDate(q.updatedAt)}</div>
+      ${q.tags && q.tags.length ? `<div class="card-tags">${q.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>` : ''}
+      <div class="card-actions">
+        <a href="runner.html?id=${encodeURIComponent(q.id)}" class="btn btn-primary">▶ Run</a>
+        <a href="builder.html?id=${encodeURIComponent(q.id)}" class="btn btn-outline">✏ Edit</a>
+        <a href="responses.html?questionnaireId=${encodeURIComponent(q.id)}" class="btn btn-ghost">📄 Responses</a>
+        <button class="btn btn-danger btn-delete" data-id="${esc(q.id)}">🗑</button>
+      </div>
+    </div>
+  `).join('');
+
+  const deleteButtons = listEl.querySelectorAll('.btn-delete');
+  deleteButtons.forEach(btn => {
+    btn.addEventListener('click', (event) => {
+      const target = event.currentTarget;
+      if (!(target instanceof HTMLButtonElement)) return;
+      const id = target.dataset.id ?? '';
+      deleteQ(id, target);
+    });
+  });
+})();
+
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function deleteQ(id, btn) {
+  if (!confirm('Delete this questionnaire?')) return;
+  btn.disabled = true;
+  try {
+    await apiFetch('/api/questionnaires/' + encodeURIComponent(id), { method: 'DELETE' });
+    location.reload();
+  } catch (err) {
+    alert('Delete failed: ' + err.message);
+    btn.disabled = false;
+  }
+}
+</script>
+</body>
+</html>
