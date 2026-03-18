@@ -20,7 +20,8 @@ const PORT = (() => {
   const p = parseInt(process.env['PORT'] ?? '', 10);
   return Number.isNaN(p) ? 3000 : p;
 })();
-const DATA_DIR = process.env['DATA_DIR'] ?? path.join(process.cwd(), 'data');
+const DATA_DIR = process.env['DATA_DIR'] ??
+  (process.env['VERCEL'] ? '/tmp/questionnaire-data' : path.join(process.cwd(), 'data'));
 
 const storage = new FileStorageService({ dataDirectory: DATA_DIR });
 
@@ -250,7 +251,13 @@ app.post('/api/sessions/:sessionId/complete', async (req, res) => {
 
 // ── Start Server ──────────────────────────────────────────────────────────────
 
-app.listen(PORT, () => {
-  console.log(`Questionnaire web server running at http://localhost:${PORT}`);
-  console.log(`Data directory: ${DATA_DIR}`);
-});
+// Export the app for Vercel serverless functions
+export default app;
+
+// Only start the HTTP server when running locally (not in a Vercel deployment)
+if (!process.env['VERCEL']) {
+  app.listen(PORT, () => {
+    console.log(`Questionnaire web server running at http://localhost:${PORT}`);
+    console.log(`Data directory: ${DATA_DIR}`);
+  });
+}
