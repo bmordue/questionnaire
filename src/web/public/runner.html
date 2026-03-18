@@ -292,7 +292,8 @@ function esc(s) {
 }
 
 function showFatalError(msg) {
-  loadingEl.innerHTML = `<div class="alert alert-error">${msg}</div>`;
+  loadingEl.innerHTML = `<div class="alert alert-error">${esc(msg)}</div>`;
+}
 }
 </script>
 </body>

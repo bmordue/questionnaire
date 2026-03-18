@@ -59,10 +59,20 @@
         <a href="runner.html?id=${encodeURIComponent(q.id)}" class="btn btn-primary">▶ Run</a>
         <a href="builder.html?id=${encodeURIComponent(q.id)}" class="btn btn-outline">✏ Edit</a>
         <a href="responses.html?questionnaireId=${encodeURIComponent(q.id)}" class="btn btn-ghost">📄 Responses</a>
-        <button class="btn btn-danger" onclick="deleteQ('${esc(q.id)}', this)">🗑</button>
+        <button class="btn btn-danger btn-delete" data-id="${esc(q.id)}">🗑</button>
       </div>
     </div>
   `).join('');
+
+  const deleteButtons = listEl.querySelectorAll('.btn-delete');
+  deleteButtons.forEach(btn => {
+    btn.addEventListener('click', (event) => {
+      const target = event.currentTarget;
+      if (!(target instanceof HTMLButtonElement)) return;
+      const id = target.dataset.id ?? '';
+      deleteQ(id, target);
+    });
+  });
 })();
 
 function esc(s) {

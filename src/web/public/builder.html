@@ -285,6 +285,10 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
   const now  = new Date().toISOString();
   const tags = document.getElementById('tags').value.split(',').map(t => t.trim()).filter(Boolean);
 
+  // Preserve original creation time when editing, only set on first creation
+  const existingCreatedAt = window.currentQuestionnaire?.metadata?.createdAt;
+  const createdAt = editId && existingCreatedAt ? existingCreatedAt : now;
+
   const body = {
     id:      editId ?? ('q_' + Date.now().toString(36)),
     version: '1.0',
@@ -292,7 +296,7 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
       title,
       description: document.getElementById('desc').value.trim() || undefined,
       author:      document.getElementById('author').value.trim() || undefined,
-      createdAt:   now,
+      createdAt:   createdAt,
       updatedAt:   now,
       tags
     },

@@ -9,7 +9,7 @@
   "scripts": {
     "start": "npm run build && node dist/app.js",
     "start:dev": "node dist/app.js",
-    "build": "tsc && cp -r src/web/public dist/web/",
+    "build": "tsc && cpx \"src/web/public/**/*\" \"dist/web/public\" --clean",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "validate": "npm run build && node validate-fixtures.js",
     "flow-example": "npm run build && node dist/flow-example.js",
@@ -31,6 +31,7 @@
     "@types/inquirer": "^9.0.9",
     "@types/jest": "^30.0.0",
     "@types/node": "^24.9.1",
+    "cpx": "^1.5.0",
     "jest": "^29.7.0",
     "ts-jest": "^29.4.5",
     "typescript": "^5.9.3"
