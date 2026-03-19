@@ -29,12 +29,12 @@ graph TD
 
 ### Dependency Details
 
-| Task | Duration | Depends On | Can Parallel With |
-|------|----------|------------|-------------------|
-| **1. Define TypeScript Schemas** | 9 hours | None (foundation) | Nothing - must complete first |
-| **2. Implement Storage Layer** | 12 hours | Schemas | Fixtures, Tests |
-| **3. Create Sample Fixtures** | 11 hours | Schemas | Storage, Tests |
-| **4. Write Unit Tests** | 15 hours | Schemas | Storage, Fixtures |
+| Task                             | Duration | Depends On        | Can Parallel With             |
+| -------------------------------- | -------- | ----------------- | ----------------------------- |
+| **1. Define TypeScript Schemas** | 9 hours  | None (foundation) | Nothing - must complete first |
+| **2. Implement Storage Layer**   | 12 hours | Schemas           | Fixtures, Tests               |
+| **3. Create Sample Fixtures**    | 11 hours | Schemas           | Storage, Tests                |
+| **4. Write Unit Tests**          | 15 hours | Schemas           | Storage, Fixtures             |
 
 ### Parallelization Strategy
 
@@ -76,12 +76,12 @@ graph TD
 
 ### Dependency Details
 
-| Task | Duration | Depends On | Can Parallel With | Blocks |
-|------|----------|------------|-------------------|--------|
-| **1. Build TUI Components** | 18 hours | Schemas, Fixtures | Flow Logic | Validation |
-| **2. Implement Flow Logic** | 18 hours | Schemas, Storage | Components | Persistence |
-| **3. Add Validation & Error Handling** | 16 hours | Schemas, Components | Persistence (initially) | Phase 3 |
-| **4. Implement Response Persistence** | 16 hours | Storage, Flow Logic | Validation (initially) | Phase 3 |
+| Task                                   | Duration | Depends On          | Can Parallel With       | Blocks      |
+| -------------------------------------- | -------- | ------------------- | ----------------------- | ----------- |
+| **1. Build TUI Components**            | 18 hours | Schemas, Fixtures   | Flow Logic              | Validation  |
+| **2. Implement Flow Logic**            | 18 hours | Schemas, Storage    | Components              | Persistence |
+| **3. Add Validation & Error Handling** | 16 hours | Schemas, Components | Persistence (initially) | Phase 3     |
+| **4. Implement Response Persistence**  | 16 hours | Storage, Flow Logic | Validation (initially)  | Phase 3     |
 
 ### Parallelization Strategy
 
@@ -138,12 +138,12 @@ graph TD
 
 ### Dependency Details
 
-| Task | Duration | Depends On | Can Parallel With | Blocks |
-|------|----------|------------|-------------------|--------|
-| **1. Conditional Logic Engine** | 18 hours | Schemas, Flow Logic | Analytics, Export | Polish |
-| **2. Response Viewing & Analytics** | 18 hours | Storage, Persistence | Conditional Logic, Export | Polish |
-| **3. Export Functionality** | 18 hours | Storage, Persistence | Conditional Logic, Analytics | Polish |
-| **4. Polish & Error Handling** | 16 hours | ALL tasks above | Nothing - integration work | Release |
+| Task                                | Duration | Depends On           | Can Parallel With            | Blocks  |
+| ----------------------------------- | -------- | -------------------- | ---------------------------- | ------- |
+| **1. Conditional Logic Engine**     | 18 hours | Schemas, Flow Logic  | Analytics, Export            | Polish  |
+| **2. Response Viewing & Analytics** | 18 hours | Storage, Persistence | Conditional Logic, Export    | Polish  |
+| **3. Export Functionality**         | 18 hours | Storage, Persistence | Conditional Logic, Analytics | Polish  |
+| **4. Polish & Error Handling**      | 16 hours | ALL tasks above      | Nothing - integration work   | Release |
 
 ### Parallelization Strategy
 
@@ -412,30 +412,30 @@ main
 
 ### Phase 1: Core Schema & Storage (47 hours)
 
-| Task | Sub-tasks | Hours |
-|------|-----------|-------|
-| Define TypeScript Schemas | Base schemas (2h) + Question types (3h) + Questionnaire (2h) + Response (2h) | 9 |
-| Implement Storage Layer | Core service (4h) + Questionnaire storage (2h) + Response storage (3h) + Session mgmt (3h) | 12 |
-| Create Sample Fixtures | Basic fixtures (3h) + Advanced fixtures (4h) + Edge cases (2h) + Documentation (2h) | 11 |
-| Write Unit Tests | Question schemas (6h) + Questionnaire schemas (3h) + Response schemas (3h) + Edge cases (3h) | 15 |
+| Task                      | Sub-tasks                                                                                    | Hours |
+| ------------------------- | -------------------------------------------------------------------------------------------- | ----- |
+| Define TypeScript Schemas | Base schemas (2h) + Question types (3h) + Questionnaire (2h) + Response (2h)                 | 9     |
+| Implement Storage Layer   | Core service (4h) + Questionnaire storage (2h) + Response storage (3h) + Session mgmt (3h)   | 12    |
+| Create Sample Fixtures    | Basic fixtures (3h) + Advanced fixtures (4h) + Edge cases (2h) + Documentation (2h)          | 11    |
+| Write Unit Tests          | Question schemas (6h) + Questionnaire schemas (3h) + Response schemas (3h) + Edge cases (3h) | 15    |
 
 ### Phase 2: Questionnaire Runner (68 hours)
 
-| Task | Sub-tasks | Hours |
-|------|-----------|-------|
-| Build TUI Components | Base framework (4h) + Text/Input (5h) + Choice components (4h) + Specialized (5h) | 18 |
-| Implement Flow Logic | Core engine (6h) + Conditional logic (5h) + Navigation (4h) + Session mgmt (3h) | 18 |
-| Add Validation | Input validation (5h) + Cross-question (4h) + Error framework (4h) + Error UI (3h) | 16 |
-| Response Persistence | Data model (4h) + Incremental saves (5h) + Completion (3h) + Recovery/Query (4h) | 16 |
+| Task                 | Sub-tasks                                                                          | Hours |
+| -------------------- | ---------------------------------------------------------------------------------- | ----- |
+| Build TUI Components | Base framework (4h) + Text/Input (5h) + Choice components (4h) + Specialized (5h)  | 18    |
+| Implement Flow Logic | Core engine (6h) + Conditional logic (5h) + Navigation (4h) + Session mgmt (3h)    | 18    |
+| Add Validation       | Input validation (5h) + Cross-question (4h) + Error framework (4h) + Error UI (3h) | 16    |
+| Response Persistence | Data model (4h) + Incremental saves (5h) + Completion (3h) + Recovery/Query (4h)   | 16    |
 
 ### Phase 3: Advanced Features (70 hours)
 
-| Task | Sub-tasks | Hours |
-|------|-----------|-------|
-| Conditional Logic Engine | Expression parser (6h) + Evaluation engine (5h) + Advanced features (4h) + Debug tools (3h) | 18 |
-| Response Viewing & Analytics | Data access (4h) + Analytics engine (6h) + Visualization (5h) + Export/Reporting (3h) | 18 |
-| Export Functionality | Core framework (4h) + Format exporters (8h) + Advanced features (4h) + Management (2h) | 18 |
-| Polish & Error Handling | Error framework (5h) + UX enhancements (4h) + Performance (4h) + Production readiness (3h) | 16 |
+| Task                         | Sub-tasks                                                                                   | Hours |
+| ---------------------------- | ------------------------------------------------------------------------------------------- | ----- |
+| Conditional Logic Engine     | Expression parser (6h) + Evaluation engine (5h) + Advanced features (4h) + Debug tools (3h) | 18    |
+| Response Viewing & Analytics | Data access (4h) + Analytics engine (6h) + Visualization (5h) + Export/Reporting (3h)       | 18    |
+| Export Functionality         | Core framework (4h) + Format exporters (8h) + Advanced features (4h) + Management (2h)      | 18    |
+| Polish & Error Handling      | Error framework (5h) + UX enhancements (4h) + Performance (4h) + Production readiness (3h)  | 16    |
 
 **Total:** 185 hours
 
