@@ -78,8 +78,41 @@ For each decision, we document:
 
 **Status**: Accepted
 
-**Consequences**: 
+**Consequences**:
 - Responses stored in plain text/JSON format
 - Easier debugging and data inspection
 - Simpler backup and recovery
 - May need to revisit if sensitive data requirements emerge
+
+---
+
+### ADR-004: Backup File Cleanup on Session Completion
+
+**Decision**: Yes - Delete backup files when a questionnaire session completes
+
+**Date**: 2026-03-18
+
+**Context**: User requested automatic deletion of backup files after completing a questionnaire run to clean up the workspace. The primary concerns were visual clutter and user confusion about `.backup.*` files.
+
+**Rationale**:
+- Users prefer a clean workspace after completing questionnaires
+- Backup files during active sessions provide protection against corruption
+- Once completed, responses are less likely to need recovery
+- Feature is configurable (`deleteBackupsOnCompletion: true` by default)
+- Cleanup only happens for COMPLETED sessions, not ABANDONED ones
+- Errors are logged as warnings and don't block session completion
+
+**Status**: Accepted
+
+**Consequences**:
+- Cleaner workspace after questionnaire completion
+- Reduced user confusion about backup files
+- Loss of recovery capability for completed responses if they become corrupted
+- Users can disable the feature if they want to keep backups
+- Minor performance improvement (fewer files in data directory)
+
+**Implementation Details**:
+- Cleanup triggered in `PersistenceManager.endSession()` when status is COMPLETED
+- Deletes both response and questionnaire backup files
+- Shows summary message "Cleaned up X backup files" only when files were actually deleted and no errors occurred
+- Respects `deleteBackupsOnCompletion` configuration option

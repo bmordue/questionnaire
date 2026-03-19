@@ -20,6 +20,8 @@ export interface StorageConfig {
   compressionEnabled: boolean;
   /** Enable encryption (not implemented) */
   encryptionEnabled: boolean;
+  /** Delete backup files when session completes */
+  deleteBackupsOnCompletion: boolean;
 }
 
 /**
@@ -79,9 +81,10 @@ export interface StorageService {
   loadSession(sessionId: string): Promise<SessionData>;
   deleteSession(sessionId: string): Promise<void>;
   listActiveSessions(): Promise<SessionData[]>;
-  
+
   // Maintenance operations
   cleanup(): Promise<void>;
+  cleanupBackups(sessionId: string, questionnaireId: string): Promise<{ deletedCount: number; errors: string[] }>;
   getDataDirectory(): string;
   getConfig(): Readonly<StorageConfig>;
 }

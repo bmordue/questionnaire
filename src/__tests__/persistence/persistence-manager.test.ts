@@ -177,16 +177,143 @@ describe('PersistenceManager', () => {
   describe('auto-save functionality', () => {
     it('should auto-save responses at configured interval', async () => {
       const session = await manager.startSession(questionnaire);
-      
+
       // Make a change
       await session.responseBuilder.recordAnswer('q1', 'Initial answer');
-      
+
       // Wait for auto-save (1 second interval)
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
+
       // Verify it was saved
       const loaded = await storage.loadResponse(session.sessionId);
       expect(loaded.answers).toHaveLength(1);
+    });
+  });
+
+  describe('backup cleanup on session end', () => {
+    it('should cleanup backups when session completes', async () => {
+      const testDir = path.join(TEST_DATA_DIR, 'cleanup-complete');
+      // Create storage with backups enabled
+      const storageWithBackups = await createStorageService({
+        dataDirectory: testDir,
+        backupEnabled: true,
+        maxBackups: 5,
+        deleteBackupsOnCompletion: true
+      });
+
+      const pm = new PersistenceManager(storageWithBackups, 1000);
+      await storageWithBackups.saveQuestionnaire(questionnaire);
+
+      const session = await pm.startSession(questionnaire);
+      
+      // Create backups by saving multiple times
+      await storageWithBackups.saveResponse(session.responseBuilder.getResponse());
+      await storageWithBackups.saveResponse(session.responseBuilder.getResponse());
+      await storageWithBackups.saveResponse(session.responseBuilder.getResponse());
+
+      // Verify backups exist
+      const rDir = path.join(testDir, 'responses');
+      let files = await fs.readdir(rDir);
+      const backupsBefore = files.filter(f => f.includes('.backup.'));
+      expect(backupsBefore.length).toBeGreaterThan(0);
+
+      // Complete the session
+      await session.responseBuilder.complete();
+      await pm.endSession();
+
+      // Verify backups were cleaned up
+      files = await fs.readdir(rDir);
+      const backupsAfter = files.filter(f => f.includes('.backup.'));
+      expect(backupsAfter).toHaveLength(0);
+    });
+
+    it('should not cleanup backups when session is not completed', async () => {
+      const testDir = path.join(TEST_DATA_DIR, 'cleanup-incomplete');
+      const storageWithBackups = await createStorageService({
+        dataDirectory: testDir,
+        backupEnabled: true,
+        maxBackups: 5,
+        deleteBackupsOnCompletion: true
+      });
+
+      const pm = new PersistenceManager(storageWithBackups, 1000);
+      await storageWithBackups.saveQuestionnaire(questionnaire);
+
+      const session = await pm.startSession(questionnaire);
+      
+      // Create backups
+      await storageWithBackups.saveResponse(session.responseBuilder.getResponse());
+      await storageWithBackups.saveResponse(session.responseBuilder.getResponse());
+
+      const rDir = path.join(testDir, 'responses');
+      let files = await fs.readdir(rDir);
+      const backupsBefore = files.filter(f => f.includes('.backup.'));
+
+      // End session without completing
+      await pm.endSession();
+
+      // Backups should still exist
+      files = await fs.readdir(rDir);
+      const backupsAfter = files.filter(f => f.includes('.backup.'));
+      expect(backupsAfter.length).toBe(backupsBefore.length);
+    });
+
+    it('should not cleanup backups when deleteBackupsOnCompletion is false', async () => {
+      const testDir = path.join(TEST_DATA_DIR, 'cleanup-disabled');
+      const storageNoCleanup = await createStorageService({
+        dataDirectory: testDir,
+        backupEnabled: true,
+        maxBackups: 5,
+        deleteBackupsOnCompletion: false
+      });
+
+      // Use a longer auto-save interval to prevent interference
+      const pm = new PersistenceManager(storageNoCleanup, 60000);
+      await storageNoCleanup.saveQuestionnaire(questionnaire);
+
+      const session = await pm.startSession(questionnaire);
+
+      // Create backups
+      await storageNoCleanup.saveResponse(session.responseBuilder.getResponse());
+      await storageNoCleanup.saveResponse(session.responseBuilder.getResponse());
+
+      // Complete the session (this also saves, creating another backup)
+      await session.responseBuilder.complete();
+
+      // Wait a bit to ensure all saves are complete
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const rDir = path.join(testDir, 'responses');
+      let files = await fs.readdir(rDir);
+      const backupsBefore = files.filter(f => f.includes('.backup.'));
+      const expectedCount = backupsBefore.length;
+
+      // End session
+      await pm.endSession();
+
+      // Backups should still exist
+      files = await fs.readdir(rDir);
+      const backupsAfter = files.filter(f => f.includes('.backup.'));
+      expect(backupsAfter.length).toBe(expectedCount);
+    });
+
+    it('should handle cleanup errors gracefully', async () => {
+      const testDir = path.join(TEST_DATA_DIR, 'cleanup-error');
+      const storageWithBackups = await createStorageService({
+        dataDirectory: testDir,
+        backupEnabled: true,
+        maxBackups: 5,
+        deleteBackupsOnCompletion: true
+      });
+
+      const pm = new PersistenceManager(storageWithBackups, 1000);
+      await storageWithBackups.saveQuestionnaire(questionnaire);
+
+      const session = await pm.startSession(questionnaire);
+      
+      // Complete and end session (no backups to clean up, should not throw)
+      await session.responseBuilder.complete();
+      await expect(pm.endSession()).resolves.not.toThrow();
     });
   });
 });

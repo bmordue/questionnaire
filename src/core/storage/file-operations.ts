@@ -234,6 +234,35 @@ export class FileOperations {
   }
 
   /**
+   * Delete files matching a pattern
+   * @param dirPath - Directory to search
+   * @param pattern - RegExp pattern to match
+   * @returns Number of files deleted
+   */
+  static async deleteMatchingFiles(
+    dirPath: string,
+    pattern: RegExp
+  ): Promise<number> {
+    try {
+      const files = await this.listFiles(dirPath);
+      const matchingFiles = files.filter(file => pattern.test(file));
+
+      await Promise.all(
+        matchingFiles.map(file => this.delete(path.join(dirPath, file)))
+      );
+
+      return matchingFiles.length;
+    } catch (error) {
+      throw new FileOperationError(
+        `Failed to delete matching files: ${error instanceof Error ? error.message : String(error)}`,
+        'deleteMatchingFiles',
+        dirPath,
+        error instanceof Error ? error : undefined
+      );
+    }
+  }
+
+  /**
    * Generate a unique session ID
    * @returns Unique session identifier
    */

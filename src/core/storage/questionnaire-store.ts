@@ -149,11 +149,26 @@ export class QuestionnaireStore {
    * Clean up old backup files for a questionnaire
    */
   private async cleanupBackups(id: string): Promise<void> {
-    const pattern = new RegExp(`^${id}\\.backup\\..*\\.json$`);
+    const escaped = id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(`^${escaped}\\.backup\\..*\\.json$`);
     await FileOperations.cleanupBackups(
       this.questionnairesDir,
       pattern,
       this.config.maxBackups
+    );
+  }
+
+  /**
+   * Clean up ALL backup files for a questionnaire
+   * @param id - Questionnaire ID
+   * @returns Number of backups deleted
+   */
+  async cleanupAllBackups(id: string): Promise<number> {
+    const escaped = id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(`^${escaped}\\.backup\\..*\\.json$`);
+    return await FileOperations.deleteMatchingFiles(
+      this.questionnairesDir,
+      pattern
     );
   }
 }

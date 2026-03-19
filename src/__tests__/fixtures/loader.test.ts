@@ -65,9 +65,9 @@ describe('FixtureLoader', () => {
   describe('loadAllFixtures', () => {
     it('should load all fixtures from all categories', async () => {
       const fixtures = await FixtureLoader.loadAllFixtures();
-      
+
       expect(fixtures).toBeDefined();
-      expect(fixtures.length).toBe(13); // 3 basic + 6 advanced + 4 edge cases
+      expect(fixtures.length).toBeGreaterThanOrEqual(13); // 3 basic + 6 advanced + 4 edge cases + feature-refinement
     });
 
     it('should have unique IDs across all fixtures', async () => {

@@ -287,6 +287,55 @@ While fully functional, potential improvements include:
 - Compression for large responses
 - Encryption for sensitive data
 
+## Backup Cleanup Feature
+
+### Overview
+
+Added automatic cleanup of backup files when a questionnaire session is completed. This feature addresses user requests to clean up the workspace after completing a questionnaire run.
+
+### Implementation
+
+**New Configuration Option:**
+- `deleteBackupsOnCompletion: boolean` (default: `true`)
+- Controls whether backup files are deleted when a session completes
+
+**New Methods:**
+- `FileOperations.deleteMatchingFiles()` - Delete files matching a pattern
+- `ResponseStore.cleanupAllBackups(sessionId)` - Delete all response backups
+- `QuestionnaireStore.cleanupAllBackups(id)` - Delete all questionnaire backups
+- `StorageService.cleanupBackups(sessionId, questionnaireId)` - Coordinate cleanup
+
+**Modified Methods:**
+- `PersistenceManager.endSession()` - Calls cleanup when status is COMPLETED
+- `runner.ts` - Shows "Backup files cleaned up" message on completion
+
+### Behavior
+
+- Backups are deleted only when session status is COMPLETED
+- Abandoned sessions retain their backups
+- Cleanup errors are logged as warnings and don't block session end
+- Summary message shown to user: "Cleaned up X backup files"
+- Feature can be disabled by setting `deleteBackupsOnCompletion: false`
+
+### Test Coverage
+
+- Tests for `FileOperations.deleteMatchingFiles()`
+- Tests for `StorageService.cleanupBackups()`
+- Tests for `PersistenceManager.endSession()` with cleanup
+- Tests for configuration option (enabled/disabled)
+- Tests for error handling
+
+### Files Changed
+
+- `src/core/storage/types.ts` - Added config field
+- `src/core/storage/file-operations.ts` - Added deleteMatchingFiles
+- `src/core/storage/response-store.ts` - Added cleanupAllBackups
+- `src/core/storage/questionnaire-store.ts` - Added cleanupAllBackups
+- `src/core/storage.ts` - Added cleanupBackups method
+- `src/core/persistence/persistence-manager.ts` - Integrated cleanup
+- `src/runner.ts` - Added user notification
+- Test files updated with new tests
+
 ## Conclusion
 
 The persistence feature is **complete and production-ready**:

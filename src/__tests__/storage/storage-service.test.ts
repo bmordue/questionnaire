@@ -416,4 +416,116 @@ describe('StorageService', () => {
       expect(sExists).toBe(true);
     });
   });
+
+  describe('Backup Cleanup', () => {
+    it('should cleanup response backups on completed session', async () => {
+      const questionnaire = TestDataFactory.createValidQuestionnaire({ id: 'cleanup-test' });
+      await storage.saveQuestionnaire(questionnaire);
+
+      // Create session and save response multiple times to create backups
+      const sessionId = await storage.createSession(questionnaire.id);
+      const response = await storage.loadResponse(sessionId);
+      
+      // Update response multiple times to create backups
+      await storage.saveResponse(response);
+      await storage.saveResponse(response);
+      await storage.saveResponse(response);
+
+      // Verify backups exist
+      const rDir = path.join(TEST_DATA_DIR, 'responses');
+      let files = await fs.readdir(rDir);
+      const backupsBefore = files.filter(f => f.includes('.backup.'));
+      expect(backupsBefore.length).toBeGreaterThan(0);
+
+      // Call cleanupBackups
+      const result = await storage.cleanupBackups(sessionId, questionnaire.id);
+
+      // Verify backups were deleted
+      files = await fs.readdir(rDir);
+      const backupsAfter = files.filter(f => f.includes('.backup.'));
+      
+      expect(backupsAfter).toHaveLength(0);
+      expect(result.deletedCount).toBe(backupsBefore.length);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should cleanup questionnaire backups on completed session', async () => {
+      const questionnaire = TestDataFactory.createValidQuestionnaire({ id: 'q-cleanup-test' });
+      await storage.saveQuestionnaire(questionnaire);
+      
+      // Update questionnaire multiple times to create backups
+      const updated = {
+        ...questionnaire,
+        metadata: { ...questionnaire.metadata, title: 'Updated' }
+      };
+      await storage.saveQuestionnaire(updated);
+      await storage.saveQuestionnaire(updated);
+
+      // Verify backups exist
+      const qDir = path.join(TEST_DATA_DIR, 'questionnaires');
+      let files = await fs.readdir(qDir);
+      const backupsBefore = files.filter(f => f.includes('.backup.'));
+      expect(backupsBefore.length).toBeGreaterThan(0);
+
+      // Create a session for this questionnaire
+      const sessionId = await storage.createSession(questionnaire.id);
+
+      // Call cleanupBackups
+      const result = await storage.cleanupBackups(sessionId, questionnaire.id);
+
+      // Verify backups were deleted
+      files = await fs.readdir(qDir);
+      const backupsAfter = files.filter(f => f.includes('.backup.'));
+      
+      expect(backupsAfter).toHaveLength(0);
+      expect(result.deletedCount).toBeGreaterThan(0);
+    });
+
+    it('should respect deleteBackupsOnCompletion config', async () => {
+      // Create storage with cleanup disabled
+      const noCleanupStorage = await createStorageService({
+        dataDirectory: TEST_DATA_DIR,
+        backupEnabled: true,
+        maxBackups: 3,
+        deleteBackupsOnCompletion: false  // Disabled
+      });
+
+      const questionnaire = TestDataFactory.createValidQuestionnaire({ id: 'no-cleanup-test' });
+      await noCleanupStorage.saveQuestionnaire(questionnaire);
+
+      const sessionId = await noCleanupStorage.createSession(questionnaire.id);
+      const response = await noCleanupStorage.loadResponse(sessionId);
+      
+      // Create backups
+      await noCleanupStorage.saveResponse(response);
+      await noCleanupStorage.saveResponse(response);
+
+      const rDir = path.join(TEST_DATA_DIR, 'responses');
+      let files = await fs.readdir(rDir);
+      const backupsBefore = files.filter(f => f.includes('.backup.'));
+
+      // Call cleanupBackups with config disabled
+      const result = await noCleanupStorage.cleanupBackups(sessionId, questionnaire.id);
+
+      // Backups should still exist
+      files = await fs.readdir(rDir);
+      const backupsAfter = files.filter(f => f.includes('.backup.'));
+      
+      expect(backupsAfter).toHaveLength(backupsBefore.length);
+      expect(result.deletedCount).toBe(0);
+    });
+
+    it('should handle errors gracefully and continue', async () => {
+      const questionnaire = TestDataFactory.createValidQuestionnaire({ id: 'error-test' });
+      await storage.saveQuestionnaire(questionnaire);
+
+      const sessionId = await storage.createSession(questionnaire.id);
+
+      // Call cleanup with non-existent backups (should not throw)
+      const result = await storage.cleanupBackups(sessionId, questionnaire.id);
+
+      expect(result.deletedCount).toBe(0);
+      expect(result.errors).toHaveLength(0);
+    });
+  });
 });

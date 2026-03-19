@@ -26,7 +26,8 @@ const DEFAULT_CONFIG: StorageConfig = {
   backupEnabled: true,
   maxBackups: 5,
   compressionEnabled: false,
-  encryptionEnabled: false
+  encryptionEnabled: false,
+  deleteBackupsOnCompletion: true
 };
 
 /**
@@ -177,6 +178,40 @@ export class FileStorageService implements StorageService {
   async cleanup(): Promise<void> {
     await this.ensureInitialized();
     await this.sessionStore.cleanup();
+  }
+
+  /**
+   * Clean up backup files for a completed session
+   * @param sessionId - Session ID
+   * @param questionnaireId - Questionnaire ID
+   * @returns Cleanup summary
+   */
+  async cleanupBackups(
+    sessionId: string,
+    questionnaireId: string
+  ): Promise<{ deletedCount: number; errors: string[] }> {
+    if (!this.config.deleteBackupsOnCompletion) {
+      return { deletedCount: 0, errors: [] };
+    }
+
+    const errors: string[] = [];
+    let deletedCount = 0;
+
+    try {
+      const responseCount = await this.responseStore.cleanupAllBackups(sessionId);
+      deletedCount += responseCount;
+    } catch (error) {
+      errors.push(`Response backups: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
+    try {
+      const questionnaireCount = await this.questionnaireStore.cleanupAllBackups(questionnaireId);
+      deletedCount += questionnaireCount;
+    } catch (error) {
+      errors.push(`Questionnaire backups: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
+    return { deletedCount, errors };
   }
 
   /**
