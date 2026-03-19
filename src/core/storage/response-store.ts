@@ -145,7 +145,8 @@ export class ResponseStore {
    * Clean up old backup files for a response
    */
   private async cleanupBackups(sessionId: string): Promise<void> {
-    const pattern = new RegExp(`^${sessionId}\\.backup\\..*\\.json$`);
+    const escaped = sessionId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(`^${escaped}\\.backup\\..*\\.json$`);
     await FileOperations.cleanupBackups(
       this.responsesDir,
       pattern,
@@ -159,7 +160,8 @@ export class ResponseStore {
    * @returns Number of backups deleted
    */
   async cleanupAllBackups(sessionId: string): Promise<number> {
-    const pattern = new RegExp(`^${sessionId}\\.backup\\..*\\.json$`);
+    const escaped = sessionId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(`^${escaped}\\.backup\\..*\\.json$`);
     return await FileOperations.deleteMatchingFiles(
       this.responsesDir,
       pattern

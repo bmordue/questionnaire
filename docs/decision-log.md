@@ -114,5 +114,5 @@ For each decision, we document:
 **Implementation Details**:
 - Cleanup triggered in `PersistenceManager.endSession()` when status is COMPLETED
 - Deletes both response and questionnaire backup files
-- Shows summary message: "Cleaned up X backup files"
+- Shows summary message "Cleaned up X backup files" only when files were actually deleted and no errors occurred
 - Respects `deleteBackupsOnCompletion` configuration option

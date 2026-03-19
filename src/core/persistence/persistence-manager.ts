@@ -5,7 +5,7 @@
  */
 
 import type { Questionnaire, QuestionnaireResponse } from '../schema.js';
-import { createResponse, ResponseStatus } from '../schemas/response.js';
+import { ResponseStatus } from '../schemas/response.js';
 import type { StorageService } from '../storage/types.js';
 import { ResponseBuilder } from './response-builder.js';
 import { getLogger } from '../logging/index.js';
@@ -118,10 +118,13 @@ export class PersistenceManager {
 
   /**
    * End a session (stops auto-save)
+   * @returns Cleanup result with count of deleted files and any errors
    */
-  async endSession(): Promise<void> {
+  async endSession(): Promise<{ deletedCount: number; errors: string[] }> {
     // Stop auto-save
     this.stopAutoSave();
+
+    let cleanupResult: { deletedCount: number; errors: string[] } = { deletedCount: 0, errors: [] };
 
     // Clean up backups if session is completed
     if (this.currentBuilder) {
@@ -132,6 +135,8 @@ export class PersistenceManager {
             response.sessionId,
             response.questionnaireId
           );
+
+          cleanupResult = result;
 
           if (result.deletedCount > 0) {
             // Log summary message (per user preference)
@@ -150,6 +155,7 @@ export class PersistenceManager {
     }
 
     this.currentBuilder = null;
+    return cleanupResult;
   }
 
   /**

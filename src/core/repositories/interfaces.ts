@@ -56,56 +56,9 @@ export interface IRepository<T, TCreate = Partial<T>> {
 }
 
 /**
- * User entity for authentication and authorization
- */
-export interface User {
-  id: string;
-  email: string;
-  passwordHash: string;
-  role: UserRole;
-  createdAt: string;
-  updatedAt: string;
-  lastLoginAt?: string;
-}
-
-/**
- * User roles for authorization
- */
-export type UserRole = 'admin' | 'creator' | 'respondent';
-
-/**
- * User repository interface
- */
-export interface IUserRepository extends IRepository<User, UserCreateInput> {
-  /**
-   * Find user by email
-   * @param email - User email
-   * @returns User or null
-   */
-  findByEmail(email: string): Promise<User | null>;
-
-  /**
-   * Update user's last login timestamp
-   * @param userId - User ID
-   * @returns Updated user
-   */
-  updateLastLogin(userId: string): Promise<User>;
-}
-
-/**
- * User creation input
- */
-export interface UserCreateInput {
-  email: string;
-  passwordHash: string;
-  role?: UserRole;
-}
-
-/**
- * Questionnaire with version tracking for concurrency
+ * Questionnaire with additional publishing metadata for concurrency control
  */
 export interface VersionedQuestionnaire extends Questionnaire {
-  version: string;
   publishedAt?: string;
   publishedBy?: string;
 }
@@ -163,7 +116,6 @@ export interface QuestionnaireCreateInput {
   questions: Questionnaire['questions'];
   config?: Questionnaire['config'];
   tags?: string[];
-  createdBy: string;
 }
 
 /**
@@ -171,7 +123,6 @@ export interface QuestionnaireCreateInput {
  */
 export interface QuestionnaireListOptions {
   publishedOnly?: boolean;
-  createdBy?: string;
   tags?: string[];
   limit?: number;
   offset?: number;
@@ -197,14 +148,6 @@ export interface IResponseRepository extends IRepository<QuestionnaireResponse, 
   listByQuestionnaire(questionnaireId: string, options?: ResponseListOptions): Promise<QuestionnaireResponse[]>;
 
   /**
-   * List responses by user
-   * @param userId - User ID
-   * @param options - Filter options
-   * @returns Array of responses
-   */
-  listByUser(userId: string, options?: ResponseListOptions): Promise<QuestionnaireResponse[]>;
-
-  /**
    * Update response with optimistic locking
    * @param id - Response ID
    * @param data - Update data
@@ -222,7 +165,6 @@ export interface ResponseCreateInput {
   questionnaireId: string;
   questionnaireVersion: string;
   sessionId: string;
-  userId?: string;
   totalQuestions: number;
 }
 
@@ -231,7 +173,6 @@ export interface ResponseCreateInput {
  */
 export interface ResponseListOptions {
   status?: 'in_progress' | 'completed' | 'abandoned';
-  userId?: string;
   completedAfter?: string;
   completedBefore?: string;
   limit?: number;
@@ -245,17 +186,15 @@ export interface ISessionRepository extends IRepository<SessionData, SessionCrea
   /**
    * Find active session by questionnaire ID
    * @param questionnaireId - Questionnaire ID
-   * @param userId - Optional user ID filter
    * @returns Session or null
    */
-  findActiveByQuestionnaire(questionnaireId: string, userId?: string): Promise<SessionData | null>;
+  findActiveByQuestionnaire(questionnaireId: string): Promise<SessionData | null>;
 
   /**
    * List active sessions
-   * @param userId - Optional user ID filter
    * @returns Array of active sessions
    */
-  listActive(userId?: string): Promise<SessionData[]>;
+  listActive(): Promise<SessionData[]>;
 
   /**
    * Mark session as completed
@@ -285,9 +224,6 @@ export interface ISessionRepository extends IRepository<SessionData, SessionCrea
 export interface SessionCreateInput {
   questionnaireId: string;
   responseId: string;
-  userId?: string;
-  userAgent?: string;
-  ipAddress?: string;
 }
 
 /**
