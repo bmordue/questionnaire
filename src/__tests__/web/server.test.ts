@@ -12,6 +12,7 @@ import request from 'supertest';
 
 // DATA_DIR must be set before importing the server so FileStorageService uses our test directory
 const TEST_DATA_DIR = path.join(process.cwd(), 'test-data', 'server-api');
+const originalDataDir = process.env['DATA_DIR'];
 process.env['DATA_DIR'] = TEST_DATA_DIR;
 
 // Importing the server module after setting DATA_DIR ensures it picks up our test directory.
@@ -58,6 +59,13 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  // Restore the original DATA_DIR env var to prevent leaking into other test files
+  if (originalDataDir === undefined) {
+    delete process.env['DATA_DIR'];
+  } else {
+    process.env['DATA_DIR'] = originalDataDir;
+  }
+
   try {
     await fs.rm(TEST_DATA_DIR, { recursive: true });
   } catch {
