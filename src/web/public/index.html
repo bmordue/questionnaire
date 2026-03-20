@@ -53,13 +53,36 @@ document.getElementById('uploadInput').addEventListener('change', async (event) 
     return;
   }
 
+  // Check for duplicate ID and confirm before overwriting
+  if (parsed.id) {
+    try {
+      const existing = await apiFetch('/api/questionnaires');
+      const duplicate = existing.find(q => q.id === parsed.id);
+      if (duplicate) {
+        const title = duplicate.title ?? parsed.metadata?.title ?? parsed.title ?? 'this questionnaire';
+        if (!confirm(`A questionnaire named "${title}" (id: ${parsed.id}) already exists. Overwrite it?`)) {
+          return;
+        }
+      }
+    } catch {
+      // If we can't fetch the list, proceed anyway and let the server handle it
+    }
+  }
+
   try {
     await apiFetch('/api/questionnaires', { method: 'POST', body: JSON.stringify(parsed) });
     showAlert(alertEl, 'Questionnaire uploaded successfully!', 'success');
     // Reload the list after a short delay
     setTimeout(() => location.reload(), 1000);
   } catch (err) {
-    showAlert(alertEl, 'Upload failed: ' + err.message);
+    // Surface Zod validation details when available.
+    // The server returns { error: string, details: ZodError } where ZodError has an issues array.
+    const issues = err.responseData?.details?.issues;
+    let msg = 'Upload failed: ' + err.message;
+    if (Array.isArray(issues) && issues.length > 0) {
+      msg += ' — ' + issues.map(i => (i.path?.length ? i.path.join('.') + ': ' : '') + i.message).join('; ');
+    }
+    showAlert(alertEl, msg);
   }
 });
 
