@@ -21,7 +21,12 @@ const PORT = (() => {
   return Number.isNaN(p) ? 3000 : p;
 })();
 const isVercel = process.env['VERCEL'] === '1' || process.env['VERCEL'] === 'true';
-const DATA_DIR = process.env['DATA_DIR'] ?? path.join(process.cwd(), 'data');
+
+// On Vercel, process.cwd() points to /var/task which is read-only.
+// Fall back to /tmp (writable, but ephemeral) when DATA_DIR is not explicitly set.
+const DATA_DIR =
+  process.env['DATA_DIR'] ??
+  (isVercel ? path.join('/tmp', 'questionnaire-data') : path.join(process.cwd(), 'data'));
 
 if (isVercel && process.env['DATA_DIR'] == null) {
   // When running on Vercel without an explicit DATA_DIR, the filesystem is ephemeral.
@@ -341,8 +346,8 @@ app.post('/api/sessions/:sessionId/complete', async (req, res) => {
 // Export the app for Vercel serverless functions
 export default app;
 
-// Only start the HTTP server when running locally (not in a Vercel deployment)
-if (!process.env['VERCEL']) {
+// Only start the HTTP server when running locally (not in a Vercel deployment or test environment)
+if (!process.env['VERCEL'] && process.env['NODE_ENV'] !== 'test') {
   app.listen(PORT, () => {
     console.log(`Questionnaire web server running at http://localhost:${PORT}`);
     console.log(`Data directory: ${DATA_DIR}`);
