@@ -363,3 +363,270 @@ describe('GET /api/responses', () => {
     expect(res.body).toEqual([]);
   });
 });
+
+// ── GET /api/responses/:id ────────────────────────────────────────────────────
+
+describe('GET /api/responses/:id', () => {
+  it('returns 404 for non-existent response', async () => {
+    const res = await request(app).get('/api/responses/does-not-exist');
+
+    expect(res.status).toBe(404);
+  });
+
+  it('returns a response after a session is started', async () => {
+    // Create questionnaire first
+    const q = makeQuestionnaire();
+    await request(app)
+      .post('/api/questionnaires')
+      .send(q)
+      .set('Content-Type', 'application/json');
+
+    // Start a session
+    const sessionRes = await request(app)
+      .post('/api/sessions')
+      .send({ questionnaireId: q.id })
+      .set('Content-Type', 'application/json');
+    expect(sessionRes.status).toBe(201);
+    const { sessionId } = sessionRes.body as { sessionId: string };
+
+    // Fetch the response using the session ID
+    const res = await request(app).get(`/api/responses/${sessionId}`);
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      questionnaireId: q.id,
+    });
+  });
+});
+
+// ── POST /api/sessions ────────────────────────────────────────────────────────
+
+describe('POST /api/sessions', () => {
+  it('returns 400 when questionnaireId is missing', async () => {
+    const res = await request(app)
+      .post('/api/sessions')
+      .send({})
+      .set('Content-Type', 'application/json');
+
+    expect(res.status).toBe(400);
+    expect(res.body).toMatchObject({ error: expect.stringContaining('questionnaireId') });
+  });
+
+  it('returns 500 when questionnaire does not exist', async () => {
+    const res = await request(app)
+      .post('/api/sessions')
+      .send({ questionnaireId: 'non-existent-id' })
+      .set('Content-Type', 'application/json');
+
+    expect(res.status).toBe(500);
+  });
+
+  it('creates a session for an existing questionnaire and returns sessionId', async () => {
+    const q = makeQuestionnaire();
+    await request(app)
+      .post('/api/questionnaires')
+      .send(q)
+      .set('Content-Type', 'application/json');
+
+    const res = await request(app)
+      .post('/api/sessions')
+      .send({ questionnaireId: q.id })
+      .set('Content-Type', 'application/json');
+
+    expect(res.status).toBe(201);
+    expect(res.body).toHaveProperty('sessionId');
+    expect(typeof res.body.sessionId).toBe('string');
+  });
+});
+
+// ── GET /api/sessions/:sessionId ──────────────────────────────────────────────
+
+describe('GET /api/sessions/:sessionId', () => {
+  it('returns 404 for a non-existent session', async () => {
+    const res = await request(app).get('/api/sessions/does-not-exist');
+
+    expect(res.status).toBe(404);
+  });
+
+  it('returns current session state including the first question', async () => {
+    const q = makeQuestionnaire();
+    await request(app)
+      .post('/api/questionnaires')
+      .send(q)
+      .set('Content-Type', 'application/json');
+
+    const sessionRes = await request(app)
+      .post('/api/sessions')
+      .send({ questionnaireId: q.id })
+      .set('Content-Type', 'application/json');
+    const { sessionId } = sessionRes.body as { sessionId: string };
+
+    const res = await request(app).get(`/api/sessions/${sessionId}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      questionnaire: expect.objectContaining({
+        id: q.id,
+        title: 'Test Questionnaire',
+        totalQuestions: 1,
+      }),
+      currentQuestion: expect.objectContaining({ id: 'q1', type: 'text' }),
+      currentQuestionIndex: 0,
+    });
+  });
+});
+
+// ── POST /api/sessions/:sessionId/answer ──────────────────────────────────────
+
+describe('POST /api/sessions/:sessionId/answer', () => {
+  it('returns 500 for a non-existent session', async () => {
+    const res = await request(app)
+      .post('/api/sessions/does-not-exist/answer')
+      .send({ questionId: 'q1', value: 'hello' })
+      .set('Content-Type', 'application/json');
+
+    expect(res.status).toBe(500);
+  });
+
+  it('returns 400 when questionId is missing', async () => {
+    const q = makeQuestionnaire();
+    await request(app)
+      .post('/api/questionnaires')
+      .send(q)
+      .set('Content-Type', 'application/json');
+
+    const sessionRes = await request(app)
+      .post('/api/sessions')
+      .send({ questionnaireId: q.id })
+      .set('Content-Type', 'application/json');
+    const { sessionId } = sessionRes.body as { sessionId: string };
+
+    const res = await request(app)
+      .post(`/api/sessions/${sessionId}/answer`)
+      .send({ value: 'hello' })
+      .set('Content-Type', 'application/json');
+
+    expect(res.status).toBe(400);
+    expect(res.body).toMatchObject({ error: expect.stringContaining('questionId') });
+  });
+
+  it('advances to the next question and marks complete for a single-question questionnaire', async () => {
+    const q = makeQuestionnaire();
+    await request(app)
+      .post('/api/questionnaires')
+      .send(q)
+      .set('Content-Type', 'application/json');
+
+    const sessionRes = await request(app)
+      .post('/api/sessions')
+      .send({ questionnaireId: q.id })
+      .set('Content-Type', 'application/json');
+    const { sessionId } = sessionRes.body as { sessionId: string };
+
+    const res = await request(app)
+      .post(`/api/sessions/${sessionId}/answer`)
+      .send({ questionId: 'q1', value: 'Test Answer' })
+      .set('Content-Type', 'application/json');
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      isComplete: true,
+      nextQuestion: null,
+    });
+  });
+
+  it('advances to the next question for a multi-question questionnaire', async () => {
+    const q = makeQuestionnaire({
+      questions: [
+        { id: 'q1', type: 'text', text: 'First question', required: false },
+        { id: 'q2', type: 'text', text: 'Second question', required: false },
+      ],
+      config: { allowBack: true, showProgress: true, shuffleQuestions: false, allowSkip: true },
+    });
+
+    await request(app)
+      .post('/api/questionnaires')
+      .send(q)
+      .set('Content-Type', 'application/json');
+
+    const sessionRes = await request(app)
+      .post('/api/sessions')
+      .send({ questionnaireId: q.id })
+      .set('Content-Type', 'application/json');
+    const { sessionId } = sessionRes.body as { sessionId: string };
+
+    const res = await request(app)
+      .post(`/api/sessions/${sessionId}/answer`)
+      .send({ questionId: 'q1', value: 'First Answer' })
+      .set('Content-Type', 'application/json');
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      isComplete: false,
+      nextQuestion: expect.objectContaining({ id: 'q2' }),
+      nextQuestionIndex: 1,
+    });
+  });
+});
+
+// ── POST /api/sessions/:sessionId/complete ────────────────────────────────────
+
+describe('POST /api/sessions/:sessionId/complete', () => {
+  it('returns 500 for a non-existent session', async () => {
+    const res = await request(app)
+      .post('/api/sessions/does-not-exist/complete')
+      .send({})
+      .set('Content-Type', 'application/json');
+
+    expect(res.status).toBe(500);
+  });
+
+  it('completes an active session and returns success', async () => {
+    const q = makeQuestionnaire();
+    await request(app)
+      .post('/api/questionnaires')
+      .send(q)
+      .set('Content-Type', 'application/json');
+
+    const sessionRes = await request(app)
+      .post('/api/sessions')
+      .send({ questionnaireId: q.id })
+      .set('Content-Type', 'application/json');
+    const { sessionId } = sessionRes.body as { sessionId: string };
+
+    const res = await request(app)
+      .post(`/api/sessions/${sessionId}/complete`)
+      .send({})
+      .set('Content-Type', 'application/json');
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ success: true });
+  });
+
+  it('returns response listed in GET /api/responses after completing', async () => {
+    const q = makeQuestionnaire();
+    await request(app)
+      .post('/api/questionnaires')
+      .send(q)
+      .set('Content-Type', 'application/json');
+
+    const sessionRes = await request(app)
+      .post('/api/sessions')
+      .send({ questionnaireId: q.id })
+      .set('Content-Type', 'application/json');
+    const { sessionId } = sessionRes.body as { sessionId: string };
+
+    await request(app)
+      .post(`/api/sessions/${sessionId}/complete`)
+      .send({})
+      .set('Content-Type', 'application/json');
+
+    const listRes = await request(app).get('/api/responses');
+    expect(listRes.status).toBe(200);
+    expect(listRes.body.length).toBeGreaterThan(0);
+
+    const filterRes = await request(app).get(`/api/responses?questionnaireId=${q.id as string}`);
+    expect(filterRes.status).toBe(200);
+    expect(filterRes.body).toHaveLength(1);
+    expect(filterRes.body[0]).toMatchObject({ questionnaireId: q.id });
+  });
+});
