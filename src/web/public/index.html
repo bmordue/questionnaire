@@ -18,7 +18,11 @@
 <div class="container">
   <div class="page-header">
     <h1>Questionnaires</h1>
-    <a href="builder.html" class="btn btn-primary">+ New Questionnaire</a>
+    <div style="display:flex;gap:0.5rem">
+      <button class="btn btn-outline" id="uploadBtn" aria-label="Upload questionnaire from JSON file">⬆ Upload JSON</button>
+      <input type="file" id="uploadInput" accept=".json,application/json" style="display:none" aria-label="Select JSON questionnaire file" />
+      <a href="builder.html" class="btn btn-primary">+ New Questionnaire</a>
+    </div>
   </div>
 
   <div id="alert" class="alert hidden"></div>
@@ -27,6 +31,61 @@
 
 <script src="app.js"></script>
 <script>
+// ── Upload JSON ───────────────────────────────────────────────────────────────
+document.getElementById('uploadBtn').addEventListener('click', () => {
+  document.getElementById('uploadInput').click();
+});
+
+document.getElementById('uploadInput').addEventListener('change', async (event) => {
+  const alertEl = document.getElementById('alert');
+  const file = event.target.files[0];
+  if (!file) return;
+
+  // Reset input so the same file can be re-selected if needed
+  event.target.value = '';
+
+  let parsed;
+  try {
+    const text = await file.text();
+    parsed = JSON.parse(text);
+  } catch (err) {
+    showAlert(alertEl, 'Invalid JSON file. Please select a valid JSON questionnaire.');
+    return;
+  }
+
+  // Check for duplicate ID and confirm before overwriting
+  if (parsed.id) {
+    try {
+      const existing = await apiFetch('/api/questionnaires');
+      const duplicate = existing.find(q => q.id === parsed.id);
+      if (duplicate) {
+        const title = duplicate.title ?? parsed.metadata?.title ?? parsed.title ?? 'this questionnaire';
+        if (!confirm(`A questionnaire named "${title}" (id: ${parsed.id}) already exists. Overwrite it?`)) {
+          return;
+        }
+      }
+    } catch {
+      // If we can't fetch the list, proceed anyway and let the server handle it
+    }
+  }
+
+  try {
+    await apiFetch('/api/questionnaires', { method: 'POST', body: JSON.stringify(parsed) });
+    showAlert(alertEl, 'Questionnaire uploaded successfully!', 'success');
+    // Reload the list after a short delay
+    setTimeout(() => location.reload(), 1000);
+  } catch (err) {
+    // Surface Zod validation details when available.
+    // The server returns { error: string, details: ZodError } where ZodError has an issues array.
+    const issues = err.responseData?.details?.issues;
+    let msg = 'Upload failed: ' + err.message;
+    if (Array.isArray(issues) && issues.length > 0) {
+      msg += ' — ' + issues.map(i => (i.path?.length ? i.path.join('.') + ': ' : '') + i.message).join('; ');
+    }
+    showAlert(alertEl, msg);
+  }
+});
+
 (async () => {
   const listEl = document.getElementById('list');
   const alertEl = document.getElementById('alert');
