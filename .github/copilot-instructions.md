@@ -116,7 +116,7 @@ npm test
 
 This currently outputs: "Error: no test specified" and exits with code 1.
 
-**Do not add test infrastructure** unless specifically required by a task. Tests are planned for Phase 1 (see `docs/implementation-phase1-tests.md`).
+**Do not add test infrastructure** unless specifically required by a task. (Historical plan: `docs/completed/implementation-phase1-tests.md`).
 
 ### Linting
 

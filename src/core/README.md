@@ -239,7 +239,7 @@ This runs `src/example.ts` which demonstrates:
 
 ## Testing
 
-Schema validation tests will be added in Phase 1 Task on Tests (see `docs/implementation-phase1-tests.md`).
+Schema validation tests will be added in Phase 1 Task on Tests (see `docs/completed/implementation-phase1-tests.md`).
 
 ## Future Enhancements
 
