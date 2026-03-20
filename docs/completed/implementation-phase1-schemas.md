@@ -125,13 +125,13 @@ src/core/
 - [x] Schemas provide comprehensive TypeScript types
 - [x] Runtime validation catches all invalid inputs
 - [x] Schema exports are properly organized
-- [ ] 100% test coverage for schema validation (Note: No testing framework set up yet - deferred to Phase 1 Task on tests)
+- [x] Schema validation tests exist and pass (`npm test`)
 - [x] Documentation for schema usage (via inline JSDoc comments)
 
 ## Dependencies
 - Zod (runtime validation) ✅ Installed v4.1.12
 - TypeScript (type definitions) ✅ v5.9.3
-- Jest (testing framework) - Not installed yet (deferred to phase1-tests)
+- Jest (testing framework) ✅ Installed (see `npm test`)
 
 ## Implementation Summary
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Successfully completed the comprehensive persistence feature for the questionnaire system as outlined in `docs/implementation-phase2-persistence.md`. The implementation provides a robust, production-ready system for managing questionnaire responses with incremental saving, session recovery, analytics, and export capabilities.
+Successfully completed the comprehensive persistence feature for the questionnaire system as outlined in `docs/completed/implementation-phase2-persistence.md`. The implementation provides a robust, production-ready system for managing questionnaire responses with incremental saving, session recovery, analytics, and export capabilities.
 
 ## What Was Implemented
 
@@ -208,7 +208,7 @@ Time:        ~3.5 seconds
 
 ## Acceptance Criteria - All Met ✅
 
-From `docs/implementation-phase2-persistence.md`:
+From `docs/completed/implementation-phase2-persistence.md`:
 
 - ✅ Responses are saved incrementally during questionnaire
 - ✅ Session recovery works reliably across app restarts
@@ -241,7 +241,7 @@ From `docs/implementation-phase2-persistence.md`:
 - `src/__tests__/helpers/test-data-factory.ts` - Added version field
 - `src/__tests__/utils/markdown-converter.test.ts` - Added version field
 - `package.json` - Added persistence-example script
-- `docs/implementation-phase2-persistence.md` - Marked tasks complete
+- `docs/completed/implementation-phase2-persistence.md` - Marked tasks complete
 
 ## Usage Example
 
