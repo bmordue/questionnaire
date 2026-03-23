@@ -42,6 +42,14 @@ if (isVercel && process.env['DATA_DIR'] == null) {
 
 const storage = new FileStorageService({ dataDirectory: DATA_DIR });
 
+/**
+ * Returns true when the error indicates a resource was not found on disk.
+ * Used to distinguish 404-worthy errors from genuine server failures.
+ */
+function isNotFoundError(err: unknown): boolean {
+  return err instanceof Error && err.message.toLowerCase().includes('not found');
+}
+
 export const app = express();
 
 // CORS configuration: permissive in development, restricted/disabled otherwise
@@ -192,7 +200,11 @@ app.post('/api/sessions', async (req, res) => {
     const sessionId = await storage.createSession(body.questionnaireId);
     res.status(201).json({ sessionId });
   } catch (err) {
-    res.status(500).json({ error: String(err) });
+    if (isNotFoundError(err)) {
+      res.status(404).json({ error: 'Questionnaire not found' });
+    } else {
+      res.status(500).json({ error: String(err) });
+    }
   }
 });
 
@@ -314,7 +326,11 @@ app.post('/api/sessions/:sessionId/answer', async (req, res) => {
       isComplete
     });
   } catch (err) {
-    res.status(500).json({ error: String(err) });
+    if (isNotFoundError(err)) {
+      res.status(404).json({ error: 'Session not found' });
+    } else {
+      res.status(500).json({ error: String(err) });
+    }
   }
 });
 
@@ -336,9 +352,15 @@ app.post('/api/sessions/:sessionId/complete', async (req, res) => {
     await storage.saveResponse(completedResponse);
     await storage.updateSession(sessionId, { status: 'completed', updatedAt: now });
 
-    res.json({ success: true, responseId: session.responseId });
+    // Return sessionId so callers can fetch the response via GET /api/responses/:id
+    // (responses are stored and loaded by sessionId, not by response.id)
+    res.json({ success: true, sessionId });
   } catch (err) {
-    res.status(500).json({ error: String(err) });
+    if (isNotFoundError(err)) {
+      res.status(404).json({ error: 'Session not found' });
+    } else {
+      res.status(500).json({ error: String(err) });
+    }
   }
 });
 
