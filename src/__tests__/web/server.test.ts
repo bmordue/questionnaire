@@ -411,13 +411,13 @@ describe('POST /api/sessions', () => {
     expect(res.body).toMatchObject({ error: expect.stringContaining('questionnaireId') });
   });
 
-  it('returns 500 when questionnaire does not exist', async () => {
+  it('returns 404 when questionnaire does not exist', async () => {
     const res = await request(app)
       .post('/api/sessions')
       .send({ questionnaireId: 'non-existent-id' })
       .set('Content-Type', 'application/json');
 
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(404);
   });
 
   it('creates a session for an existing questionnaire and returns sessionId', async () => {
@@ -478,13 +478,13 @@ describe('GET /api/sessions/:sessionId', () => {
 // ── POST /api/sessions/:sessionId/answer ──────────────────────────────────────
 
 describe('POST /api/sessions/:sessionId/answer', () => {
-  it('returns 500 for a non-existent session', async () => {
+  it('returns 404 for a non-existent session', async () => {
     const res = await request(app)
       .post('/api/sessions/does-not-exist/answer')
       .send({ questionId: 'q1', value: 'hello' })
       .set('Content-Type', 'application/json');
 
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(404);
   });
 
   it('returns 400 when questionId is missing', async () => {
@@ -571,13 +571,13 @@ describe('POST /api/sessions/:sessionId/answer', () => {
 // ── POST /api/sessions/:sessionId/complete ────────────────────────────────────
 
 describe('POST /api/sessions/:sessionId/complete', () => {
-  it('returns 500 for a non-existent session', async () => {
+  it('returns 404 for a non-existent session', async () => {
     const res = await request(app)
       .post('/api/sessions/does-not-exist/complete')
       .send({})
       .set('Content-Type', 'application/json');
 
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(404);
   });
 
   it('completes an active session and returns success', async () => {
@@ -600,6 +600,15 @@ describe('POST /api/sessions/:sessionId/complete', () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ success: true });
+
+    // Ensure the returned responseId is usable with GET /api/responses/:id
+    const { responseId } = res.body as { responseId: string };
+    expect(typeof responseId).toBe('string');
+    expect(responseId.length).toBeGreaterThan(0);
+
+    const getRes = await request(app).get(`/api/responses/${responseId}`);
+    expect(getRes.status).toBe(200);
+    expect(getRes.body).toMatchObject({ questionnaireId: q.id });
   });
 
   it('returns response listed in GET /api/responses after completing', async () => {
