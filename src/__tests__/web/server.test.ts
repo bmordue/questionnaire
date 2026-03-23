@@ -601,12 +601,12 @@ describe('POST /api/sessions/:sessionId/complete', () => {
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ success: true });
 
-    // Ensure the returned responseId is usable with GET /api/responses/:id
-    const { responseId } = res.body as { responseId: string };
-    expect(typeof responseId).toBe('string');
-    expect(responseId.length).toBeGreaterThan(0);
+    // Ensure the returned sessionId is usable with GET /api/responses/:id
+    const { sessionId: completedSessionId } = res.body as { sessionId: string };
+    expect(typeof completedSessionId).toBe('string');
+    expect(completedSessionId.length).toBeGreaterThan(0);
 
-    const getRes = await request(app).get(`/api/responses/${responseId}`);
+    const getRes = await request(app).get(`/api/responses/${completedSessionId}`);
     expect(getRes.status).toBe(200);
     expect(getRes.body).toMatchObject({ questionnaireId: q.id });
   });
