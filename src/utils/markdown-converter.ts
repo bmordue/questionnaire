@@ -143,6 +143,10 @@ export class MarkdownConverter {
 
       lines.push(`\n### ${index + 1}. ${question.text}`);
 
+      if (question.description) {
+        lines.push(`*${question.description}*`);
+      }
+
       // Answer value
       if (answer) {
         const formattedValue = this.formatAnswerValue(answer.value, question);
