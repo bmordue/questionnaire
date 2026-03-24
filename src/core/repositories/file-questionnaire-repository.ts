@@ -107,8 +107,16 @@ export class FileQuestionnaireRepository implements IQuestionnaireRepository {
         }
       }
 
-      await FileOperations.atomicWrite(this.filePath(id), JSON.stringify(updated, null, 2));
-      return updated;
+      // Validate the core questionnaire fields, then re-attach extension fields (e.g.
+      // publishedAt/publishedBy) that are not part of the base schema but are stored.
+      const baseValidated = validateQuestionnaire(updated);
+      const validated: VersionedQuestionnaire = {
+        ...baseValidated,
+        ...(updated.publishedAt !== undefined && { publishedAt: updated.publishedAt }),
+        ...(updated.publishedBy !== undefined && { publishedBy: updated.publishedBy }),
+      };
+      await FileOperations.atomicWrite(this.filePath(id), JSON.stringify(validated, null, 2));
+      return validated;
     });
   }
 

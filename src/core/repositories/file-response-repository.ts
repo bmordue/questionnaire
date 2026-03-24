@@ -56,7 +56,12 @@ export class FileResponseRepository implements IResponseRepository {
         data.totalQuestions,
       );
 
-      const validated = validateResponse(response);
+      const responseWithVersion = {
+        ...response,
+        _version: this.generateVersion(),
+      };
+
+      const validated = validateResponse(responseWithVersion);
       await FileOperations.atomicWrite(this.filePath(data.sessionId), JSON.stringify(validated, null, 2));
       return validated;
     });

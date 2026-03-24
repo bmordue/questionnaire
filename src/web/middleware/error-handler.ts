@@ -39,8 +39,13 @@ export function errorHandler(
     return;
   }
 
-  if (err instanceof QuestionnaireValidationError || err instanceof InvalidAnswerError) {
-    res.status(400).json({ error: err.message, details: (err as QuestionnaireValidationError).details });
+  if (err instanceof QuestionnaireValidationError) {
+    res.status(400).json({ error: err.message, details: err.details });
+    return;
+  }
+
+  if (err instanceof InvalidAnswerError) {
+    res.status(400).json({ error: err.message });
     return;
   }
 

@@ -245,8 +245,11 @@ export class ReviewService {
 }
 
 function csvEscape(value: string): string {
-  if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-    return `"${value.replace(/"/g, '""')}"`;
+  // Neutralize potential spreadsheet formula injection (=, +, -, @) by prefixing with a single quote.
+  const safeValue = /^[=+\-@]/.test(value) ? `'${value}` : value;
+
+  if (safeValue.includes(',') || safeValue.includes('"') || safeValue.includes('\n')) {
+    return `"${safeValue.replace(/"/g, '""')}"`;
   }
-  return value;
+  return safeValue;
 }

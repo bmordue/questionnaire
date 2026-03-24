@@ -96,32 +96,36 @@ export class SessionManager {
    */
   async get(token: string): Promise<AuthSession | null> {
     const fp = this.filePath(token);
-    if (!(await FileOperations.exists(fp))) return null;
+    // Use the filename hash (which is the sha256 of the token) as the queue key
+    // to avoid storing raw token values in queue keys and to match filePath() hashing.
+    const queueKey = `auth-session:${crypto.createHash('sha256').update(token).digest('hex')}`;
 
-    try {
-      const data = await FileOperations.safeRead(fp);
-      const session = JSON.parse(data) as AuthSession;
+    return globalWriteQueue.enqueue(queueKey, async () => {
+      if (!(await FileOperations.exists(fp))) return null;
 
-      if (new Date(session.expiresAt) <= new Date()) {
-        // Session has expired – delete it
-        await FileOperations.delete(fp).catch(() => undefined);
+      try {
+        const data = await FileOperations.safeRead(fp);
+        const session = JSON.parse(data) as AuthSession;
+
+        if (new Date(session.expiresAt) <= new Date()) {
+          // Session has expired – delete it
+          await FileOperations.delete(fp).catch(() => undefined);
+          return null;
+        }
+
+        // Update lastAccessedAt
+        const updated: AuthSession = {
+          ...session,
+          lastAccessedAt: new Date().toISOString(),
+        };
+
+        await FileOperations.atomicWrite(fp, JSON.stringify(updated, null, 2));
+
+        return updated;
+      } catch {
         return null;
       }
-
-      // Update lastAccessedAt
-      const updated: AuthSession = {
-        ...session,
-        lastAccessedAt: new Date().toISOString(),
-      };
-
-      await globalWriteQueue.enqueue(`auth-session:${session.token}`, () =>
-        FileOperations.atomicWrite(fp, JSON.stringify(updated, null, 2)),
-      );
-
-      return updated;
-    } catch {
-      return null;
-    }
+    });
   }
 
   /**
@@ -129,11 +133,14 @@ export class SessionManager {
    */
   async destroy(token: string): Promise<void> {
     const fp = this.filePath(token);
-    try {
-      await FileOperations.delete(fp);
-    } catch {
-      // Ignore – session may already be gone
-    }
+    const queueKey = `auth-session:${crypto.createHash('sha256').update(token).digest('hex')}`;
+    await globalWriteQueue.enqueue(queueKey, async () => {
+      try {
+        await FileOperations.delete(fp);
+      } catch {
+        // Ignore – session may already be gone
+      }
+    });
   }
 
   /**
