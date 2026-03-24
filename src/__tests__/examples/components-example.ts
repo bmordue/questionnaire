@@ -5,9 +5,9 @@
  * interactive questionnaires with various question types.
  */
 
-import { initializeComponents, ComponentFactory } from './ui/components/index.js';
-import { QuestionType } from './core/schema.js';
-import type { Question } from './core/schema.js';
+import { initializeComponents, ComponentFactory } from '../../ui/components/index.js';
+import { QuestionType } from '../../core/schema.js';
+import type { Question } from '../../core/schema.js';
 
 // Initialize components once at application startup
 initializeComponents();

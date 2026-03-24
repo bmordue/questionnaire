@@ -4,7 +4,7 @@
  * Demonstrates the usage of the structured logging framework
  */
 
-import { getLogger, setLogLevel, LogLevel } from './core/logging/index.js';
+import { getLogger, setLogLevel, LogLevel } from '../../core/logging/index.js';
 
 const logger = getLogger();
 
