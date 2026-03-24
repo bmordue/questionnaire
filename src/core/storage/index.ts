@@ -10,6 +10,23 @@ export {
 } from '../storage.js';
 
 export {
+  LocalStorageBackend,
+  S3StorageBackend,
+  RetryableStorageBackend,
+  StorageBackendError,
+  createStorageBackend
+} from './backend.js';
+
+export type {
+  StorageBackend,
+  HealthCheckResult,
+  S3BackendConfig,
+  RetryConfig,
+  BackendType,
+  BackendConfig
+} from './backend.js';
+
+export {
   FileOperations,
   FileOperationError
 } from './file-operations.js';
