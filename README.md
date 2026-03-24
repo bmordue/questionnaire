@@ -1,16 +1,18 @@
 # Questionnaire TUI
 
-A TypeScript-based Terminal User Interface (TUI) application for executing interactive questionnaires with persistent storage of responses.
+A TypeScript-based Terminal User Interface (TUI) application for running interactive questionnaires with persistent session storage.
 
 ## Features
 
-- ✅ **Comprehensive Schema System**: Zod-based type-safe schemas for questionnaires
-- ✅ **Rich Question Types**: Text, number, email, single/multiple choice, boolean, date, and rating questions
-- ✅ **Advanced Validation**: Min/max length, patterns, ranges, date constraints, and selection limits
-- ✅ **Conditional Logic**: Show/hide questions based on previous answers
-- ✅ **Fixture Library**: 11 sample questionnaires for testing and demonstration
-- ✅ **Test Coverage**: Comprehensive test suite with 354 passing tests
-- ✅ **Markdown Export**: Convert responses to LLM-optimized markdown format
+- ✅ **Interactive TUI Runner**: Prompt-driven questionnaire execution in the terminal
+- ✅ **All Question Types**: Text, email, number, single choice, multiple choice, boolean, date, and rating
+- ✅ **Conditional Logic**: Questions shown or skipped based on previous answers
+- ✅ **Session Persistence**: Auto-save every 30 seconds with the ability to resume interrupted sessions
+- ✅ **Progress Display**: Real-time progress bar and question counter
+- ✅ **Validation**: Per-type rules (length, range, pattern, date bounds, selection limits)
+- ✅ **Markdown Export**: Convert saved responses to LLM-optimised markdown
+- ✅ **Fixture Library**: 14 sample questionnaires for testing and demonstration
+- ✅ **Test Coverage**: ~680 passing tests
 
 ## Quick Start
 
@@ -44,6 +46,15 @@ For iterative runs without rebuilding:
 npm run start:dev -- --questionnaire fixtures/basic/simple-text-survey.json
 ```
 
+Options:
+
+| Flag              | Short | Description                                               |
+| ----------------- | ----- | --------------------------------------------------------- |
+| `--questionnaire` | `-q`  | Path to questionnaire JSON file (required)                |
+| `--resume`        | `-r`  | Resume an existing session by ID                          |
+| `--data`          | `-d`  | Data directory for sessions/responses (default: `./data`) |
+| `--help`          | `-h`  | Show usage                                                |
+
 ### Run Tests
 
 ```bash
@@ -56,15 +67,9 @@ npm test
 npm run validate
 ```
 
-This will:
-- Load all 11 sample questionnaires
-- Validate them against schemas
-- Generate a coverage report
-- Test questionnaire flows
+This validates all 14 sample questionnaires against the schema, generates a coverage report, and tests questionnaire flows.
 
 ### Convert Response to Markdown
-
-Convert a questionnaire response JSON to markdown format:
 
 ```bash
 npm run markdown-convert -- <response.json> <questionnaire.json> [output.md]
@@ -79,76 +84,86 @@ npm run markdown-convert -- examples/sample-response.json fixtures/basic/simple-
 npm run markdown-convert -- examples/sample-response.json fixtures/basic/simple-text-survey.json output.md
 ```
 
-The markdown format is optimized for LLM consumption with clear structure, formatted answers, and complete metadata. See [examples/README.md](examples/README.md) for more details.
+The markdown format is structured for LLM consumption with formatted answers and complete metadata. See [examples/README.md](examples/README.md) for details.
+
+## How It Works
+
+### Running a Questionnaire
+
+When you run a questionnaire, the runner:
+
+1. Loads and validates the questionnaire JSON against the schema
+2. Creates (or resumes) a persistent session in `data/sessions/` and `data/responses/`
+3. Evaluates conditional logic to determine which question to show next
+4. Renders the appropriate TUI component for the question type using `@inquirer` prompts
+5. Validates the answer and saves it incrementally to disk
+6. Displays a progress bar and question counter after each answer
+7. Repeats until all applicable questions are answered
+8. Marks the session as complete
+
+Pressing Ctrl+C interrupts the session gracefully — progress is saved and can be resumed with `--resume <sessionId>`.
+
+### Session Storage
+
+Sessions are stored as JSON files under `data/`:
+
+```
+data/
+├── sessions/       # Session metadata
+└── responses/      # Individual responses, with timestamped backups
+```
+
+Auto-save creates a backup of the response file every 30 seconds while a session is active.
 
 ## Project Structure
 
 ```
 questionnaire/
-├── examples/              # Sample responses and markdown outputs
-│   ├── sample-response.json           # Example response
-│   ├── sample-response.md             # Generated markdown
-│   └── README.md                      # Examples documentation
-├── fixtures/              # Sample questionnaires
+├── fixtures/              # Sample questionnaires (14 total)
 │   ├── basic/            # Simple examples (3 fixtures)
-│   ├── advanced/         # Real-world scenarios (4 fixtures)
-│   ├── edge-cases/       # Stress tests (4 fixtures)
-│   └── README.md         # Fixture documentation
+│   ├── advanced/         # Real-world scenarios (6 fixtures)
+│   ├── edge-cases/       # Stress tests and edge cases (4 fixtures)
+│   ├── feature-refinement/ # Feature exploration (1 fixture)
+│   └── README.md
+├── examples/              # Sample responses and markdown outputs
 ├── src/
+│   ├── app.ts            # CLI entry point and argument parsing
+│   ├── runner.ts         # Main questionnaire runner
 │   ├── core/
-│   │   ├── schema.ts           # Schema exports
-│   │   └── schemas/
-│   │       ├── question.ts     # Question type schemas
-│   │       └── questionnaire.ts # Questionnaire schema
-│   ├── fixtures/
-│   │   ├── loader.ts           # Fixture loading utilities
-│   │   ├── validator.ts        # Fixture validation
-│   │   └── index.ts            # Exports
+│   │   ├── flow/         # Flow engine, navigation, conditional logic, progress tracking
+│   │   ├── persistence/  # Session management, auto-save, response builder
+│   │   ├── schemas/      # Zod schemas (questions, questionnaire, response)
+│   │   └── storage/      # File-based JSON storage
+│   ├── ui/
+│   │   └── components/   # TUI input components (text, email, number, date,
+│   │                     #   single/multiple choice, boolean, rating)
 │   ├── utils/
-│   │   └── markdown-converter.ts # Markdown conversion utility
-│   ├── markdown-convert.ts     # CLI script for markdown conversion
-│   └── __tests__/              # Test suite
-├── docs/                       # Documentation
+│   │   └── markdown-converter.ts  # Response-to-markdown conversion
+│   └── __tests__/        # Test suite
+├── data/                 # Saved sessions and responses (runtime, gitignored)
+├── docs/                 # Implementation documentation
 └── package.json
 ```
 
 ## Question Types
 
-The system supports the following question types:
+### Text inputs
+- **text** — free text with optional min/max length and regex pattern
+- **email** — email address with format validation
+- **number** — integer or decimal with optional min/max range
+- **date** — date picker with optional `minDate`/`maxDate` bounds
 
-### Text Questions
-- Basic text input with optional validation
-- Email addresses with validation
-- Min/max length constraints
-- Regex pattern matching
+### Choice inputs
+- **single_choice** — select one option from a list
+- **multiple_choice** — select one or more options, with optional `minSelections`/`maxSelections`
 
-### Numeric Questions
-- Integer or decimal numbers
-- Min/max value ranges
-- Type validation
-
-### Choice Questions
-- Single choice (radio buttons)
-- Multiple choice (checkboxes)
-- Min/max selection limits
-
-### Other Types
-- Boolean (yes/no)
-- Date (with range constraints)
-- Rating (1-5, 1-10, etc.)
-
-## Validation Rules
-
-Each question type supports specific validation rules:
-
-- **Text/Email**: `minLength`, `maxLength`, `pattern`
-- **Number/Rating**: `min`, `max`, `integer`
-- **Date**: `minDate`, `maxDate`
-- **Multiple Choice**: `minSelections`, `maxSelections`
+### Other
+- **boolean** — yes/no prompt
+- **rating** — numeric rating within a configured scale (e.g. 1–5 or 1–10)
 
 ## Conditional Logic
 
-Questions can be conditionally shown/hidden based on previous answers:
+Questions can be conditionally shown or skipped based on previous answers:
 
 ```json
 {
@@ -162,116 +177,34 @@ Questions can be conditionally shown/hidden based on previous answers:
 }
 ```
 
-Supported operators:
-- `equals`, `notEquals`
-- `greaterThan`, `lessThan`
-- `greaterThanOrEqual`, `lessThanOrEqual`
-- `contains`
+Supported operators: `equals`, `notEquals`, `greaterThan`, `lessThan`, `greaterThanOrEqual`, `lessThanOrEqual`, `contains`
 
 ## Sample Fixtures
 
-The project includes 11 sample questionnaires:
-
 ### Basic (3)
-1. **simple-text-survey** - Text, number, and email inputs
-2. **choice-based-quiz** - Single and multiple choice questions
-3. **boolean-preferences** - Yes/no questions
+1. **simple-text-survey** — Text, number, and email inputs
+2. **choice-based-quiz** — Single and multiple choice questions
+3. **boolean-preferences** — Yes/no questions
 
-### Advanced (4)
-1. **customer-feedback** - Customer satisfaction with conditionals
-2. **employee-onboarding** - New hire information collection
-3. **product-research** - Feature prioritization survey
-4. **demographic-survey** - Audience demographics
+### Advanced (6)
+1. **customer-feedback** — Customer satisfaction survey with conditionals
+2. **employee-onboarding** — New hire information collection
+3. **product-research** — Feature prioritisation survey
+4. **demographic-survey** — Audience demographics
+5. **holiday-destination** — Destination preferences
+6. **persistence-solution-selector** — Storage technology selection
 
 ### Edge Cases (4)
-1. **complex-conditionals** - Multi-level conditional logic
-2. **validation-stress** - All validation types
-3. **maximum-length** - 55 questions for stress testing
-4. **error-scenarios** - Boundary conditions
+1. **complex-conditionals** — Multi-level conditional logic
+2. **validation-stress** — All validation types exercised
+3. **maximum-length** — 55 questions for stress testing
+4. **error-scenarios** — Boundary conditions
+
+### Feature Refinement (1)
+1. **backup-cleanup-questions** — Backup and cleanup workflow
 
 See [fixtures/README.md](fixtures/README.md) for detailed documentation.
-
-## Usage Examples
-
-### Loading Fixtures
-
-```typescript
-import { FixtureLoader } from './src/fixtures/loader.js';
-
-// Load all fixtures
-const allFixtures = await FixtureLoader.loadAllFixtures();
-
-// Load by category
-const basicFixtures = await FixtureLoader.loadBasicFixtures();
-const advancedFixtures = await FixtureLoader.loadAdvancedFixtures();
-
-// Load specific fixture
-const fixture = await FixtureLoader.loadFixture('basic/simple-text-survey.json');
-```
-
-### Validating Questionnaires
-
-```typescript
-import { FixtureValidator } from './src/fixtures/validator.js';
-
-// Validate a questionnaire
-const result = FixtureValidator.validateQuestionnaire(data, 'my-questionnaire');
-
-if (!result.valid) {
-  console.error('Validation errors:', result.errors);
-}
-
-// Generate coverage report
-const report = FixtureValidator.generateSchemaReport(fixtures);
-console.log('Valid fixtures:', report.validFixtures);
-console.log('Question type coverage:', report.questionTypeCoverage);
-
-// Test questionnaire flow
-const flowResult = FixtureValidator.testQuestionnaireFlow(questionnaire);
-if (!flowResult.valid) {
-  console.error('Flow issues:', flowResult.issues);
-}
-```
-
-## Development Status
-
-### Phase 1: Core Schema & Storage ✅
-- [x] Define TypeScript schemas with Zod
-- [x] Create sample questionnaire fixtures
-- [x] Write unit tests for schema validation
-
-### Phase 2: Questionnaire Runner (In Progress)
-- [ ] Build TUI components for each question type
-- [ ] Implement question flow logic
-- [ ] Add validation and error handling
-- [ ] Implement response persistence
-
-### Phase 3: Advanced Features (Planned)
-- [ ] Conditional logic engine
-- [ ] Response viewing and analytics
-- [ ] Export functionality
-
-See [docs/](docs/) for detailed implementation plans.
-
-## Test Coverage
-
-The project includes comprehensive test coverage:
-
-- 21 passing tests
-- Schema validation tests
-- Fixture loading tests
-- Flow validation tests
-- Edge case tests
-
-Run tests with:
-```bash
-npm test
-```
 
 ## License
 
 ISC
-
-## Contributing
-
-This project is in active development. See the [implementation plans](docs/) for upcoming features and tasks.
