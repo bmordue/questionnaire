@@ -143,18 +143,6 @@ export class MarkdownConverter {
 
       lines.push(`\n### ${index + 1}. ${question.text}`);
 
-      if (question.description) {
-        lines.push(`*${question.description}*`);
-      }
-
-      // Question type and requirements
-      const metadata: string[] = [];
-      metadata.push(`Type: ${question.type}`);
-      if (question.required) {
-        metadata.push('Required');
-      }
-      lines.push(`*${metadata.join(' | ')}*`);
-
       // Answer value
       if (answer) {
         const formattedValue = this.formatAnswerValue(answer.value, question);
