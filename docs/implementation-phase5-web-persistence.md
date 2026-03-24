@@ -1,7 +1,7 @@
 # Web App Persistence Model Improvement Plan
 
 **Created**: 2026-03-18  
-**Status**: Approved
+**Status**: In Progress
 
 ## Overview
 
@@ -157,14 +157,14 @@ src/
 
 ## Acceptance Criteria
 
-- [ ] Multiple users can create accounts and log in
-- [ ] Users can create, edit, publish questionnaires via web
-- [ ] Users can answer questionnaires with auto-save
-- [ ] Users can review responses with filtering/export
-- [ ] Concurrent writes are safely serialized
+- [x] Multiple users can create accounts and log in
+- [ ] Users can create, edit, publish questionnaires via web (web UI for create/edit exists; publish/unpublish API implemented; frontend publish UI not yet wired up)
+- [ ] Users can answer questionnaires with auto-save (web session-based answering exists; auto-save with debouncing not yet implemented)
+- [ ] Users can review responses with filtering/export (listing + filter by questionnaire exists; per-questionnaire export and analytics API now implemented; CSV/JSON export routes added)
+- [x] Concurrent writes are safely serialized
 - [ ] Session state persists across page refreshes
-- [ ] All existing TUI functionality continues working
-- [ ] No database dependencies added
+- [x] All existing TUI functionality continues working
+- [x] No database dependencies added
 
 ---
 
@@ -183,36 +183,49 @@ src/
 ## Implementation Tasks
 
 ### Phase 1 Tasks
-1. Create repository interfaces (`IQuestionnaireRepository`, `IResponseRepository`, `IUserRepository`)
-2. Implement `FileQuestionnaireRepository` with concurrency controls
-3. Implement `FileResponseRepository` with concurrency controls
-4. Implement `FileUserRepository` for user accounts
-5. Add concurrency primitives (file lock, write queue, transaction)
+1. [x] Create repository interfaces (`IQuestionnaireRepository`, `IResponseRepository`, `ISessionRepository` defined in `src/core/repositories/interfaces.ts`; `IUserRepository` not yet defined)
+2. [x] Implement `FileQuestionnaireRepository` with concurrency controls
+3. [x] Implement `FileResponseRepository` with concurrency controls
+4. [x] Implement `FileUserRepository` for user accounts
+5. [x] Add concurrency primitives (file lock, write queue, transaction)
 
 ### Phase 2 Tasks
-6. Define User schema with Zod validation
-7. Implement password hashing service
-8. Create AuthService with login/logout/register
-9. Implement session-based authentication with cookies
+6. [x] Define User schema with Zod validation
+7. [x] Implement password hashing service
+8. [x] Create AuthService with login/logout/register
+9. [x] Implement session-based authentication with cookies
 
 ### Phase 3 Tasks
-10. Extend SessionData with userId, userAgent, ipAddress
-11. Add session expiration and cleanup
-12. Implement conflict detection for concurrent edits
+10. [x] Extend SessionData with userId, userAgent, ipAddress
+11. [x] Add session expiration and cleanup
+12. [ ] Implement conflict detection for concurrent edits
 
 ### Phase 4 Tasks
-13. Create QuestionnaireService for CRUD operations
-14. Create ResponseService for answer processing
-15. Create ReviewService for analytics and reporting
+13. [x] Create QuestionnaireService for CRUD operations
+14. [x] Create ResponseService for answer processing
+15. [x] Create ReviewService for analytics and reporting
 
 ### Phase 5 Tasks
-16. Define DTOs for web operations
-17. Extract business logic from TUI runner into services
+16. [x] Define DTOs for web operations
+17. [x] Extract business logic from TUI runner into services
 
 ### Testing & Integration
-18. Update existing storage layer to use repositories
-19. Write tests for new repository implementations
-20. Write tests for authentication and session management
+18. [ ] Update existing storage layer to use repositories
+19. [x] Write tests for new repository implementations
+20. [x] Write tests for authentication and session management
+
+### Completed Outside Original Plan
+- [x] Express web server (`src/web/server.ts`) with REST API for questionnaires, responses, and sessions
+- [x] Frontend web UI (`src/web/public/`): questionnaire list, builder, runner, and responses pages
+- [x] Response filtering by questionnaire in the web UI
+- [x] Concurrency primitives: `src/core/concurrency/` (file-lock, write-queue, transaction)
+- [x] File-based repository implementations: `FileQuestionnaireRepository`, `FileResponseRepository`, `FileUserRepository`
+- [x] Auth layer: `SessionManager`, `AuthService`, password hashing, token utilities
+- [x] Service layer: `QuestionnaireService`, `ResponseService`, `ReviewService`
+- [x] DTOs for web operations: `src/web/dtos/`
+- [x] Auth middleware: `src/web/middleware/` (auth guard, error handler)
+- [x] Auth routes on the web server: `/api/auth/register`, `/api/auth/login`, `/api/auth/logout`, `/api/auth/me`, `/api/auth/change-password`
+- [x] Review/analytics routes: `/api/questionnaires/:id/stats`, `/api/questionnaires/:id/summary`, `/api/questionnaires/:id/export`
 
 ---
 
@@ -230,13 +243,13 @@ src/
 }
 ```
 
-### Optional (for future web framework)
+### Already Added (was previously optional)
 
 ```json
 {
   "dependencies": {
-    "express": "^4.18.2",
-    "cors": "^2.8.5"
+    "express": "^5.2.1",
+    "cors": "^2.8.6"
   }
 }
 ```

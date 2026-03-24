@@ -14,6 +14,13 @@ import { FileStorageService } from '../core/storage.js';
 import { safeValidateQuestionnaire } from '../core/schemas/questionnaire.js';
 import { ResponseStatus } from '../core/schemas/response.js';
 import type { Answer } from '../core/schemas/response.js';
+import { FileUserRepository } from '../core/repositories/file-user-repository.js';
+import { SessionManager } from '../core/auth/session-manager.js';
+import { AuthService, AuthError } from '../core/auth/auth-service.js';
+import { ReviewService } from '../core/services/review-service.js';
+import { loadUser, setAuthCookie, clearAuthCookie, AUTH_COOKIE_NAME } from './middleware/auth.js';
+import { errorHandler } from './middleware/error-handler.js';
+import { RegisterInputSchema, LoginInputSchema, ChangePasswordInputSchema } from './dtos/index.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -41,6 +48,17 @@ if (isVercel && process.env['DATA_DIR'] == null) {
 }
 
 const storage = new FileStorageService({ dataDirectory: DATA_DIR });
+
+// ── Auth layer ────────────────────────────────────────────────────────────────
+
+const userRepository = new FileUserRepository({ dataDirectory: DATA_DIR } as any);
+const sessionManager = new SessionManager(DATA_DIR);
+const authService = new AuthService(userRepository, sessionManager);
+
+// Initialise auth stores (non-blocking – errors are non-fatal for legacy routes)
+Promise.all([userRepository.initialize(), sessionManager.initialize()]).catch(err =>
+  console.error('[auth] Initialization error:', err),
+);
 
 /**
  * Returns true when the error indicates a resource was not found on disk.
@@ -84,6 +102,8 @@ if (NODE_ENV === 'development') {
 }
 
 app.use(express.json());
+// Parse cookies manually (no external cookie-parser needed; loadUser handles it)
+app.use(loadUser(authService));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ── Questionnaire Routes ──────────────────────────────────────────────────────
@@ -363,6 +383,153 @@ app.post('/api/sessions/:sessionId/complete', async (req, res) => {
     }
   }
 });
+
+// ── Auth Routes ───────────────────────────────────────────────────────────────
+
+/** Register a new account */
+app.post('/api/auth/register', async (req, res, next) => {
+  try {
+    const parsed = RegisterInputSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Validation failed', details: parsed.error.flatten() });
+      return;
+    }
+    const registerOpts: { userAgent?: string; ipAddress?: string } = {};
+    const ua = req.headers['user-agent'];
+    if (ua !== undefined) registerOpts.userAgent = ua;
+    if (req.ip !== undefined) registerOpts.ipAddress = req.ip;
+    const result = await authService.register(parsed.data, registerOpts);
+    setAuthCookie(res, result.token);
+    res.status(201).json({ user: result.user });
+  } catch (err) {
+    if (err instanceof AuthError && err.code === 'EMAIL_TAKEN') {
+      res.status(409).json({ error: err.message, code: err.code });
+      return;
+    }
+    next(err);
+  }
+});
+
+/** Log in */
+app.post('/api/auth/login', async (req, res, next) => {
+  try {
+    const parsed = LoginInputSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Validation failed', details: parsed.error.flatten() });
+      return;
+    }
+    const loginOpts: { userAgent?: string; ipAddress?: string } = {};
+    const loginUa = req.headers['user-agent'];
+    if (loginUa !== undefined) loginOpts.userAgent = loginUa;
+    if (req.ip !== undefined) loginOpts.ipAddress = req.ip;
+    const result = await authService.login(parsed.data, loginOpts);
+    setAuthCookie(res, result.token);
+    res.json({ user: result.user });
+  } catch (err) {
+    if (err instanceof AuthError) {
+      res.status(401).json({ error: err.message, code: err.code });
+      return;
+    }
+    next(err);
+  }
+});
+
+/** Log out */
+app.post('/api/auth/logout', async (req, res, next) => {
+  try {
+    const token = req.cookies?.[AUTH_COOKIE_NAME] ?? null;
+    if (token) await authService.logout(token);
+    clearAuthCookie(res);
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** Get current user */
+app.get('/api/auth/me', (req, res) => {
+  const user = res.locals['user'];
+  if (!user) {
+    res.status(401).json({ error: 'Not authenticated' });
+    return;
+  }
+  res.json({ user });
+});
+
+/** Change password */
+app.post('/api/auth/change-password', async (req, res, next) => {
+  try {
+    const user = res.locals['user'];
+    if (!user) {
+      res.status(401).json({ error: 'Authentication required' });
+      return;
+    }
+    const parsed = ChangePasswordInputSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Validation failed', details: parsed.error.flatten() });
+      return;
+    }
+    await authService.changePassword(user.id, parsed.data.currentPassword, parsed.data.newPassword);
+    clearAuthCookie(res);
+    res.json({ success: true, message: 'Password changed. Please log in again.' });
+  } catch (err) {
+    if (err instanceof AuthError) {
+      res.status(401).json({ error: err.message, code: err.code });
+      return;
+    }
+    next(err);
+  }
+});
+
+// ── Review Routes ─────────────────────────────────────────────────────────────
+
+const reviewService = new ReviewService(storage);
+
+/** Get completion stats for a questionnaire */
+app.get('/api/questionnaires/:id/stats', async (req, res, next) => {
+  try {
+    const stats = await reviewService.getCompletionStats(req.params['id'] ?? '');
+    res.json(stats);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** Get full analytics summary for a questionnaire */
+app.get('/api/questionnaires/:id/summary', async (req, res, next) => {
+  try {
+    const summary = await reviewService.getSummary(req.params['id'] ?? '');
+    res.json(summary);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** Export responses for a questionnaire */
+app.get('/api/questionnaires/:id/export', async (req, res, next) => {
+  try {
+    const format = req.query['format'] === 'csv' ? 'csv' : 'json';
+    const id = req.params['id'] ?? '';
+
+    if (format === 'csv') {
+      const csv = await reviewService.exportToCsv(id);
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="responses-${id}.csv"`);
+      res.send(csv);
+    } else {
+      const json = await reviewService.exportToJson(id);
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="responses-${id}.json"`);
+      res.send(json);
+    }
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── Error Handling ────────────────────────────────────────────────────────────
+
+app.use(errorHandler);
 
 // ── Start Server ──────────────────────────────────────────────────────────────
 
