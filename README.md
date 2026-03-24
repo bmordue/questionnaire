@@ -95,7 +95,7 @@ When you run a questionnaire, the runner:
 1. Loads and validates the questionnaire JSON against the schema
 2. Creates (or resumes) a persistent session in `data/sessions/` and `data/responses/`
 3. Evaluates conditional logic to determine which question to show next
-4. Renders the appropriate TUI component for the question type using `@inquirer` prompts
+4. Renders the appropriate TUI component for the question type using Inquirer (`inquirer`) prompts
 5. Validates the answer and saves it incrementally to disk
 6. Displays a progress bar and question counter after each answer
 7. Repeats until all applicable questions are answered
@@ -133,7 +133,8 @@ questionnaire/
 │   │   ├── flow/         # Flow engine, navigation, conditional logic, progress tracking
 │   │   ├── persistence/  # Session management, auto-save, response builder
 │   │   ├── schemas/      # Zod schemas (questions, questionnaire, response)
-│   │   └── storage/      # File-based JSON storage
+│   │   ├── storage.ts    # File-based JSON storage entry point (FileStorageService)
+│   │   └── storage/      # Storage backends and helpers
 │   ├── ui/
 │   │   └── components/   # TUI input components (text, email, number, date,
 │   │                     #   single/multiple choice, boolean, rating)
