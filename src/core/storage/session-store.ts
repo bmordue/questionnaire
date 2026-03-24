@@ -197,15 +197,6 @@ export class SessionStore {
 
         // Delete sessions that have explicitly expired
         if (session.expiresAt && new Date(session.expiresAt).getTime() < now) {
-          if (session.status === 'active') {
-            // Mark as abandoned before deletion
-            const abandoned: SessionData = {
-              ...session,
-              status: 'abandoned',
-              updatedAt: new Date().toISOString(),
-            };
-            await FileOperations.atomicWrite(filePath, JSON.stringify(abandoned, null, 2));
-          }
           await FileOperations.delete(filePath);
           continue;
         }

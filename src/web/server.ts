@@ -5,7 +5,9 @@
  */
 
 import express from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
+import { rateLimit } from 'express-rate-limit';
 import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -18,7 +20,7 @@ import { FileUserRepository } from '../core/repositories/file-user-repository.js
 import { SessionManager } from '../core/auth/session-manager.js';
 import { AuthService, AuthError } from '../core/auth/auth-service.js';
 import { ReviewService } from '../core/services/review-service.js';
-import { loadUser, setAuthCookie, clearAuthCookie, AUTH_COOKIE_NAME } from './middleware/auth.js';
+import { loadUser, requireAuth, setAuthCookie, clearAuthCookie, AUTH_COOKIE_NAME, extractToken } from './middleware/auth.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { RegisterInputSchema, LoginInputSchema, ChangePasswordInputSchema } from './dtos/index.js';
 
@@ -51,14 +53,30 @@ const storage = new FileStorageService({ dataDirectory: DATA_DIR });
 
 // ── Auth layer ────────────────────────────────────────────────────────────────
 
-const userRepository = new FileUserRepository({ dataDirectory: DATA_DIR } as any);
+const userRepository = new FileUserRepository({ dataDirectory: DATA_DIR });
 const sessionManager = new SessionManager(DATA_DIR);
 const authService = new AuthService(userRepository, sessionManager);
 
-// Initialise auth stores (non-blocking – errors are non-fatal for legacy routes)
-Promise.all([userRepository.initialize(), sessionManager.initialize()]).catch(err =>
-  console.error('[auth] Initialization error:', err),
-);
+// Track auth readiness so auth routes can return 503 if not yet initialised
+let authReady = false;
+const authInitPromise = Promise.all([userRepository.initialize(), sessionManager.initialize()])
+  .then(() => {
+    authReady = true;
+  })
+  .catch(err => {
+    console.error('[auth] Initialization error:', err);
+  });
+
+/**
+ * Middleware that returns 503 if the auth stores have not finished initialising.
+ */
+function requireAuthReady(_req: Request, res: Response, next: NextFunction): void {
+  if (!authReady) {
+    res.status(503).json({ error: 'Auth service not ready, please retry shortly.' });
+    return;
+  }
+  next();
+}
 
 /**
  * Returns true when the error indicates a resource was not found on disk.
@@ -386,8 +404,20 @@ app.post('/api/sessions/:sessionId/complete', async (req, res) => {
 
 // ── Auth Routes ───────────────────────────────────────────────────────────────
 
+/**
+ * Rate limiter for sensitive auth endpoints (login, register, change-password).
+ * Limits each IP to 10 requests per 15-minute window to mitigate brute-force attacks.
+ */
+const authRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later.' },
+});
+
 /** Register a new account */
-app.post('/api/auth/register', async (req, res, next) => {
+app.post('/api/auth/register', requireAuthReady, authRateLimit, async (req, res, next) => {
   try {
     const parsed = RegisterInputSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -411,7 +441,7 @@ app.post('/api/auth/register', async (req, res, next) => {
 });
 
 /** Log in */
-app.post('/api/auth/login', async (req, res, next) => {
+app.post('/api/auth/login', requireAuthReady, authRateLimit, async (req, res, next) => {
   try {
     const parsed = LoginInputSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -435,9 +465,9 @@ app.post('/api/auth/login', async (req, res, next) => {
 });
 
 /** Log out */
-app.post('/api/auth/logout', async (req, res, next) => {
+app.post('/api/auth/logout', requireAuthReady, authRateLimit, async (req, res, next) => {
   try {
-    const token = req.cookies?.[AUTH_COOKIE_NAME] ?? null;
+    const token = extractToken(req);
     if (token) await authService.logout(token);
     clearAuthCookie(res);
     res.json({ success: true });
@@ -447,7 +477,7 @@ app.post('/api/auth/logout', async (req, res, next) => {
 });
 
 /** Get current user */
-app.get('/api/auth/me', (req, res) => {
+app.get('/api/auth/me', requireAuthReady, (req, res) => {
   const user = res.locals['user'];
   if (!user) {
     res.status(401).json({ error: 'Not authenticated' });
@@ -457,7 +487,7 @@ app.get('/api/auth/me', (req, res) => {
 });
 
 /** Change password */
-app.post('/api/auth/change-password', async (req, res, next) => {
+app.post('/api/auth/change-password', requireAuthReady, authRateLimit, async (req, res, next) => {
   try {
     const user = res.locals['user'];
     if (!user) {
@@ -486,9 +516,9 @@ app.post('/api/auth/change-password', async (req, res, next) => {
 const reviewService = new ReviewService(storage);
 
 /** Get completion stats for a questionnaire */
-app.get('/api/questionnaires/:id/stats', async (req, res, next) => {
+app.get('/api/questionnaires/:id/stats', requireAuth, async (req, res, next) => {
   try {
-    const stats = await reviewService.getCompletionStats(req.params['id'] ?? '');
+    const stats = await reviewService.getCompletionStats(req.params['id'] as string);
     res.json(stats);
   } catch (err) {
     next(err);
@@ -496,9 +526,9 @@ app.get('/api/questionnaires/:id/stats', async (req, res, next) => {
 });
 
 /** Get full analytics summary for a questionnaire */
-app.get('/api/questionnaires/:id/summary', async (req, res, next) => {
+app.get('/api/questionnaires/:id/summary', requireAuth, async (req, res, next) => {
   try {
-    const summary = await reviewService.getSummary(req.params['id'] ?? '');
+    const summary = await reviewService.getSummary(req.params['id'] as string);
     res.json(summary);
   } catch (err) {
     next(err);
@@ -506,10 +536,10 @@ app.get('/api/questionnaires/:id/summary', async (req, res, next) => {
 });
 
 /** Export responses for a questionnaire */
-app.get('/api/questionnaires/:id/export', async (req, res, next) => {
+app.get('/api/questionnaires/:id/export', requireAuth, async (req, res, next) => {
   try {
     const format = req.query['format'] === 'csv' ? 'csv' : 'json';
-    const id = req.params['id'] ?? '';
+    const id = req.params['id'] as string;
 
     if (format === 'csv') {
       const csv = await reviewService.exportToCsv(id);

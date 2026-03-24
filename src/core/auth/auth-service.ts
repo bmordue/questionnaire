@@ -60,7 +60,19 @@ export class AuthService {
       name: input.name,
     };
     if (opts.role !== undefined) createData.role = opts.role;
-    const user = await this.users.create(createData);
+
+    let user: User;
+    try {
+      // A concurrent registration can still cause the repository to throw a
+      // duplicate error here even if emailExists() just returned false.
+      // Normalize that case to an AuthError.
+      user = await this.users.create(createData);
+    } catch (error) {
+      if (error instanceof Error && /already exists/i.test(error.message)) {
+        throw new AuthError(`Email already registered: ${input.email}`, 'EMAIL_TAKEN');
+      }
+      throw error;
+    }
 
     const sessionOpts: { userAgent?: string; ipAddress?: string } = {};
     if (opts.userAgent !== undefined) sessionOpts.userAgent = opts.userAgent;
@@ -166,16 +178,17 @@ export class AuthService {
    * Complete a password reset with the token received by email.
    */
   async confirmPasswordReset(token: string, newPassword: string): Promise<void> {
-    const users = await this.users.findAll();
-    const user = users.find(
-      u =>
-        u.passwordResetToken !== undefined &&
-        u.passwordResetExpiry !== undefined &&
-        timingSafeEqual(u.passwordResetToken, token) &&
-        new Date(u.passwordResetExpiry) > new Date(),
-    );
+    const user = await this.users.findByResetToken(token);
 
-    if (!user) {
+    if (!user || !user.passwordResetToken || !user.passwordResetExpiry) {
+      throw new AuthError('Invalid or expired password reset token', 'INVALID_TOKEN');
+    }
+
+    // Double-check timing safety: token must still be unexpired and match exactly
+    if (
+      !timingSafeEqual(user.passwordResetToken, token) ||
+      new Date(user.passwordResetExpiry) <= new Date()
+    ) {
       throw new AuthError('Invalid or expired password reset token', 'INVALID_TOKEN');
     }
 

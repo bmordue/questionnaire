@@ -62,19 +62,31 @@ export class WriteQueue {
       }
     }
 
+    // Mark this key as no longer running
     this.running.delete(key);
 
+    // Check if new tasks were enqueued after the loop finished but before we
+    // cleared the running flag. If so, restart processing immediately.
+    const currentQueue = this.queues.get(key);
+    if (currentQueue && currentQueue.length > 0) {
+      void this.processQueue(key);
+      return;
+    }
+
     // Clean up empty queues
-    if (this.queues.get(key)?.length === 0) {
+    if (currentQueue && currentQueue.length === 0) {
       this.queues.delete(key);
     }
   }
 
   /**
    * Returns the number of operations waiting or running for the given key.
+   * Includes both queued (waiting) tasks and the currently executing task.
    */
   queueLength(key: string): number {
-    return this.queues.get(key)?.length ?? 0;
+    const waiting = this.queues.get(key)?.length ?? 0;
+    const running = this.running.has(key) ? 1 : 0;
+    return waiting + running;
   }
 
   /**
