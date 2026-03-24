@@ -4,11 +4,11 @@
  * Demonstrates the questionnaire flow engine with conditional logic
  */
 
-import { QuestionnaireFlowEngine } from './core/flow/flow-engine.js';
-import { NavigationManager } from './core/flow/navigation-manager.js';
-import { createStorageService } from './core/storage.js';
-import { QuestionType } from './core/schema.js';
-import type { Questionnaire } from './core/schema.js';
+import { QuestionnaireFlowEngine } from '../../core/flow/flow-engine.js';
+import { NavigationManager } from '../../core/flow/navigation-manager.js';
+import { createStorageService } from '../../core/storage.js';
+import { QuestionType } from '../../core/schema.js';
+import type { Questionnaire } from '../../core/schema.js';
 
 async function demonstrateFlowEngine() {
   console.log('=== Questionnaire Flow Engine Demo ===\n');

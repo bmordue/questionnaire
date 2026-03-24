@@ -13,9 +13,9 @@ import {
   ConditionalFunctionRegistry,
   DependencyGraph,
   type EvaluationContext
-} from './core/flow/index.js';
-import type { Questionnaire, Question } from './core/schema.js';
-import { QuestionType } from './core/schema.js';
+} from '../../core/flow/index.js';
+import type { Questionnaire, Question } from '../../core/schema.js';
+import { QuestionType } from '../../core/schema.js';
 
 // Example questionnaire with advanced conditional logic
 const advancedQuestionnaire: Questionnaire = {
