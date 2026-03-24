@@ -42,11 +42,20 @@ export class SessionStore {
    * @param questionnaireId - ID of the questionnaire
    * @param responseId - ID of the associated response
    * @param sessionId - Optional session ID (will be generated if not provided)
+   * @param opts - Optional metadata (userId, userAgent, ipAddress, ttlMs)
    * @returns Session ID
    */
-  async create(questionnaireId: string, responseId: string, sessionId?: string): Promise<string> {
+  async create(
+    questionnaireId: string,
+    responseId: string,
+    sessionId?: string,
+    opts: { userId?: string; userAgent?: string; ipAddress?: string; ttlMs?: number } = {}
+  ): Promise<string> {
     const id = sessionId || FileOperations.generateSessionId();
     const now = new Date().toISOString();
+    const expiresAt = opts.ttlMs
+      ? new Date(Date.now() + opts.ttlMs).toISOString()
+      : undefined;
 
     const sessionData: SessionData = {
       sessionId: id,
@@ -54,7 +63,11 @@ export class SessionStore {
       responseId,
       createdAt: now,
       updatedAt: now,
-      status: 'active'
+      status: 'active',
+      ...(opts.userId !== undefined && { userId: opts.userId }),
+      ...(opts.userAgent !== undefined && { userAgent: opts.userAgent }),
+      ...(opts.ipAddress !== undefined && { ipAddress: opts.ipAddress }),
+      ...(expiresAt !== undefined && { expiresAt }),
     };
 
     const filePath = this.getFilePath(id);
@@ -169,8 +182,8 @@ export class SessionStore {
   }
 
   /**
-   * Clean up old sessions based on age or status
-   * @param maxAgeMs - Maximum age in milliseconds
+   * Clean up old sessions based on age or status, including expired sessions
+   * @param maxAgeMs - Maximum age in milliseconds for abandoned sessions
    */
   async cleanup(maxAgeMs: number = 7 * 24 * 60 * 60 * 1000): Promise<void> {
     const files = await FileOperations.listFiles(this.sessionsDir, '.json');
@@ -181,6 +194,12 @@ export class SessionStore {
         const filePath = path.join(this.sessionsDir, file);
         const data = await FileOperations.safeRead(filePath);
         const session = JSON.parse(data) as SessionData;
+
+        // Delete sessions that have explicitly expired
+        if (session.expiresAt && new Date(session.expiresAt).getTime() < now) {
+          await FileOperations.delete(filePath);
+          continue;
+        }
 
         const updatedAt = new Date(session.updatedAt).getTime();
         const age = now - updatedAt;

@@ -40,6 +40,14 @@ export interface SessionData {
   updatedAt: string;
   /** Session status */
   status: 'active' | 'completed' | 'abandoned';
+  /** Authenticated user ID (if the respondent is logged in) */
+  userId?: string;
+  /** User agent string of the client that started the session */
+  userAgent?: string;
+  /** IP address of the client that started the session */
+  ipAddress?: string;
+  /** Expiry timestamp for session-level timeout */
+  expiresAt?: string;
   /** Flow state data */
   state?: any;
   /** Additional metadata */
