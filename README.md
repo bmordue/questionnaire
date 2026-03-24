@@ -16,6 +16,24 @@ A TypeScript-based Terminal User Interface (TUI) application for running interac
 
 ## Quick Start
 
+### Nix Development Environment
+
+If you use [Nix](https://nixos.org/), you can get a fully-reproducible development environment with all required tools:
+
+```bash
+nix-shell
+```
+
+This drops you into a shell with Node.js 22 and TypeScript pre-installed. If your Nixpkgs configuration has `allowUnfree = true`, the shell also includes `gemini-cli` and `claude-code`.
+
+#### direnv integration
+
+If you have [direnv](https://direnv.net/) installed, allow the provided `.envrc` to activate the Nix shell automatically whenever you enter the project directory:
+
+```bash
+direnv allow
+```
+
 ### Installation
 
 ```bash
