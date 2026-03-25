@@ -2,7 +2,7 @@ import inquirer from 'inquirer';
 import type { Question } from '../../../core/schema.js';
 import { BaseQuestionComponent } from '../base/question-component.js';
 import { ValidationHelpers } from '../base/validation-helpers.js';
-import { MessageFormatter } from '../display/theme.js';
+import { MessageFormatter, theme } from '../display/theme.js';
 import type { ValidationResult, InquirerPromptConfig } from '../base/types.js';
 
 /**
@@ -77,6 +77,18 @@ export class TextInputComponent extends BaseQuestionComponent<string> {
       validate: (input: string) => {
         const result = this.validate(input, question);
         return result.isValid ? true : MessageFormatter.formatError(result.message || 'Invalid input');
+      },
+      transformer: (input: string) => {
+        if (question.type === 'text' && question.validation?.maxLength) {
+          const count = input.length;
+          const max = question.validation.maxLength;
+          const counterText = `[${count}/${max}]`;
+          const counter = count > max
+            ? theme.error(counterText)
+            : theme.muted(counterText);
+          return `${input} ${counter}`;
+        }
+        return input;
       }
     };
   }

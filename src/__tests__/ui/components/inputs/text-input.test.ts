@@ -133,5 +133,39 @@ describe('TextInputComponent', () => {
       expect(config.message).toBeDefined();
       expect(config.validate).toBeDefined();
     });
+
+    it('should show character count in transformer if maxLength is defined', () => {
+      const question: TextQuestion = {
+        id: 'q1',
+        type: QuestionType.TEXT,
+        text: 'Bio',
+        required: false,
+        validation: {
+          maxLength: 10
+        }
+      };
+
+      const config = component.getPromptConfig(question);
+      expect(config.transformer).toBeDefined();
+
+      const result = config.transformer('Hello');
+      expect(result).toContain('Hello');
+      expect(result).toContain('[5/10]');
+    });
+
+    it('should not show character count if maxLength is not defined', () => {
+      const question: TextQuestion = {
+        id: 'q1',
+        type: QuestionType.TEXT,
+        text: 'Name',
+        required: false
+      };
+
+      const config = component.getPromptConfig(question);
+      if (config.transformer) {
+        const result = config.transformer('John');
+        expect(result).toBe('John');
+      }
+    });
   });
 });
