@@ -153,6 +153,24 @@ describe('TextInputComponent', () => {
       expect(result).toContain('[5/10]');
     });
 
+    it('should show error-styled character count when exceeding maxLength', () => {
+      const question: TextQuestion = {
+        id: 'q1',
+        type: QuestionType.TEXT,
+        text: 'Bio',
+        required: false,
+        validation: {
+          maxLength: 10
+        }
+      };
+
+      const config = component.getPromptConfig(question);
+      expect(config.transformer).toBeDefined();
+
+      const result = config.transformer('Hello World!');
+      expect(result).toContain('Hello World!');
+      expect(result).toContain('[12/10]');
+    });
     it('should not show character count if maxLength is not defined', () => {
       const question: TextQuestion = {
         id: 'q1',

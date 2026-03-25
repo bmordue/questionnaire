@@ -79,7 +79,7 @@ export class TextInputComponent extends BaseQuestionComponent<string> {
         return result.isValid ? true : MessageFormatter.formatError(result.message || 'Invalid input');
       },
       transformer: (input: string) => {
-        if (question.type === 'text' && question.validation?.maxLength) {
+        if (question.type === 'text' && question.validation?.maxLength !== undefined) {
           const count = input.length;
           const max = question.validation.maxLength;
           const counterText = `[${count}/${max}]`;
