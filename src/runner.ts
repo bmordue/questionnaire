@@ -7,7 +7,7 @@ import { ExitPromptError } from '@inquirer/core';
 import { QuestionnaireFlowEngine } from './core/flow/flow-engine.js';
 import { NavigationManager } from './core/flow/navigation-manager.js';
 import { PersistenceManager } from './core/persistence/persistence-manager.js';
-import { FileStorageService } from './core/storage.js';
+import { createStorageBackend } from './core/storage/factory.js';
 import { safeValidateQuestionnaire } from './core/schema.js';
 import { formatZodError } from './core/schemas/validation.js';
 import { ResponseStatus, type QuestionnaireResponse, type Questionnaire, type Question } from './core/schema.js';
@@ -178,7 +178,7 @@ export async function runQuestionnaire(options: RunnerOptions): Promise<RunnerRe
   initializeComponents();
 
   const dataDirectory = options.dataDirectory ?? './data';
-  const storage = new FileStorageService({ dataDirectory });
+  const storage = await createStorageBackend({ dataDirectory });
   if ('initialize' in storage && typeof storage.initialize === 'function') {
     await storage.initialize();
   }
