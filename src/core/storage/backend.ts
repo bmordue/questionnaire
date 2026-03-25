@@ -10,7 +10,6 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import crypto from 'crypto';
-import { FileOperationError } from './file-operations.js';
 
 // ---------------------------------------------------------------------------
 // Core backend interface
@@ -110,9 +109,12 @@ export class LocalStorageBackend implements StorageBackend {
   constructor(private readonly baseDirectory: string) {}
 
   private resolvePath(key: string): string {
-    // Prevent directory traversal
-    const resolved = path.resolve(this.baseDirectory, key);
-    if (!resolved.startsWith(path.resolve(this.baseDirectory))) {
+    // Prevent directory traversal by ensuring the resolved path stays within the base directory.
+    const base = path.resolve(this.baseDirectory);
+    const resolved = path.resolve(base, key);
+    const relative = path.relative(base, resolved);
+
+    if (relative.startsWith('..') || path.isAbsolute(relative)) {
       throw new StorageBackendError(
         `Path traversal attempt detected for key: ${key}`,
         'resolvePath',
@@ -186,12 +188,29 @@ export class LocalStorageBackend implements StorageBackend {
   }
 
   async list(prefix: string): Promise<string[]> {
-    const dirPath = this.resolvePath(prefix);
+    const results: string[] = [];
+    const stack: string[] = [this.baseDirectory];
+
     try {
-      const entries = await fs.readdir(dirPath, { withFileTypes: true });
-      return entries
-        .filter(e => e.isFile())
-        .map(e => path.join(prefix, e.name));
+      while (stack.length > 0) {
+        const currentDir = stack.pop() as string;
+        const entries = await fs.readdir(currentDir, { withFileTypes: true });
+
+        for (const entry of entries) {
+          const fullPath = path.join(currentDir, entry.name);
+          if (entry.isDirectory()) {
+            stack.push(fullPath);
+          } else if (entry.isFile()) {
+            const relative = path.relative(this.baseDirectory, fullPath);
+            const normalizedKey = relative.split(path.sep).join('/');
+            if (normalizedKey.startsWith(prefix)) {
+              results.push(normalizedKey);
+            }
+          }
+        }
+      }
+
+      return results;
     } catch (error: unknown) {
       const nodeError = error as NodeJS.ErrnoException;
       if (nodeError.code === 'ENOENT') {
@@ -430,27 +449,36 @@ export class S3StorageBackend implements StorageBackend {
     const keys: string[] = [];
     let continuationToken: string | undefined;
 
-    do {
-      const result = await client.send(new ListObjectsV2Command({
-        Bucket: this.bucket,
-        Prefix: fullPrefix,
-        ContinuationToken: continuationToken
-      })) as {
-        Contents?: Array<{ Key?: string }>;
-        IsTruncated?: boolean;
-        NextContinuationToken?: string;
-      };
+    try {
+      do {
+        const result = await client.send(new ListObjectsV2Command({
+          Bucket: this.bucket,
+          Prefix: fullPrefix,
+          ContinuationToken: continuationToken
+        })) as {
+          Contents?: Array<{ Key?: string }>;
+          IsTruncated?: boolean;
+          NextContinuationToken?: string;
+        };
 
-      for (const obj of result.Contents ?? []) {
-        if (obj.Key) {
-          keys.push(this.stripPrefix(obj.Key));
+        for (const obj of result.Contents ?? []) {
+          if (obj.Key) {
+            keys.push(this.stripPrefix(obj.Key));
+          }
         }
-      }
 
-      continuationToken = result.IsTruncated ? result.NextContinuationToken : undefined;
-    } while (continuationToken);
+        continuationToken = result.IsTruncated ? result.NextContinuationToken : undefined;
+      } while (continuationToken);
 
-    return keys;
+      return keys;
+    } catch (error) {
+      throw new StorageBackendError(
+        `S3 list failed for "${prefix}": ${error instanceof Error ? error.message : String(error)}`,
+        'list',
+        prefix,
+        error instanceof Error ? error : undefined
+      );
+    }
   }
 
   async healthCheck(): Promise<HealthCheckResult> {
@@ -626,8 +654,16 @@ export function createStorageBackend(config: BackendConfig): StorageBackend {
     }
   }
 
-  if (config.retry?.maxAttempts && config.retry.maxAttempts > 1) {
-    return new RetryableStorageBackend(backend, config.retry);
+  // Treat the presence of a retry config as opting into retry behavior.
+  // When maxAttempts is omitted, use RetryableStorageBackend's defaults.
+  if (config.retry) {
+    const { maxAttempts } = config.retry;
+
+    // Preserve existing behavior when maxAttempts is explicitly provided:
+    // only enable retries when maxAttempts > 1.
+    if (maxAttempts === undefined || maxAttempts > 1) {
+      return new RetryableStorageBackend(backend, config.retry);
+    }
   }
 
   return backend;
