@@ -133,6 +133,40 @@ data/
 
 Auto-save creates a backup of the response file every 30 seconds while a session is active.
 
+## Pluggable Storage Backend
+
+The project ships with a file-based storage implementation by default. The entrypoint is `src/core/storage.ts` which exports `FileStorageService` and the helper `createStorageService()`.
+
+- **Default behaviour**: `FileStorageService` persists questionnaires, responses and sessions under the `data/` directory and is configured via the `StorageConfig` type in `src/core/storage/types.ts` (fields: `dataDirectory`, `backupEnabled`, `maxBackups`, `compressionEnabled`, `encryptionEnabled`, `deleteBackupsOnCompletion`).
+- **CLI override**: The runner accepts `--data <path>` (see `--data` in Quick Start) which is passed to the storage service as the `dataDirectory`.
+
+If you want to use a different storage backend (database, cloud object store, etc.), implement the `StorageService` interface found at `src/core/storage/types.ts` and provide your implementation to the runner or application entrypoint.
+
+Minimal example (outline):
+
+```
+import type { StorageService } from './src/core/storage/types.js';
+
+class MyDbStorage implements StorageService {
+  // implement all required methods: saveQuestionnaire, loadQuestionnaire,
+  // listQuestionnaires, saveResponse, loadResponse, listResponses, createSession,
+  // updateSession, loadSession, deleteSession, listActiveSessions, cleanup,
+  // cleanupBackups, getDataDirectory, getConfig
+}
+
+// In your application/runner bootstrap:
+const storage = new MyDbStorage(/* config */);
+if ('initialize' in storage && typeof storage.initialize === 'function') {
+  await (storage as any).initialize();
+}
+// pass `storage` to the PersistenceManager, FlowEngine, etc.
+```
+
+Notes:
+- The runner currently instantiates `FileStorageService` directly in `src/runner.ts`. To switch to a custom backend you can modify `src/runner.ts` to create and use your storage instance (or update `src/app.ts` if you bootstrap elsewhere).
+- The `FileStorageService` exposes a small `createStorageService(config?)` helper which returns an initialized service — useful for tests and quick swaps.
+- The runner will call an optional `initialize()` method on the storage instance if present, so your implementation can perform async setup as needed.
+
 ## Project Structure
 
 ```

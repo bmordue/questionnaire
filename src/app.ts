@@ -11,13 +11,14 @@ function printHelp(): void {
   console.log(
     [
       'Usage:',
-      '  npm start -- --questionnaire <path> [--resume <sessionId>] [--data <directory>]',
+      '  npm start -- --questionnaire <path> [--resume <sessionId>] [--data <directory>] [--storage-module <module>]',
       '  npm run start:dev -- --questionnaire <path> [--resume <sessionId>] [--data <directory>]',
       '',
       'Options:',
       '  -q, --questionnaire   Path to questionnaire JSON file (required)',
       '  -r, --resume          Resume an existing session by ID',
       '  -d, --data            Data directory (default: ./data)',
+      '  -s, --storage-module  Custom storage module path (module specifier or file path)',
       '  -h, --help            Show this help message'
     ].join('\n')
   );
@@ -27,6 +28,7 @@ function resolveArgs(): {
   questionnaire?: string;
   resume?: string;
   data?: string;
+  storageModule?: string;
   help?: boolean;
 } {
   try {
@@ -36,6 +38,7 @@ function resolveArgs(): {
         questionnaire: { type: 'string', short: 'q' },
         resume: { type: 'string', short: 'r' },
         data: { type: 'string', short: 'd' },
+        storageModule: { type: 'string', short: 's' },
         help: { type: 'boolean', short: 'h' }
       }
     });
@@ -71,6 +74,7 @@ export async function main(): Promise<void> {
   const questionnairePath = args.questionnaire;
   const resumeId = args.resume;
   const dataDirectory = args.data;
+  const storageModule = args.storageModule;
 
   if (!questionnairePath) {
     console.error(MessageFormatter.formatError('Missing --questionnaire <path> argument'));
@@ -89,6 +93,7 @@ export async function main(): Promise<void> {
     const runOptions: RunnerOptions = { questionnairePath };
     if (resumeId) runOptions.sessionId = resumeId;
     if (dataDirectory) runOptions.dataDirectory = dataDirectory;
+    if (storageModule) process.env.STORAGE_MODULE_PATH = storageModule;
 
     await runQuestionnaire(runOptions);
   } catch (error) {
