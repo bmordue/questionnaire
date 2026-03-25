@@ -260,6 +260,32 @@ interface S3ClientLike {
 }
 
 /**
+ * Bundle of the S3Client instance and all command constructors used by
+ * S3StorageBackend.  Loaded once via a single dynamic import so that:
+ *  - The package is never required when the local backend is used.
+ *  - If the package is missing, the error is always caught and converted to a
+ *    StorageBackendError in one centralised place.
+ */
+interface S3SDKBundle {
+  client: S3ClientLike;
+  GetObjectCommand: new (input: { Bucket: string; Key: string }) => unknown;
+  PutObjectCommand: new (input: {
+    Bucket: string;
+    Key: string;
+    Body: string;
+    ContentType: string;
+  }) => unknown;
+  DeleteObjectCommand: new (input: { Bucket: string; Key: string }) => unknown;
+  HeadObjectCommand: new (input: { Bucket: string; Key: string }) => unknown;
+  HeadBucketCommand: new (input: { Bucket: string }) => unknown;
+  ListObjectsV2Command: new (input: {
+    Bucket: string;
+    Prefix?: string;
+    ContinuationToken?: string;
+  }) => unknown;
+}
+
+/**
  * Configuration for the S3-compatible storage backend.
  */
 export interface S3BackendConfig {
@@ -290,7 +316,7 @@ export class S3StorageBackend implements StorageBackend {
   private readonly bucket: string;
   private readonly keyPrefix: string;
   private readonly config: S3BackendConfig;
-  private client: S3ClientLike | null = null;
+  private sdk: S3SDKBundle | null = null;
 
   constructor(config: S3BackendConfig) {
     this.config = config;
@@ -310,20 +336,30 @@ export class S3StorageBackend implements StorageBackend {
   }
 
   /**
-   * Lazily initialise and return the S3Client.
-   * We use a dynamic import so that the aws-sdk package is only loaded when
-   * an S3 backend is actually used.
+   * Lazily load the AWS SDK and create the S3Client.
+   *
+   * All SDK access goes through this single method so that:
+   *  - The package is only loaded when the S3 backend is actually used.
+   *  - Any "module not found" error is consistently converted to a
+   *    StorageBackendError rather than leaking a raw module-resolution error.
    */
-  private async getClient(): Promise<S3ClientLike> {
-    if (this.client) {
-      return this.client;
+  private async getSDK(): Promise<S3SDKBundle> {
+    if (this.sdk) {
+      return this.sdk;
     }
 
-    // Dynamic import to avoid requiring aws-sdk when using local backend
-    const { S3Client } = await import('@aws-sdk/client-s3').catch(() => {
+    const {
+      S3Client,
+      GetObjectCommand,
+      PutObjectCommand,
+      DeleteObjectCommand,
+      HeadObjectCommand,
+      HeadBucketCommand,
+      ListObjectsV2Command
+    } = await import('@aws-sdk/client-s3').catch(() => {
       throw new StorageBackendError(
         'The @aws-sdk/client-s3 package is required for S3 storage. Install it with: npm install @aws-sdk/client-s3',
-        'getClient',
+        'getSDK',
         ''
       );
     });
@@ -344,13 +380,21 @@ export class S3StorageBackend implements StorageBackend {
       };
     }
 
-    this.client = new S3Client(clientConfig);
-    return this.client;
+    this.sdk = {
+      client: new S3Client(clientConfig) as S3ClientLike,
+      GetObjectCommand: GetObjectCommand as S3SDKBundle['GetObjectCommand'],
+      PutObjectCommand: PutObjectCommand as S3SDKBundle['PutObjectCommand'],
+      DeleteObjectCommand: DeleteObjectCommand as S3SDKBundle['DeleteObjectCommand'],
+      HeadObjectCommand: HeadObjectCommand as S3SDKBundle['HeadObjectCommand'],
+      HeadBucketCommand: HeadBucketCommand as S3SDKBundle['HeadBucketCommand'],
+      ListObjectsV2Command: ListObjectsV2Command as S3SDKBundle['ListObjectsV2Command']
+    };
+
+    return this.sdk;
   }
 
   async read(key: string): Promise<string> {
-    const { GetObjectCommand } = await import('@aws-sdk/client-s3');
-    const client = await this.getClient();
+    const { client, GetObjectCommand } = await this.getSDK();
 
     try {
       const result = await client.send(new GetObjectCommand({
@@ -374,8 +418,7 @@ export class S3StorageBackend implements StorageBackend {
   }
 
   async write(key: string, data: string): Promise<void> {
-    const { PutObjectCommand } = await import('@aws-sdk/client-s3');
-    const client = await this.getClient();
+    const { client, PutObjectCommand } = await this.getSDK();
 
     try {
       await client.send(new PutObjectCommand({
@@ -395,8 +438,7 @@ export class S3StorageBackend implements StorageBackend {
   }
 
   async delete(key: string): Promise<void> {
-    const { DeleteObjectCommand } = await import('@aws-sdk/client-s3');
-    const client = await this.getClient();
+    const { client, DeleteObjectCommand } = await this.getSDK();
 
     try {
       await client.send(new DeleteObjectCommand({
@@ -414,8 +456,7 @@ export class S3StorageBackend implements StorageBackend {
   }
 
   async exists(key: string): Promise<boolean> {
-    const { HeadObjectCommand } = await import('@aws-sdk/client-s3');
-    const client = await this.getClient();
+    const { client, HeadObjectCommand } = await this.getSDK();
 
     try {
       await client.send(new HeadObjectCommand({
@@ -442,8 +483,7 @@ export class S3StorageBackend implements StorageBackend {
   }
 
   async list(prefix: string): Promise<string[]> {
-    const { ListObjectsV2Command } = await import('@aws-sdk/client-s3');
-    const client = await this.getClient();
+    const { client, ListObjectsV2Command } = await this.getSDK();
 
     const fullPrefix = this.fullKey(prefix);
     const keys: string[] = [];
@@ -451,10 +491,12 @@ export class S3StorageBackend implements StorageBackend {
 
     try {
       do {
+        // Omit ContinuationToken entirely when undefined to satisfy
+        // exactOptionalPropertyTypes (AWS SDK types require string, not string|undefined).
         const result = await client.send(new ListObjectsV2Command({
           Bucket: this.bucket,
           Prefix: fullPrefix,
-          ContinuationToken: continuationToken
+          ...(continuationToken !== undefined ? { ContinuationToken: continuationToken } : {})
         })) as {
           Contents?: Array<{ Key?: string }>;
           IsTruncated?: boolean;
@@ -482,11 +524,10 @@ export class S3StorageBackend implements StorageBackend {
   }
 
   async healthCheck(): Promise<HealthCheckResult> {
-    const { HeadBucketCommand } = await import('@aws-sdk/client-s3');
     const start = Date.now();
 
     try {
-      const client = await this.getClient();
+      const { client, HeadBucketCommand } = await this.getSDK();
       await client.send(new HeadBucketCommand({ Bucket: this.bucket }));
       return {
         healthy: true,

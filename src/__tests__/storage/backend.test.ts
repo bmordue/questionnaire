@@ -213,22 +213,22 @@ describe('RetryableStorageBackend', () => {
 // ---------------------------------------------------------------------------
 
 describe('S3StorageBackend', () => {
-  it('throws StorageBackendError when @aws-sdk/client-s3 is not installed', async () => {
-    // We use a backend pointing to a fake bucket; on read it will try to load
-    // the SDK.  We test the error path by monkey-patching dynamic import.
+  it('initializes the SDK bundle lazily and reuses the same instance (singleton)', async () => {
     const backend = new S3StorageBackend({ bucket: 'test-bucket' });
 
-    // Intercept the dynamic import inside getClient by temporarily patching
-    // the prototype method.
-    const originalGetClient = (backend as unknown as { getClient(): Promise<unknown> })['getClient'].bind(backend);
+    // Access the private getSDK method for unit testing
+    const getSDK = (backend as unknown as { getSDK(): Promise<unknown> })['getSDK'].bind(backend);
 
-    // We cannot easily mock dynamic imports in ESM test environments, so we
-    // rely on the SDK actually being installed (it is, since we npm-installed
-    // it).  We instead verify that the client is created lazily.
-    const client1 = await originalGetClient();
-    const client2 = await originalGetClient();
-    // Calling getClient twice should return the same instance (lazy singleton)
-    expect(client1).toBe(client2);
+    // Before any call, the sdk bundle should not be loaded yet
+    expect((backend as unknown as { sdk: unknown }).sdk).toBeNull();
+
+    // First call loads the bundle
+    const sdk1 = await getSDK();
+    expect(sdk1).not.toBeNull();
+
+    // Second call returns the same cached bundle (lazy singleton)
+    const sdk2 = await getSDK();
+    expect(sdk1).toBe(sdk2);
   });
 
   it('health check returns unhealthy when bucket does not exist', async () => {
