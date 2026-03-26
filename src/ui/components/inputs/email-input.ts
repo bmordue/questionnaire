@@ -2,7 +2,7 @@ import inquirer from 'inquirer';
 import type { Question } from '../../../core/schema.js';
 import { BaseQuestionComponent } from '../base/question-component.js';
 import { ValidationHelpers } from '../base/validation-helpers.js';
-import { MessageFormatter } from '../display/theme.js';
+import { MessageFormatter, theme } from '../display/theme.js';
 import type { ValidationResult, InquirerPromptConfig } from '../base/types.js';
 
 /**
@@ -26,9 +26,21 @@ export class EmailInputComponent extends BaseQuestionComponent<string> {
       return requiredResult;
     }
 
-    // If not required and empty, skip email validation
+    // If not required and empty, skip other validations
     if (!answer && !this.isRequired(question)) {
       return { isValid: true };
+    }
+
+    // Length validation (consistent with text input)
+    if (question.type === 'email' && question.validation) {
+      const lengthResult = ValidationHelpers.validateLength(
+        answer,
+        question.validation.minLength,
+        question.validation.maxLength
+      );
+      if (!lengthResult.isValid) {
+        return lengthResult;
+      }
     }
 
     // Email format validation
@@ -51,6 +63,29 @@ export class EmailInputComponent extends BaseQuestionComponent<string> {
       validate: (input: string) => {
         const result = this.validate(input, question);
         return result.isValid ? true : MessageFormatter.formatError(result.message || 'Invalid input');
+      },
+      transformer: (input: string) => {
+        let feedback = '';
+
+        // Character counter (consistent with text input)
+        if (question.type === 'email' && question.validation?.maxLength !== undefined) {
+          const count = input.length;
+          const max = question.validation.maxLength;
+          const counterText = `[${count}/${max}]`;
+          const counter = count > max ? theme.error(counterText) : theme.muted(counterText);
+          feedback += ` ${counter}`;
+        }
+
+        // Live email format indicator
+        if (input) {
+          const isValidFormat = ValidationHelpers.validateEmail(input).isValid;
+          const status = isValidFormat
+            ? theme.success(' (Valid email format)')
+            : theme.warning(' (Incomplete email)');
+          feedback += status;
+        }
+
+        return `${input}${feedback}`;
       }
     };
   }

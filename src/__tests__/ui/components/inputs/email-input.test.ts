@@ -55,6 +55,30 @@ describe('EmailInputComponent', () => {
 
       expect(component.validate('', question).isValid).toBe(true);
     });
+
+    it('should validate minLength and maxLength', () => {
+      const question: EmailQuestion = {
+        id: 'q1',
+        type: QuestionType.EMAIL,
+        text: 'Email',
+        required: true,
+        validation: {
+          minLength: 10,
+          maxLength: 20
+        }
+      };
+
+      // Valid: length 16
+      expect(component.validate('test@example.com', question).isValid).toBe(true);
+
+      // Invalid: length 9
+      expect(component.validate('a@b.com', question).isValid).toBe(false);
+      expect(component.validate('a@b.com', question).message).toContain('Minimum length is 10');
+
+      // Invalid: length 21
+      expect(component.validate('verylongemail@example.com', question).isValid).toBe(false);
+      expect(component.validate('verylongemail@example.com', question).message).toContain('Maximum length is 20');
+    });
   });
 
   describe('format', () => {
@@ -77,6 +101,35 @@ describe('EmailInputComponent', () => {
       expect(config.name).toBe('answer');
       expect(config.message).toBeDefined();
       expect(config.validate).toBeDefined();
+      expect(config.transformer).toBeDefined();
+    });
+
+    it('should provide feedback in transformer', () => {
+      const question: EmailQuestion = {
+        id: 'q1',
+        type: QuestionType.EMAIL,
+        text: 'Email',
+        required: true,
+        validation: {
+          maxLength: 20
+        }
+      };
+
+      const config = component.getPromptConfig(question);
+
+      // Valid email
+      const validFeedback = config.transformer('test@example.com');
+      expect(validFeedback).toContain('test@example.com');
+      expect(validFeedback).toContain('[16/20]');
+      expect(validFeedback).toContain('Valid email format');
+
+      // Invalid/incomplete email
+      const incompleteFeedback = config.transformer('test@');
+      expect(incompleteFeedback).toContain('Incomplete email');
+
+      // Over maxLength
+      const overLengthFeedback = config.transformer('thisemailiswaytoolong@example.com');
+      expect(overLengthFeedback).toContain('[33/20]');
     });
   });
 });
