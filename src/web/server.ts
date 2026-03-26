@@ -86,7 +86,7 @@ function isNotFoundError(err: unknown): boolean {
   return err instanceof Error && err.message.toLowerCase().includes('not found');
 }
 
-export const app = express();
+export const app: express.Express = express();
 
 // CORS configuration: permissive in development, restricted/disabled otherwise
 const NODE_ENV = process.env['NODE_ENV'] ?? 'development';
