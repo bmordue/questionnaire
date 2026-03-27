@@ -133,6 +133,40 @@ describe('NumberInputComponent', () => {
       expect(config.message).toBeDefined();
       expect(config.validate).toBeDefined();
       expect(config.filter).toBeDefined();
+      expect(config.transformer).toBeDefined();
+    });
+
+    it('should provide correct feedback in transformer', () => {
+      const question: NumberQuestion = {
+        id: 'q1',
+        type: QuestionType.NUMBER,
+        text: 'Age',
+        required: true,
+        validation: {
+          min: 18,
+          max: 65,
+          integer: true
+        }
+      };
+
+      const config = component.getPromptConfig(question);
+      const transformer = config.transformer;
+
+      // Empty input should show hints
+      expect(transformer('', {})).toContain('Range: 18 to 65');
+      expect(transformer('', {})).toContain('Integer');
+
+      // Valid input
+      expect(transformer('25', {})).toContain('Valid');
+
+      // Invalid number
+      expect(transformer('abc', {})).toContain('Please enter a valid number');
+
+      // Out of range
+      expect(transformer('10', {})).toContain('Minimum value is 18');
+
+      // Not an integer
+      expect(transformer('20.5', {})).toContain('Please enter a whole number');
     });
   });
 });

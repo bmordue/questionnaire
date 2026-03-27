@@ -2,7 +2,7 @@ import inquirer from 'inquirer';
 import type { Question } from '../../../core/schema.js';
 import { BaseQuestionComponent } from '../base/question-component.js';
 import { ValidationHelpers } from '../base/validation-helpers.js';
-import { MessageFormatter } from '../display/theme.js';
+import { MessageFormatter, theme } from '../display/theme.js';
 import type { ValidationResult, InquirerPromptConfig } from '../base/types.js';
 
 /**
@@ -82,6 +82,44 @@ export class NumberInputComponent extends BaseQuestionComponent<number> {
       filter: (input: string) => {
         const num = parseFloat(input);
         return isNaN(num) ? input : num;
+      },
+      transformer: (input: string) => {
+        if (question.type !== 'number') return input;
+
+        const validation = question.validation;
+        let hint = '';
+
+        if (!input) {
+          // Provide range hints when empty
+          if (validation) {
+            const parts: string[] = [];
+            if (validation.min !== undefined && validation.max !== undefined) {
+              parts.push(`Range: ${validation.min} to ${validation.max}`);
+            } else if (validation.min !== undefined) {
+              parts.push(`Min: ${validation.min}`);
+            } else if (validation.max !== undefined) {
+              parts.push(`Max: ${validation.max}`);
+            }
+
+            if (validation.integer) {
+              parts.push('Integer');
+            }
+
+            if (parts.length > 0) {
+              hint = theme.muted(` (${parts.join(', ')})`);
+            }
+          }
+        } else {
+          // Provide live validation feedback
+          const result = this.validate(input, question);
+          if (result.isValid) {
+            hint = theme.success(' (Valid)');
+          } else {
+            hint = theme.warning(` (${result.message})`);
+          }
+        }
+
+        return `${input}${hint}`;
       }
     };
   }
