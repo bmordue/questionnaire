@@ -1,7 +1,7 @@
 import inquirer from 'inquirer';
 import type { Question } from '../../../core/schema.js';
 import { BaseQuestionComponent } from '../base/question-component.js';
-import { MessageFormatter } from '../display/theme.js';
+import { MessageFormatter, theme } from '../display/theme.js';
 import type { ValidationResult, InquirerPromptConfig } from '../base/types.js';
 
 /**
@@ -69,12 +69,36 @@ export class MultipleChoiceComponent extends BaseQuestionComponent<string[]> {
       checked: false
     }));
 
+    const validation = question.validation;
+    let hint = '';
+    if (validation) {
+      if (validation.minSelections !== undefined && validation.maxSelections !== undefined) {
+        if (validation.minSelections === validation.maxSelections) {
+          hint = `(Select exactly ${validation.minSelections})`;
+        } else {
+          hint = `(Select ${validation.minSelections} to ${validation.maxSelections})`;
+        }
+      } else if (validation.minSelections !== undefined) {
+        hint = `(Select at least ${validation.minSelections})`;
+      } else if (validation.maxSelections !== undefined) {
+        hint = `(Select up to ${validation.maxSelections})`;
+      }
+    }
+
+    const description = question.description
+      ? hint
+        ? `${question.description} ${theme.info(hint)}`
+        : question.description
+      : hint
+        ? theme.info(hint)
+        : undefined;
+
     return {
       type: 'checkbox',
       name: 'answer',
       message: MessageFormatter.formatQuestion(
         question.text,
-        question.description,
+        description,
         question.required
       ),
       choices,

@@ -164,5 +164,46 @@ describe('MultipleChoiceComponent', () => {
         'MultipleChoiceComponent can only be used with multiple_choice questions'
       );
     });
+
+    it('should include hint in message when validation constraints exist', () => {
+      const question: MultipleChoiceQuestion = {
+        id: 'q1',
+        type: QuestionType.MULTIPLE_CHOICE,
+        text: 'Select colors',
+        required: true,
+        options: [
+          { value: 'red', label: 'Red' },
+          { value: 'blue', label: 'Blue' }
+        ],
+        validation: {
+          minSelections: 1,
+          maxSelections: 2
+        }
+      };
+
+      const config = component.getPromptConfig(question);
+      // MessageFormatter.formatQuestion includes description on a new line
+      expect(config.message).toContain('Select 1 to 2');
+    });
+
+    it('should include exact selection hint', () => {
+      const question: MultipleChoiceQuestion = {
+        id: 'q1',
+        type: QuestionType.MULTIPLE_CHOICE,
+        text: 'Select colors',
+        required: true,
+        options: [
+          { value: 'red', label: 'Red' },
+          { value: 'blue', label: 'Blue' }
+        ],
+        validation: {
+          minSelections: 2,
+          maxSelections: 2
+        }
+      };
+
+      const config = component.getPromptConfig(question);
+      expect(config.message).toContain('Select exactly 2');
+    });
   });
 });
