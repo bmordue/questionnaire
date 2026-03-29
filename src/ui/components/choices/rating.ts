@@ -1,7 +1,7 @@
 import inquirer from 'inquirer';
 import type { Question } from '../../../core/schema.js';
 import { BaseQuestionComponent } from '../base/question-component.js';
-import { MessageFormatter } from '../display/theme.js';
+import { MessageFormatter, theme } from '../display/theme.js';
 import type { ValidationResult, InquirerPromptConfig } from '../base/types.js';
 
 /**
@@ -54,8 +54,10 @@ export class RatingComponent extends BaseQuestionComponent<number> {
 
     const choices = [];
     for (let i = min; i <= max; i++) {
+      const stars = '★'.repeat(i) + '☆'.repeat(max - i);
+      const label = this.getRatingLabel(i, min, max);
       choices.push({
-        name: `${i} ${this.getRatingLabel(i, min, max)}`,
+        name: `${theme.warning(stars)} ${i}${label ? ` ${label}` : ''}`,
         value: i
       });
     }
