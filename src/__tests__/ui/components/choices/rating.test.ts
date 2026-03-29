@@ -88,7 +88,7 @@ describe('RatingComponent', () => {
       expect(config.choices.length).toBe(10);
     });
 
-    it('should include rating labels', () => {
+    it('should include stars and rating labels', () => {
       const question: RatingQuestion = {
         id: 'q1',
         type: QuestionType.RATING,
@@ -103,8 +103,11 @@ describe('RatingComponent', () => {
       const config = component.getPromptConfig(question);
       const choiceNames = config.choices.map((c: any) => c.name);
       
+      expect(choiceNames[0]).toContain('★☆☆☆☆');
       expect(choiceNames[0]).toContain('Poor');
+      expect(choiceNames[4]).toContain('★★★★★');
       expect(choiceNames[4]).toContain('Excellent');
+      expect(choiceNames[2]).toContain('★★★☆☆');
       expect(choiceNames[2]).toContain('Average');
     });
 
