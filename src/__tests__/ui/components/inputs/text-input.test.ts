@@ -182,7 +182,52 @@ describe('TextInputComponent', () => {
       const config = component.getPromptConfig(question);
       if (config.transformer) {
         const result = config.transformer('John');
-        expect(result).toBe('John');
+        expect(result).toContain('John');
+        expect(result).not.toContain('[');
+      }
+    });
+
+    it('should show range hint when input is empty and validation exists', () => {
+      const question: TextQuestion = {
+        id: 'q1',
+        type: QuestionType.TEXT,
+        text: 'Name',
+        required: true,
+        validation: {
+          minLength: 3,
+          maxLength: 10
+        }
+      };
+
+      const config = component.getPromptConfig(question);
+      if (config.transformer) {
+        const result = config.transformer('');
+        expect(result).toContain('(Length: 3-10)');
+      }
+    });
+
+    it('should show live validation feedback when typing', () => {
+      const question: TextQuestion = {
+        id: 'q1',
+        type: QuestionType.TEXT,
+        text: 'Name',
+        required: true,
+        validation: {
+          minLength: 5
+        }
+      };
+
+      const config = component.getPromptConfig(question);
+      if (config.transformer) {
+        // Invalid case
+        const invalidResult = config.transformer('John');
+        expect(invalidResult).toContain('John');
+        expect(invalidResult).toContain('(Minimum length is 5 characters)');
+
+        // Valid case
+        const validResult = config.transformer('Johnny');
+        expect(validResult).toContain('Johnny');
+        expect(validResult).toContain('(Valid)');
       }
     });
   });
