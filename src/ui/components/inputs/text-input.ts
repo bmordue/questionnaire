@@ -79,16 +79,47 @@ export class TextInputComponent extends BaseQuestionComponent<string> {
         return result.isValid ? true : MessageFormatter.formatError(result.message || 'Invalid input');
       },
       transformer: (input: string) => {
-        if (question.type === 'text' && question.validation?.maxLength !== undefined) {
-          const count = input.length;
-          const max = question.validation.maxLength;
-          const counterText = `[${count}/${max}]`;
-          const counter = count > max
-            ? theme.error(counterText)
-            : theme.muted(counterText);
-          return `${input} ${counter}`;
+        let feedback = '';
+
+        if (question.type === 'text' || question.type === 'email') {
+          const validation = question.validation;
+
+          if (validation?.maxLength !== undefined) {
+            const count = input.length;
+            const max = validation.maxLength;
+            const counterText = `[${count}/${max}]`;
+            const counter = count > max ? theme.error(counterText) : theme.muted(counterText);
+            feedback += ` ${counter}`;
+          }
+
+          if (!input) {
+            if (validation) {
+              const parts: string[] = [];
+              if (validation.minLength !== undefined && validation.maxLength !== undefined) {
+                parts.push(`Length: ${validation.minLength}-${validation.maxLength}`);
+              } else if (validation.minLength !== undefined) {
+                parts.push(`Min: ${validation.minLength}`);
+              } else if (validation.maxLength !== undefined) {
+                parts.push(`Max: ${validation.maxLength}`);
+              }
+
+              if (parts.length > 0) {
+                feedback += theme.muted(` (${parts.join(', ')})`);
+              }
+            }
+          }
         }
-        return input;
+
+        if (input) {
+          const result = this.validate(input, question);
+          if (result.isValid) {
+            feedback += theme.success(' (Valid)');
+          } else {
+            feedback += theme.warning(` (${result.message})`);
+          }
+        }
+
+        return `${input}${feedback}`;
       }
     };
   }
