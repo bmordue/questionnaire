@@ -7,3 +7,4 @@ demo-data/
 data/
 .env
 .stryker-tmp/
+.direnv/

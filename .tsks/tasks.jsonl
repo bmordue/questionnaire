@@ -1,0 +1,5 @@
+{"id":"1","title":"Implement comprehensive export functionality (CSV, Excel, PDF, JSON)","status":"todo","created_at":"2026-03-30T17:45:18.484408992Z","doc_hash":"abaa49a8afafd6a51336663adb7d2f5b27bfc73399fdcfb4b4e3a04948fe5ea6"}
+{"id":"2","title":"Build advanced analytics engine with trend analysis and cohort analysis","status":"todo","created_at":"2026-03-30T17:45:46.771601022Z","doc_hash":"5d2123abe38ef1aa7f05bde15487b19ee7b9c82a25e062eac3614607f490f76a"}
+{"id":"3","title":"Implement UX enhancements: progress indicators, help system, notifications","status":"todo","created_at":"2026-03-30T17:46:04.353317284Z","doc_hash":"b6a4fd0a5adde11c0a93b3cccc9e1216200b79c9e0113725477dcc59356ea771"}
+{"id":"4","title":"Add performance optimization: caching, memory management, monitoring","status":"todo","created_at":"2026-03-30T17:46:28.940422302Z","doc_hash":"3ea08ce83a191cff5f76ae8f218b78efe1a2079eb184c8f19e6a0f6095579fba"}
+{"id":"5","title":"Add accessibility and internationalization (i18n) support","status":"todo","created_at":"2026-03-30T17:46:49.719733752Z","doc_hash":"cc38fd6220844114f1ba2fb380b52a70a113b2f8bf3194f6ddea0ac4faacebed"}
