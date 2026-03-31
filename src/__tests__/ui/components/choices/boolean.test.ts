@@ -41,7 +41,7 @@ describe('BooleanComponent', () => {
   });
 
   describe('getPromptConfig', () => {
-    it('should return valid prompt configuration', () => {
+    it('should return valid list prompt configuration', () => {
       const question: BooleanQuestion = {
         id: 'q1',
         type: QuestionType.BOOLEAN,
@@ -50,10 +50,13 @@ describe('BooleanComponent', () => {
       };
 
       const config = component.getPromptConfig(question);
-      expect(config.type).toBe('confirm');
+      expect(config.type).toBe('list');
       expect(config.name).toBe('answer');
       expect(config.message).toBeDefined();
-      expect(config.default).toBe(false);
+      expect(config.choices).toHaveLength(2);
+      expect(config.choices[0]).toEqual({ name: 'Yes', value: 'true' });
+      expect(config.choices[1]).toEqual({ name: 'No', value: 'false' });
+      expect(config.default).toBe('false');
     });
   });
 });
