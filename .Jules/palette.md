@@ -5,3 +5,7 @@
 ## 2025-10-27 - [Live Validation and Constraint Hints in TUI]
 **Learning:** Using Inquirer's `transformer` property to provide real-time feedback (like character counts, range hints, and validation status) significantly reduces user error and cognitive load before they even submit an answer.
 **Action:** Apply the "Empty Input Hint" and "Typing Feedback" pattern to all interactive text-based components to provide immediate, actionable guidance.
+
+## 2025-11-20 - [List Prompts for Boolean Selection]
+**Learning:** In terminal UIs, using a `list` prompt with explicit 'Yes' and 'No' options provides a more intuitive and visible selection experience than the standard `confirm` prompt (y/N), as it allows for arrow-key navigation and clearer state feedback.
+**Action:** Prefer `list` prompts over `confirm` prompts for binary choices to improve accessibility and consistency across different terminal emulators.

@@ -6,21 +6,21 @@ import type { ValidationResult, InquirerPromptConfig } from '../base/types.js';
 
 /**
  * Boolean component for boolean questions (Yes/No)
+ * Uses a list prompt for clearer visual selection and consistency with other choices
  */
 export class BooleanComponent extends BaseQuestionComponent<boolean> {
   async render(question: Question, currentAnswer?: boolean): Promise<boolean> {
     const promptConfig = this.getPromptConfig(question);
     if (currentAnswer !== undefined) {
-      promptConfig.default = currentAnswer;
+      promptConfig.default = currentAnswer ? 'true' : 'false';
     }
 
     const result = await inquirer.prompt([promptConfig]);
-    return result.answer;
+    return result.answer === 'true';
   }
 
   validate(answer: boolean, question: Question): ValidationResult {
     // Boolean values are always valid once selected
-    // Required validation is handled by inquirer for confirm prompts
     return { isValid: true };
   }
 
@@ -30,14 +30,18 @@ export class BooleanComponent extends BaseQuestionComponent<boolean> {
 
   getPromptConfig(question: Question): InquirerPromptConfig {
     return {
-      type: 'confirm',
+      type: 'list',
       name: 'answer',
       message: MessageFormatter.formatQuestion(
         question.text,
         question.description,
         question.required
       ),
-      default: false
+      choices: [
+        { name: 'Yes', value: 'true' },
+        { name: 'No', value: 'false' }
+      ],
+      default: 'false'
     };
   }
 }
