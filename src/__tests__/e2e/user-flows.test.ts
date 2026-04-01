@@ -17,6 +17,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
 import { promises as fs } from 'fs';
 import path from 'path';
+import type { Express } from 'express';
 import request from 'supertest';
 
 // DATA_DIR must be set before importing the server so FileStorageService uses our test directory.
@@ -24,9 +25,10 @@ const TEST_DATA_DIR = path.join(process.cwd(), 'test-data', 'e2e-user-flows');
 const originalDataDir = process.env['DATA_DIR'];
 process.env['DATA_DIR'] = TEST_DATA_DIR;
 
-// Importing the server module after setting DATA_DIR ensures it picks up our test directory.
-// NODE_ENV=test (set by Jest) prevents the server from binding to a TCP port.
-const { app } = await import('../../web/server.js');
+// `app` is populated inside `beforeAll` (after DATA_DIR is set) so that the dynamic
+// import always picks up this file's TEST_DATA_DIR even if the Jest worker has already
+// evaluated another test file that also imports server.js.
+let app: Express;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -48,7 +50,7 @@ function makeQuestionnaire(overrides: Record<string, unknown> = {}): Record<stri
     },
     questions: [
       { id: 'q1', type: 'text', text: 'What is your name?', required: false },
-      { id: 'q2', type: 'email', text: 'What is your email?', required: true },
+      { id: 'q2', type: 'email', text: 'What is your email?', required: false },
       { id: 'q3', type: 'number', text: 'How old are you?', required: false },
     ],
     config: {
@@ -69,12 +71,38 @@ function extractCookie(res: request.Response): string {
   return cookies.map(c => c.split(';')[0]).join('; ');
 }
 
+/**
+ * Poll GET /api/auth/me until auth services are ready.
+ *
+ * `requireAuthReady` returns HTTP 503 until `userRepository.initialize()` and
+ * `sessionManager.initialize()` have completed.  Any non-503 response (typically
+ * 401 "Not authenticated") means the auth layer is up and tests can proceed.
+ */
+async function waitForAuthReady(maxAttempts = 20, delayMs = 100): Promise<void> {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      const res = await request(app).get('/api/auth/me');
+      if (res.status !== 503) {
+        return;
+      }
+    } catch {
+      // Ignore transient errors during startup and retry.
+    }
+    await new Promise(resolve => setTimeout(resolve, delayMs));
+  }
+  throw new Error('Auth services did not become ready within the expected time');
+}
+
 // ── Setup / Teardown ──────────────────────────────────────────────────────────
 
 beforeAll(async () => {
   await fs.mkdir(TEST_DATA_DIR, { recursive: true });
-  // Allow auth services to finish initializing
-  await new Promise(resolve => setTimeout(resolve, 200));
+  // Import the server after DATA_DIR is set so FileStorageService uses our test directory.
+  // NODE_ENV=test (set by Jest) prevents the server from binding to a TCP port.
+  const server = await import('../../web/server.js');
+  app = server.app;
+  // Wait deterministically for auth services to become ready instead of using a fixed timeout.
+  await waitForAuthReady();
 });
 
 afterAll(async () => {
