@@ -63,11 +63,17 @@ export class MultipleChoiceComponent extends BaseQuestionComponent<string[]> {
       throw new Error('MultipleChoiceComponent can only be used with multiple_choice questions');
     }
 
-    const choices = question.options.map(option => ({
-      name: option.label,
-      value: option.value,
-      checked: false
-    }));
+    const choices = question.options.map(option => {
+      let name = option.label;
+      if (option.description) {
+        name += `\n  ${theme.muted(option.description)}`;
+      }
+      return {
+        name,
+        value: option.value,
+        checked: false
+      };
+    });
 
     const validation = question.validation;
     let hint = '';

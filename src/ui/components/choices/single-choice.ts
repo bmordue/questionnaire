@@ -1,7 +1,7 @@
 import inquirer from 'inquirer';
 import type { Question } from '../../../core/schema.js';
 import { BaseQuestionComponent } from '../base/question-component.js';
-import { MessageFormatter } from '../display/theme.js';
+import { MessageFormatter, theme } from '../display/theme.js';
 import type { ValidationResult, InquirerPromptConfig } from '../base/types.js';
 
 /**
@@ -49,10 +49,16 @@ export class SingleChoiceComponent extends BaseQuestionComponent<string> {
       throw new Error('SingleChoiceComponent can only be used with single_choice questions');
     }
 
-    const choices = question.options.map(option => ({
-      name: option.label,
-      value: option.value
-    }));
+    const choices = question.options.map(option => {
+      let name = option.label;
+      if (option.description) {
+        name += `\n  ${theme.muted(option.description)}`;
+      }
+      return {
+        name,
+        value: option.value
+      };
+    });
 
     // Add "Other" option if allowed
     if (question.type === 'single_choice' && question.validation?.allowOther) {
