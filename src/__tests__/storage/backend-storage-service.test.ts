@@ -145,7 +145,8 @@ describe('BackendStorageService', () => {
       await storage.saveResponse(r2);
       const filtered = await storage.listResponses('qA');
       expect(filtered).toHaveLength(1);
-      expect(filtered[0].sessionId).toBe('sess-1');
+      const first = filtered[0];
+      expect(first?.sessionId).toBe('sess-1');
     });
 
     it('skips and warns for unreadable response entries', async () => {
