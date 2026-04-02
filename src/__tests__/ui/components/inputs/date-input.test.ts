@@ -135,7 +135,8 @@ describe('DateInputComponent', () => {
       expect(config.type).toBe('input');
       expect(config.name).toBe('answer');
       expect(config.message).toBeDefined();
-      expect(config.message).toContain('YYYY-MM-DD');
+      // YYYY-MM-DD is now in transformer, not message
+      expect(config.message).not.toContain('YYYY-MM-DD');
       expect(config.validate).toBeDefined();
       expect(config.transformer).toBeDefined();
     });
