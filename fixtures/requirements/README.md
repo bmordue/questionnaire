@@ -43,24 +43,11 @@ Also covers:
 
 ---
 
-## Domain-Specific Questionnaires
+## Creating Domain-Specific Questionnaires
 
-Generate customised questionnaires for specific domains using the helper script:
+You can create customised questionnaires for specific domains by copying one of the existing JSON templates in this directory (for example, `project-requirements-core.json`) and editing the questions to suit your domain.
 
-```bash
-node .qwen/skills/project-requirements/scripts/generate-quiz.js <domain>
-```
-
-### Supported Domains
-
-| Domain | Description | Key Questions |
-|--------|-------------|---------------|
-| `ecommerce` | Online retail platforms | Product catalog, payment methods, inventory management |
-| `healthcare` | Medical/wellness apps | HIPAA compliance, user types, EHR integration |
-| `fintech` | Financial technology | Financial services, regulatory compliance (KYC, AML) |
-| `saas` | Software-as-a-Service | Pricing models, multi-tenancy, subscription features |
-| `iot` | Connected devices | Device types, connectivity protocols, data frequency |
-| `general` | Generic software projects | Basic requirements (default template) |
+For details of the questionnaire structure and all supported question types, see the schema documentation in `src/core/README.md`.
 
 ---
 
@@ -157,7 +144,6 @@ npm run validate
 
 ## Related Files
 
-- [Skill Documentation](../../.qwen/skills/project-requirements/SKILL.md)
-- [Helper Script](../../.qwen/skills/project-requirements/scripts/generate-quiz.js)
 - [Schema Definitions](../../src/core/schemas/)
+- [Schema Documentation](../../src/core/README.md)
 - [Main README](../../README.md)

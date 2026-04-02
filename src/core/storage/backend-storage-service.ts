@@ -18,7 +18,8 @@ import type {
   QuestionnaireMetadataListing
 } from './types.js';
 import type { Questionnaire, QuestionnaireResponse } from '../schema.js';
-import { createResponse } from '../schemas/response.js';
+import { validateQuestionnaire } from '../schemas/questionnaire.js';
+import { validateResponse, createResponse } from '../schemas/response.js';
 
 // Key layout within the backend:
 //   questionnaires/{id}.json
@@ -79,15 +80,16 @@ export class BackendStorageService implements StorageService {
   // ── Questionnaire operations ──────────────────────────────────────────────
 
   async saveQuestionnaire(questionnaire: Questionnaire): Promise<void> {
+    const validated = validateQuestionnaire(questionnaire);
     await this.backend.write(
-      questionnaireKey(questionnaire.id),
-      JSON.stringify(questionnaire, null, 2)
+      questionnaireKey(validated.id),
+      JSON.stringify(validated, null, 2)
     );
   }
 
   async loadQuestionnaire(id: string): Promise<Questionnaire> {
     const data = await this.backend.read(questionnaireKey(id));
-    return JSON.parse(data) as Questionnaire;
+    return validateQuestionnaire(JSON.parse(data));
   }
 
   async listQuestionnaires(): Promise<QuestionnaireMetadataListing[]> {
@@ -110,8 +112,11 @@ export class BackendStorageService implements StorageService {
         if (q.metadata.description !== undefined) listing.description = q.metadata.description;
         if (q.metadata.tags !== undefined) listing.tags = q.metadata.tags;
         listings.push(listing);
-      } catch {
-        // Skip unreadable entries
+      } catch (error) {
+        console.warn(
+          `BackendStorageService: skipping unreadable questionnaire entry for key "${key}"`,
+          error
+        );
       }
     }
 
@@ -125,15 +130,16 @@ export class BackendStorageService implements StorageService {
   // ── Response operations ───────────────────────────────────────────────────
 
   async saveResponse(response: QuestionnaireResponse): Promise<void> {
+    const validated = validateResponse(response);
     await this.backend.write(
-      responseKey(response.sessionId),
-      JSON.stringify(response, null, 2)
+      responseKey(validated.sessionId),
+      JSON.stringify(validated, null, 2)
     );
   }
 
   async loadResponse(sessionId: string): Promise<QuestionnaireResponse> {
     const data = await this.backend.read(responseKey(sessionId));
-    return JSON.parse(data) as QuestionnaireResponse;
+    return validateResponse(JSON.parse(data));
   }
 
   async listResponses(questionnaireId?: string): Promise<QuestionnaireResponse[]> {
@@ -147,8 +153,11 @@ export class BackendStorageService implements StorageService {
         const r = JSON.parse(data) as QuestionnaireResponse;
         if (questionnaireId && r.questionnaireId !== questionnaireId) continue;
         responses.push(r);
-      } catch {
-        // Skip unreadable entries
+      } catch (error) {
+        console.warn('BackendStorageService: failed to read or parse response', {
+          key,
+          error
+        });
       }
     }
 
@@ -224,8 +233,8 @@ export class BackendStorageService implements StorageService {
         if (s.status === 'active') {
           sessions.push(s);
         }
-      } catch {
-        // Skip unreadable entries
+      } catch (err) {
+        console.warn(`BackendStorageService: failed to load session for key "${key}":`, err);
       }
     }
 
