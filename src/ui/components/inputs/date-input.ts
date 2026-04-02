@@ -2,7 +2,7 @@ import inquirer from 'inquirer';
 import type { Question } from '../../../core/schema.js';
 import { BaseQuestionComponent } from '../base/question-component.js';
 import { ValidationHelpers } from '../base/validation-helpers.js';
-import { MessageFormatter } from '../display/theme.js';
+import { MessageFormatter, theme } from '../display/theme.js';
 import type { ValidationResult, InquirerPromptConfig } from '../base/types.js';
 
 /**
@@ -71,7 +71,7 @@ export class DateInputComponent extends BaseQuestionComponent<string> {
       type: 'input',
       name: 'answer',
       message: MessageFormatter.formatQuestion(
-        `${question.text} (YYYY-MM-DD)`,
+        question.text,
         question.description,
         question.required
       ),
@@ -80,14 +80,34 @@ export class DateInputComponent extends BaseQuestionComponent<string> {
         return result.isValid ? true : MessageFormatter.formatError(result.message || 'Invalid input');
       },
       transformer: (input: string) => {
-        // Show formatted date if valid
-        if (input && /^\d{4}-\d{2}-\d{2}$/.test(input)) {
-          const date = new Date(input);
-          if (!isNaN(date.getTime())) {
-            return `${input} (${date.toLocaleDateString()})`;
+        if (question.type !== 'date') return input;
+
+        const validation = question.validation;
+        let hint = '';
+
+        if (!input) {
+          const parts: string[] = ['YYYY-MM-DD'];
+          if (validation) {
+            if (validation.minDate && validation.maxDate) {
+              parts.push(`Range: ${validation.minDate} to ${validation.maxDate}`);
+            } else if (validation.minDate) {
+              parts.push(`Min: ${validation.minDate}`);
+            } else if (validation.maxDate) {
+              parts.push(`Max: ${validation.maxDate}`);
+            }
+          }
+          hint = theme.muted(` (${parts.join(', ')})`);
+        } else {
+          const result = this.validate(input, question);
+          if (result.isValid) {
+            const date = new Date(input);
+            hint = theme.success(` (${date.toLocaleDateString()})`);
+          } else {
+            hint = theme.warning(` (${result.message})`);
           }
         }
-        return input;
+
+        return `${input}${hint}`;
       }
     };
   }

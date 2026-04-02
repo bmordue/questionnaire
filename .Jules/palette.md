@@ -13,3 +13,7 @@
 ## 2025-12-05 - [Displaying Choice Descriptions in TUI]
 **Learning:** Inquirer allows multi-line strings for choice names. Appending descriptions on a new line with indentation and muted styling (using `theme.muted`) provides valuable context for complex choices without cluttering the main labels.
 **Action:** Always check for `option.description` in choice-based components and render them visually distinct from the main label to improve decision-making clarity.
+
+## 2025-12-20 - [Dynamic Hints and Live Feedback for Date Inputs]
+**Learning:** Moving static format hints (like 'YYYY-MM-DD') from the question text into a dynamic `transformer` property in TUI prompts creates a cleaner interface while enabling real-time feedback (e.g., success/warning status and localized date confirmation) as the user types, reducing cognitive load and input errors.
+**Action:** Use the `transformer` property for all pattern-based or constrained text inputs to provide dynamic guidance and immediate validation feedback.
