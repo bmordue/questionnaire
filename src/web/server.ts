@@ -13,6 +13,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 import { FileStorageService } from '../core/storage.js';
+import { BackendStorageService } from '../core/storage/backend-storage-service.js';
+import { S3StorageBackend, RetryableStorageBackend } from '../core/storage/backend.js';
+import type { S3BackendConfig } from '../core/storage/backend.js';
+import type { StorageService } from '../core/storage/types.js';
 import { safeValidateQuestionnaire } from '../core/schemas/questionnaire.js';
 import { ResponseStatus } from '../core/schemas/response.js';
 import type { Answer } from '../core/schemas/response.js';
@@ -38,18 +42,58 @@ const DATA_DIR =
   process.env['DATA_DIR'] ??
   (isVercel ? path.join(os.tmpdir(), 'questionnaire-data') : path.join(process.cwd(), 'data'));
 
-if (isVercel && process.env['DATA_DIR'] == null) {
-  // When running on Vercel without an explicit DATA_DIR, the filesystem is ephemeral.
-  // This deployment should be treated as demo-only; persisted data can be lost at any time.
-  // To use persistent storage, configure DATA_DIR to point to a durable volume or
-  // replace FileStorageService with an implementation backed by an external datastore.
-  console.warn(
-    '[questionnaire] Running on Vercel without DATA_DIR; using ephemeral filesystem storage. ' +
-      'Questionnaires and responses may be lost between deployments or cold starts.',
-  );
+// ── Storage layer ─────────────────────────────────────────────────────────────
+
+/**
+ * Build the storage service.
+ *
+ * When S3_BUCKET is set (expected for Vercel deployments) we use
+ * S3StorageBackend wrapped with retry logic.  Otherwise we fall back to the
+ * filesystem-based FileStorageService.
+ */
+function createStorage(): StorageService {
+  const s3Bucket = process.env['S3_BUCKET'];
+
+  if (s3Bucket) {
+    const s3Config: S3BackendConfig = {
+      bucket: s3Bucket,
+      keyPrefix: process.env['S3_KEY_PREFIX'] ?? '',
+      region: process.env['S3_REGION'] ?? process.env['AWS_REGION'] ?? 'us-east-1',
+      forcePathStyle: process.env['S3_FORCE_PATH_STYLE'] === 'true'
+    };
+    if (process.env['S3_ENDPOINT']) s3Config.endpoint = process.env['S3_ENDPOINT'];
+    if (process.env['AWS_ACCESS_KEY_ID']) s3Config.accessKeyId = process.env['AWS_ACCESS_KEY_ID'];
+    if (process.env['AWS_SECRET_ACCESS_KEY']) s3Config.secretAccessKey = process.env['AWS_SECRET_ACCESS_KEY'];
+
+    const backend = new S3StorageBackend(s3Config);
+
+    const retryable = new RetryableStorageBackend(backend, {
+      maxAttempts: 3,
+      baseDelayMs: 200,
+      maxDelayMs: 3000
+    });
+
+    console.log(
+      `[questionnaire] Using S3 storage backend (bucket: ${s3Bucket}, ` +
+        `region: ${process.env['S3_REGION'] ?? process.env['AWS_REGION'] ?? 'us-east-1'})`
+    );
+
+    return new BackendStorageService({ backend: retryable });
+  }
+
+  if (isVercel && !process.env['DATA_DIR']) {
+    // When running on Vercel without S3 or an explicit DATA_DIR, the filesystem
+    // is ephemeral. This deployment should be treated as demo-only.
+    console.warn(
+      '[questionnaire] Running on Vercel without S3_BUCKET; using ephemeral filesystem storage. ' +
+        'Questionnaires and responses may be lost between deployments or cold starts.',
+    );
+  }
+
+  return new FileStorageService({ dataDirectory: DATA_DIR });
 }
 
-const storage = new FileStorageService({ dataDirectory: DATA_DIR });
+const storage = createStorage();
 
 // ── Auth layer ────────────────────────────────────────────────────────────────
 
