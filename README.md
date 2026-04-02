@@ -167,6 +167,42 @@ Notes:
 - The `FileStorageService` exposes a small `createStorageService(config?)` helper which returns an initialized service — useful for tests and quick swaps.
 - The runner will call an optional `initialize()` method on the storage instance if present, so your implementation can perform async setup as needed.
 
+## Storage Configuration
+
+A quick reference for configuring storage in local development and for deployments (for example, on Vercel).
+
+- **Local filesystem (default)**
+  - Default data directory: `./data`.
+  - CLI override: pass `--data <path>` to the runner (or `-d`).
+  - When running the web server, set `DATA_DIR` to point at a different directory.
+  - The built-in `FileStorageService` will create `sessions/`, `responses/` and `questionnaires/` under the configured directory.
+
+- **S3 (recommended for serverless platforms like Vercel)**
+  - Environment variables used by the web server:
+    - `S3_BUCKET` (required) — S3 bucket name
+    - `S3_REGION` — AWS region (defaults to `us-east-1`)
+    - `S3_KEY_PREFIX` — optional key prefix to namespace objects
+    - `S3_ENDPOINT` — optional custom endpoint for S3-compatible services (MinIO, LocalStack)
+    - `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` — credentials (or rely on instance role/credentials provider)
+    - `S3_FORCE_PATH_STYLE` — set to `true` for MinIO/LocalStack path-style URLs
+  - On Vercel the example `vercel.json` references secrets by name; add secrets with:
+
+```bash
+vercel secrets add s3-bucket my-bucket-name
+vercel secrets add s3-region us-east-1
+vercel secrets add aws-access-key-id <your-access-key-id>
+vercel secrets add aws-secret-access-key <your-secret-access-key>
+```
+
+  - When `S3_BUCKET` is present the web server uses the S3-backed storage automatically; otherwise it falls back to the filesystem-based `FileStorageService`.
+
+Notes:
+  - The S3 backend stores objects under keys:
+    - `questionnaires/{id}.json`
+    - `responses/{sessionId}.json`
+    - `sessions/{sessionId}.json`
+  - Backups and rotating temporary files are handled by the filesystem-based stores; generic backends (S3) do not currently perform automatic backup rotation.
+
 ## Project Structure
 
 ```

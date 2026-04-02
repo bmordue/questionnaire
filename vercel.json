@@ -12,5 +12,11 @@
   "routes": [
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "src/web/server.ts" }
-  ]
+  ],
+  "env": {
+    "S3_BUCKET": "@s3-bucket",
+    "S3_REGION": "@s3-region",
+    "AWS_ACCESS_KEY_ID": "@aws-access-key-id",
+    "AWS_SECRET_ACCESS_KEY": "@aws-secret-access-key"
+  }
 }

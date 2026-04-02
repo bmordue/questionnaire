@@ -17,6 +17,14 @@ export {
   createStorageBackend
 } from './backend.js';
 
+export {
+  BackendStorageService
+} from './backend-storage-service.js';
+
+export type {
+  BackendStorageServiceConfig
+} from './backend-storage-service.js';
+
 export type {
   StorageBackend,
   HealthCheckResult,
