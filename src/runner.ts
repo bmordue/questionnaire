@@ -13,7 +13,7 @@ import { formatZodError } from './core/schemas/validation.js';
 import { ResponseStatus, type QuestionnaireResponse, type Questionnaire, type Question } from './core/schema.js';
 import { ConditionalLogicEngine } from './core/flow/conditional-logic.js';
 import type { ProgressInfo } from './core/types/flow-types.js';
-import { ComponentFactory, initializeComponents, MessageFormatter } from './ui/components/index.js';
+import { ComponentFactory, initializeComponents, MessageFormatter, theme } from './ui/components/index.js';
 
 export interface RunnerOptions {
   questionnairePath: string;
@@ -90,13 +90,21 @@ function findFirstPendingQuestion(
 
 function displayProgressHeader(progress: ProgressInfo): void {
   const totalLabel = `~${progress.totalQuestions}`;
-  const barLength = 10;
+  const barLength = 20;
   const filledBlocks = Math.round((progress.percentComplete / 100) * barLength);
-  const bar = `${'■'.repeat(filledBlocks)}${'░'.repeat(Math.max(0, barLength - filledBlocks))}`;
 
-  console.log('──────────────────────────────────────────');
-  console.log(` Question ${progress.currentQuestion} of ${totalLabel}  [${bar}]  ${progress.percentComplete}%`);
-  console.log('──────────────────────────────────────────');
+  const filledBar = theme.success('█'.repeat(filledBlocks));
+  const emptyBar = theme.muted('░'.repeat(Math.max(0, barLength - filledBlocks)));
+  const bar = `${filledBar}${emptyBar}`;
+
+  const headerText = ` Question ${theme.primary(progress.currentQuestion)} of ${theme.primary(totalLabel)}`;
+  const percentText = theme.info(`${progress.percentComplete}%`);
+
+  const separator = theme.muted('────────────────────────────────────────────');
+
+  console.log(separator);
+  console.log(`${headerText}  [${bar}]  ${percentText}`);
+  console.log(separator);
 }
 
 async function loadQuestionnaire(questionnairePath: string): Promise<Questionnaire> {

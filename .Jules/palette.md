@@ -17,3 +17,7 @@
 ## 2025-12-20 - [Dynamic Hints and Live Feedback for Date Inputs]
 **Learning:** Moving static format hints (like 'YYYY-MM-DD') from the question text into a dynamic `transformer` property in TUI prompts creates a cleaner interface while enabling real-time feedback (e.g., success/warning status and localized date confirmation) as the user types, reducing cognitive load and input errors.
 **Action:** Use the `transformer` property for all pattern-based or constrained text inputs to provide dynamic guidance and immediate validation feedback.
+
+## 2026-01-10 - [Polished CLI Progress Indicators]
+**Learning:** Enhancing CLI progress bars with solid Unicode block characters (█) and semantic color-coding (e.g., green for progress, gray for the empty track and separators) creates a significantly more modern and professional TUI experience than simple ASCII or hollow blocks.
+**Action:** Use standard theme colors and solid block characters for CLI progress indicators to improve visual quality and clarity.
