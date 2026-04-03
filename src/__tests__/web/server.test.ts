@@ -639,3 +639,77 @@ describe('POST /api/sessions/:sessionId/complete', () => {
     expect(filterRes.body[0]).toMatchObject({ questionnaireId: q.id });
   });
 });
+
+// ── Full run → view response flow ─────────────────────────────────────────────
+
+describe('Full run-questionnaire → view-response flow', () => {
+  it('completed response is findable by sessionId in the response list and via direct fetch', async () => {
+    // 1. Create a two-question questionnaire
+    const q = makeQuestionnaire({
+      questions: [
+        { id: 'q1', type: 'text', text: 'What is your name?', required: false },
+        { id: 'q2', type: 'text', text: 'What is your age?', required: false },
+      ],
+    });
+    await request(app)
+      .post('/api/questionnaires')
+      .send(q)
+      .set('Content-Type', 'application/json');
+
+    // 2. Start session
+    const sessionRes = await request(app)
+      .post('/api/sessions')
+      .send({ questionnaireId: q.id })
+      .set('Content-Type', 'application/json');
+    expect(sessionRes.status).toBe(201);
+    const { sessionId } = sessionRes.body as { sessionId: string };
+
+    // 3. Answer first question
+    const ans1 = await request(app)
+      .post(`/api/sessions/${sessionId}/answer`)
+      .send({ questionId: 'q1', value: 'Alice' })
+      .set('Content-Type', 'application/json');
+    expect(ans1.status).toBe(200);
+    expect(ans1.body.isComplete).toBe(false);
+
+    // 4. Answer second (final) question — session becomes complete
+    const ans2 = await request(app)
+      .post(`/api/sessions/${sessionId}/answer`)
+      .send({ questionId: 'q2', value: '30' })
+      .set('Content-Type', 'application/json');
+    expect(ans2.status).toBe(200);
+    expect(ans2.body.isComplete).toBe(true);
+
+    // 5. Complete the session (as the runner UI does)
+    const completeRes = await request(app)
+      .post(`/api/sessions/${sessionId}/complete`)
+      .send({})
+      .set('Content-Type', 'application/json');
+    expect(completeRes.status).toBe(200);
+    expect(completeRes.body).toMatchObject({ success: true, sessionId });
+
+    // 6. Fetch all responses — the UI (responses.html) does this to build the list
+    //    and then searches for r.sessionId === sessionId
+    const listRes = await request(app).get('/api/responses');
+    expect(listRes.status).toBe(200);
+    const found = (listRes.body as Array<{ sessionId: string; questionnaireId: string; status: string; answers: unknown[] }>)
+      .find(r => r.sessionId === sessionId);
+    expect(found).toBeDefined();
+    expect(found).toMatchObject({
+      questionnaireId: q.id,
+      status: 'completed',
+      sessionId,
+    });
+    expect(found!.answers).toHaveLength(2);
+
+    // 7. Fetch the response directly by sessionId (as GET /api/responses/:id does)
+    const directRes = await request(app).get(`/api/responses/${sessionId}`);
+    expect(directRes.status).toBe(200);
+    expect(directRes.body).toMatchObject({
+      questionnaireId: q.id,
+      status: 'completed',
+      sessionId,
+    });
+    expect(directRes.body.answers).toHaveLength(2);
+  });
+});
