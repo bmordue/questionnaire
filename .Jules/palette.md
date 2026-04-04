@@ -21,3 +21,7 @@
 ## 2026-01-10 - [Polished CLI Progress Indicators]
 **Learning:** Enhancing CLI progress bars with solid Unicode block characters (█) and semantic color-coding (e.g., green for progress, gray for the empty track and separators) creates a significantly more modern and professional TUI experience than simple ASCII or hollow blocks.
 **Action:** Use standard theme colors and solid block characters for CLI progress indicators to improve visual quality and clarity.
+
+## 2026-02-15 - [Required Indicator Placement in TUI]
+**Learning:** In terminal-based questionnaires, placing the 'required' indicator (e.g., a red asterisk) immediately after the question text (e.g., "Name *") instead of after the description (e.g., "Name\nEnter your name *") maintains a clearer visual hierarchy and ensures the requirement is immediately obvious regardless of description length.
+**Action:** In question formatting utilities, always append the required indicator before the optional multi-line description to keep it visually tied to the core question.

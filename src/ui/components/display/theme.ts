@@ -22,14 +22,14 @@ export class MessageFormatter {
   static formatQuestion(text: string, description?: string, required?: boolean): string {
     let message = theme.primary(text);
     
-    if (description) {
-      message += `\n${theme.muted(description)}`;
-    }
-    
     if (required) {
       message += theme.error(' *');
     }
     
+    if (description) {
+      message += `\n${theme.muted(description)}`;
+    }
+
     return message;
   }
 
