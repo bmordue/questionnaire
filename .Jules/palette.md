@@ -25,3 +25,7 @@
 ## 2026-02-15 - [Required Indicator Placement in TUI]
 **Learning:** In terminal-based questionnaires, placing the 'required' indicator (e.g., a red asterisk) immediately after the question text (e.g., "Name *") instead of after the description (e.g., "Name\nEnter your name *") maintains a clearer visual hierarchy and ensures the requirement is immediately obvious regardless of description length.
 **Action:** In question formatting utilities, always append the required indicator before the optional multi-line description to keep it visually tied to the core question.
+
+## 2026-04-05 - [Option Descriptions and Alignment in Web Runner]
+**Learning:** In choice-based web UI components with multi-line content (like labels with descriptions), using `align-items: flex-start` instead of `center` ensures that checkboxes or radio buttons remain vertically aligned with the first line of text, improving visual consistency and accessibility.
+**Action:** When rendering choice options with descriptions in web interfaces, wrap the text content in a column-flex container and align the input to the top of the container.
