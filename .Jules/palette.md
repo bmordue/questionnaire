@@ -25,3 +25,7 @@
 ## 2026-02-15 - [Required Indicator Placement in TUI]
 **Learning:** In terminal-based questionnaires, placing the 'required' indicator (e.g., a red asterisk) immediately after the question text (e.g., "Name *") instead of after the description (e.g., "Name\nEnter your name *") maintains a clearer visual hierarchy and ensures the requirement is immediately obvious regardless of description length.
 **Action:** In question formatting utilities, always append the required indicator before the optional multi-line description to keep it visually tied to the core question.
+
+## 2026-03-10 - [Rating Accessibility and Visual Polish in Web Runner]
+**Learning:** In web interfaces, using `display: none` on radio buttons completely removes them from the tab order, breaking keyboard accessibility. A "visually hidden" pattern (absolute positioning with clipping) keeps the inputs focusable, and pairing them with `:focus-visible` styles ensures a clear, themed indicator for keyboard users.
+**Action:** Always use the visually hidden pattern for custom input controls to maintain accessibility, and ensure all interactive elements have explicit focus states.

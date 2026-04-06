@@ -189,27 +189,59 @@ textarea { resize: vertical; min-height: 80px; }
   align-items: center;
   gap: 0.25rem;
   cursor: pointer;
+  position: relative;
 }
 
-.rating-group input[type="radio"] { display: none; }
+/* Visually hidden but accessible radio buttons */
+.rating-group input[type="radio"],
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
 
 .rating-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 0.5rem;
+  border-radius: 22px;
   border: 2px solid var(--border);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   font-weight: 600;
   font-size: 0.9rem;
-  transition: border-color .15s, background .15s, color .15s;
+  transition: border-color .15s, background .15s, color .15s, box-shadow .15s;
+  background: var(--surface);
+}
+
+.rating-stars {
+  font-size: 0.65rem;
+  color: var(--muted);
+  margin-top: -2px;
 }
 
 .rating-group input[type="radio"]:checked + .rating-btn {
   border-color: var(--primary);
   background: var(--primary);
   color: #fff;
+}
+
+.rating-group input[type="radio"]:checked + .rating-btn .rating-stars {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Focus visible styles for keyboard accessibility */
+.rating-group input[type="radio"]:focus-visible + .rating-btn {
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3);
+  border-color: var(--primary);
 }
 
 /* ── Progress Bar ─────────────────────────────────────────────────────────── */

@@ -175,10 +175,14 @@ function renderQuestion(q, total, idx) {
       const max = q.validation?.max ?? 5;
       const buttons = [];
       for (let v = min; v <= max; v++) {
+        const stars = '★'.repeat(v);
         buttons.push(`
-          <label>
+          <label title="${v} ${v === 1 ? 'star' : 'stars'}">
             <input type="radio" name="ans" value="${v}" />
-            <div class="rating-btn">${v}</div>
+            <div class="rating-btn">
+              <span class="rating-val">${v}</span>
+              <span class="rating-stars" aria-hidden="true">${stars}</span>
+            </div>
           </label>`);
       }
       answerEl.innerHTML = `<div class="rating-group">${buttons.join('')}</div>`;
