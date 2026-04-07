@@ -171,18 +171,18 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ── Questionnaire Routes ──────────────────────────────────────────────────────
 
 /** List all questionnaires */
-app.get('/api/questionnaires', async (_req, res) => {
+app.get('/api/questionnaires', async (_req, res, next) => {
   try {
     const list = await storage.listQuestionnaires();
     res.json(list);
   } catch (err) {
     console.error('Error listing questionnaires:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    next(err);
   }
 });
 
 /** Create a new questionnaire */
-app.post('/api/questionnaires', async (req, res) => {
+app.post('/api/questionnaires', async (req, res, next) => {
   try {
     const result = safeValidateQuestionnaire(req.body);
     if (!result.success) {
@@ -193,7 +193,7 @@ app.post('/api/questionnaires', async (req, res) => {
     res.status(201).json(result.data);
   } catch (err) {
     console.error('Error creating questionnaire:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    next(err);
   }
 });
 
@@ -208,7 +208,7 @@ app.get('/api/questionnaires/:id', async (req, res) => {
 });
 
 /** Update an existing questionnaire */
-app.put('/api/questionnaires/:id', async (req, res) => {
+app.put('/api/questionnaires/:id', async (req, res, next) => {
   try {
     const result = safeValidateQuestionnaire(req.body);
     if (!result.success) {
@@ -231,7 +231,8 @@ app.put('/api/questionnaires/:id', async (req, res) => {
     await storage.saveQuestionnaire(result.data);
     res.json(result.data);
   } catch (err) {
-    res.status(500).json({ error: String(err) });
+    console.error('Error updating questionnaire:', err);
+    next(err);
   }
 });
 
@@ -248,14 +249,15 @@ app.delete('/api/questionnaires/:id', async (req, res) => {
 // ── Response Routes ───────────────────────────────────────────────────────────
 
 /** List all responses (optionally filtered by questionnaireId) */
-app.get('/api/responses', async (req, res) => {
+app.get('/api/responses', async (req, res, next) => {
   try {
     const questionnaireId =
       typeof req.query['questionnaireId'] === 'string' ? req.query['questionnaireId'] : undefined;
     const responses = await storage.listResponses(questionnaireId);
     res.json(responses);
   } catch (err) {
-    res.status(500).json({ error: String(err) });
+    console.error('Error listing responses:', err);
+    next(err);
   }
 });
 
@@ -272,7 +274,7 @@ app.get('/api/responses/:id', async (req, res) => {
 // ── Session Routes ────────────────────────────────────────────────────────────
 
 /** Start a new questionnaire session */
-app.post('/api/sessions', async (req, res) => {
+app.post('/api/sessions', async (req, res, next) => {
   try {
     const body = req.body as { questionnaireId?: string };
     if (!body.questionnaireId) {
@@ -285,7 +287,8 @@ app.post('/api/sessions', async (req, res) => {
     if (isNotFoundError(err)) {
       res.status(404).json({ error: 'Questionnaire not found' });
     } else {
-      res.status(500).json({ error: String(err) });
+      console.error('Error creating session:', err);
+      next(err);
     }
   }
 });
@@ -320,7 +323,7 @@ app.get('/api/sessions/:sessionId', async (req, res) => {
 });
 
 /** Submit an answer and advance to the next question */
-app.post('/api/sessions/:sessionId/answer', async (req, res) => {
+app.post('/api/sessions/:sessionId/answer', async (req, res, next) => {
   try {
     const sessionId = req.params['sessionId'] ?? '';
     const session = await storage.loadSession(sessionId);
@@ -411,13 +414,14 @@ app.post('/api/sessions/:sessionId/answer', async (req, res) => {
     if (isNotFoundError(err)) {
       res.status(404).json({ error: 'Session not found' });
     } else {
-      res.status(500).json({ error: String(err) });
+      console.error('Error saving answer:', err);
+      next(err);
     }
   }
 });
 
 /** Mark a session as complete */
-app.post('/api/sessions/:sessionId/complete', async (req, res) => {
+app.post('/api/sessions/:sessionId/complete', async (req, res, next) => {
   try {
     const sessionId = req.params['sessionId'] ?? '';
     const session = await storage.loadSession(sessionId);
@@ -441,7 +445,8 @@ app.post('/api/sessions/:sessionId/complete', async (req, res) => {
     if (isNotFoundError(err)) {
       res.status(404).json({ error: 'Session not found' });
     } else {
-      res.status(500).json({ error: String(err) });
+      console.error('Error completing session:', err);
+      next(err);
     }
   }
 });
