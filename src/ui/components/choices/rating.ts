@@ -38,9 +38,9 @@ export class RatingComponent extends BaseQuestionComponent<number> {
    * Get rating label for a value
    */
   private getRatingLabel(value: number, min: number, max: number): string {
-    if (value === min) return '(Poor)';
-    if (value === max) return '(Excellent)';
-    if (value === Math.floor((min + max) / 2)) return '(Average)';
+    if (value === min) return theme.error('(Poor)');
+    if (value === max) return theme.success('(Excellent)');
+    if (value === Math.floor((min + max) / 2)) return theme.muted('(Average)');
     return '';
   }
 
@@ -54,10 +54,12 @@ export class RatingComponent extends BaseQuestionComponent<number> {
 
     const choices = [];
     for (let i = min; i <= max; i++) {
-      const stars = '★'.repeat(i) + '☆'.repeat(max - i);
+      const filledStars = theme.warning('★'.repeat(i));
+      const emptyStars = theme.muted('☆'.repeat(max - i));
       const label = this.getRatingLabel(i, min, max);
+
       choices.push({
-        name: `${theme.warning(stars)} ${i}${label ? ` ${label}` : ''}`,
+        name: `${filledStars}${emptyStars} ${i}${label ? ` ${label}` : ''}`,
         value: i
       });
     }
@@ -70,7 +72,8 @@ export class RatingComponent extends BaseQuestionComponent<number> {
         question.description,
         question.required
       ),
-      choices
+      choices,
+      pageSize: 10
     };
   }
 }

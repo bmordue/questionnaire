@@ -29,3 +29,7 @@
 ## 2026-04-05 - [Option Descriptions and Alignment in Web Runner]
 **Learning:** In choice-based web UI components with multi-line content (like labels with descriptions), using `align-items: flex-start` instead of `center` ensures that checkboxes or radio buttons remain vertically aligned with the first line of text, improving visual consistency and accessibility.
 **Action:** When rendering choice options with descriptions in web interfaces, wrap the text content in a column-flex container and align the input to the top of the container.
+
+## 2026-05-12 - [Semantic Coloring and Visual Contrast for Rating Scales]
+**Learning:** In terminal-based rating components, distinguishing between filled (★) and unfilled (☆) stars using contrasting theme colors (e.g., `theme.warning` vs `theme.muted`) provides an immediately intuitive visual cue. Adding semantically colored qualitative labels (e.g., Red for "Poor", Green for "Excellent") further enhances clarity and reduces cognitive load during decision making.
+**Action:** Use thematic color coding for both symbolic (stars) and qualitative (labels) elements in rating scales to create a high-contrast and intuitive experience.
