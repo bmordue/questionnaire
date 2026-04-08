@@ -209,7 +209,11 @@ textarea { resize: vertical; min-height: 80px; }
   cursor: pointer;
 }
 
-.rating-group input[type="radio"] { display: none; }
+.rating-group input[type="radio"]:focus-visible + .rating-btn {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37,99,235,.25);
+  border-color: var(--primary);
+}
 
 .rating-btn {
   width: 40px;
@@ -334,6 +338,18 @@ textarea { resize: vertical; min-height: 80px; }
 .badge-abandoned  { background: #f3f4f6; color: #6b7280; }
 
 /* ── Misc ─────────────────────────────────────────────────────────────────── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
 .hidden  { display: none !important; }
 .mt-1    { margin-top: 0.5rem; }
 .mt-2    { margin-top: 1rem; }

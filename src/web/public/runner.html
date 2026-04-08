@@ -189,8 +189,8 @@ function renderQuestion(q, total, idx) {
       for (let v = min; v <= max; v++) {
         buttons.push(`
           <label>
-            <input type="radio" name="ans" value="${v}" />
-            <div class="rating-btn">${v}</div>
+            <input type="radio" name="ans" value="${v}" class="sr-only" />
+            <div class="rating-btn">★ ${v}</div>
           </label>`);
       }
       answerEl.innerHTML = `<div class="rating-group">${buttons.join('')}</div>`;

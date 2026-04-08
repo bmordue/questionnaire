@@ -33,3 +33,7 @@
 ## 2026-05-12 - [Semantic Coloring and Visual Contrast for Rating Scales]
 **Learning:** In terminal-based rating components, distinguishing between filled (★) and unfilled (☆) stars using contrasting theme colors (e.g., `theme.warning` vs `theme.muted`) provides an immediately intuitive visual cue. Adding semantically colored qualitative labels (e.g., Red for "Poor", Green for "Excellent") further enhances clarity and reduces cognitive load during decision making.
 **Action:** Use thematic color coding for both symbolic (stars) and qualitative (labels) elements in rating scales to create a high-contrast and intuitive experience.
+
+## 2026-06-18 - [Accessible Rating Components and Visual Delight in Web]
+**Learning:** In web-based rating components, using a visually hidden pattern (e.g., `.sr-only`) for radio inputs instead of `display: none` ensures they remain accessible to keyboard navigation and screen readers. Adding visual delights like star icons (★) and clear `:focus-visible` indicators significantly improves the interactive experience and provides essential feedback for all users.
+**Action:** Always use `.sr-only` for inputs that need to be hidden but functional, and ensure all custom interactive elements have distinct focus states for keyboard accessibility.
