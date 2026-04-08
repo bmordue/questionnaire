@@ -289,57 +289,6 @@ Supported operators: `equals`, `notEquals`, `greaterThan`, `lessThan`, `greaterT
 
 See [fixtures/README.md](fixtures/README.md) for detailed documentation.
 
-## Task Management with tssk
-
-This project uses [tssk](https://github.com/bmordue/tssk) for task management and development workflow tracking.
-
-### Key Commands
-
-```bash
-# View all tasks
-tssk list
-
-# View tasks by status
-tssk list --status todo
-tssk list --status in-progress
-tssk list --status done
-
-# View task details
-tssk show <id>
-
-# Create a new task
-tssk add --title "Task title" --detail "Detailed description"
-
-# Update task status
-tssk status <id> todo
-tssk status <id> in-progress
-tssk status <id> done
-tssk status <id> blocked
-
-# Manage dependencies
-tssk deps add <id> --deps <dep-id>
-tssk deps remove <id> --deps <dep-id>
-```
-
-### Workflow
-
-Tasks follow a simple workflow: `todo` → `in-progress` → `done` (with `blocked` for impediments).
-
-1. Find work: `tssk list --status todo`
-2. Claim it: `tssk status <id> in-progress`
-3. Complete it: `tssk status <id> done`
-
-Task details are stored in `.tssk/docs/` as markdown files. When adding complex tasks, use the `--detail` flag to provide comprehensive context.
-
-### For AI Coding Agents
-
-When working on this project with AI coding assistants (Claude Code, Gemini CLI, etc.):
-
-1. Use `tssk list` to understand current priorities
-2. Create tasks for planned work before implementing
-3. Mark tasks as done when work is complete and tested
-4. Keep task titles concise and details comprehensive
-
 ## License
 
 ISC
