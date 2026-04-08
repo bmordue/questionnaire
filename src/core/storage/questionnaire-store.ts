@@ -36,6 +36,7 @@ export class QuestionnaireStore {
    * Get the file path for a questionnaire
    */
   private getFilePath(id: string): string {
+    FileOperations.validateId(id);
     return path.join(this.questionnairesDir, `${id}.json`);
   }
 

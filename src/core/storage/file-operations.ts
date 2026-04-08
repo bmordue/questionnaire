@@ -286,4 +286,31 @@ export class FileOperations {
       );
     }
   }
+
+  /**
+   * Validate an ID to ensure it's safe for use in a file path.
+   * Prevents path traversal by restricting allowed characters.
+   * @param id - ID to validate
+   * @throws FileOperationError if the ID is invalid
+   */
+  static validateId(id: string): void {
+    if (!id || typeof id !== 'string') {
+      throw new FileOperationError(
+        'Invalid ID: must be a non-empty string',
+        'validateId',
+        id
+      );
+    }
+
+    // Only alphanumeric characters, hyphens, and underscores are allowed.
+    // This explicitly prevents ".." and other path traversal sequences.
+    const idRegex = /^[a-zA-Z0-9\-_]+$/;
+    if (!idRegex.test(id)) {
+      throw new FileOperationError(
+        `Invalid ID format: ${id}. Only alphanumeric characters, hyphens, and underscores are allowed.`,
+        'validateId',
+        id
+      );
+    }
+  }
 }

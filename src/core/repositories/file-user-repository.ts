@@ -53,6 +53,7 @@ export class FileUserRepository {
   }
 
   private filePath(userId: string): string {
+    FileOperations.validateId(userId);
     return path.join(this.usersDir, `${userId}.json`);
   }
 
