@@ -1,0 +1,6 @@
+{
+  "backend": "local",
+  "tasks_file": ".tssk/tasks.jsonl",
+  "docs_dir": ".tssk/docs",
+  "display_hash_length": 9
+}
