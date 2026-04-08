@@ -34,6 +34,7 @@ export class SessionStore {
    * Get the file path for a session
    */
   private getFilePath(sessionId: string): string {
+    FileOperations.validateId(sessionId);
     return path.join(this.sessionsDir, `${sessionId}.json`);
   }
 

@@ -36,6 +36,7 @@ export class ResponseStore {
    * Get the file path for a response
    */
   private getFilePath(sessionId: string): string {
+    FileOperations.validateId(sessionId);
     return path.join(this.responsesDir, `${sessionId}.json`);
   }
 
