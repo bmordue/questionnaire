@@ -164,6 +164,15 @@ if (NODE_ENV === 'development') {
 }
 
 app.use(express.json());
+
+// Security headers middleware to prevent clickjacking, MIME-type sniffing, and information leakage
+app.use((_req, res, next) => {
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
+
 // Parse cookies manually (no external cookie-parser needed; loadUser handles it)
 app.use(loadUser(authService));
 app.use(express.static(path.join(__dirname, 'public')));
