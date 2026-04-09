@@ -118,7 +118,7 @@ document.getElementById('uploadInput').addEventListener('change', async (event) 
         <a href="runner.html?id=${encodeURIComponent(q.id)}" class="btn btn-primary">▶ Run</a>
         <a href="builder.html?id=${encodeURIComponent(q.id)}" class="btn btn-outline">✏ Edit</a>
         <a href="responses.html?questionnaireId=${encodeURIComponent(q.id)}" class="btn btn-ghost">📄 Responses</a>
-        <button class="btn btn-danger btn-delete" data-id="${esc(q.id)}">🗑</button>
+        <button class="btn btn-danger btn-delete" data-id="${esc(q.id)}" aria-label="Delete questionnaire">🗑</button>
       </div>
     </div>
   `).join('');

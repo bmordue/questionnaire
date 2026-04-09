@@ -79,7 +79,7 @@
       <label style="font-weight:400;display:flex;align-items:center;gap:0.4rem;font-size:0.85rem;">
         <input type="checkbox" class="q-required" /> Required
       </label>
-      <button class="btn btn-danger q-remove" style="padding:0.3rem 0.6rem">✕</button>
+      <button class="btn btn-danger q-remove" style="padding:0.3rem 0.6rem" aria-label="Remove question">✕</button>
     </div>
     <div class="form-group mt-1">
       <label>Question text <span class="required-star">*</span></label>
@@ -160,6 +160,7 @@ function renderQuestions() {
     item.querySelector('.q-text').addEventListener('input', e => { questions[idx].text = e.target.value; });
     item.querySelector('.q-desc').addEventListener('input', e => { questions[idx].desc = e.target.value; });
     item.querySelector('.q-remove').addEventListener('click', () => {
+      if (!confirm('Remove this question?')) return;
       questions.splice(idx, 1);
       renderQuestions();
     });
@@ -199,7 +200,7 @@ function renderOptions(item, q) {
     row.className = 'option-item';
     row.innerHTML = `
       <input type="text" value="${esc(opt.label)}" placeholder="Option ${oi + 1}" />
-      <button class="btn btn-ghost" style="padding:0.3rem 0.5rem">✕</button>
+      <button class="btn btn-ghost" style="padding:0.3rem 0.5rem" aria-label="Remove option">✕</button>
     `;
     row.querySelector('input').addEventListener('input', e => {
       q.options[oi].label = e.target.value;
