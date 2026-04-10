@@ -132,6 +132,9 @@ function isNotFoundError(err: unknown): boolean {
 
 export const app: express.Express = express();
 
+// Disable X-Powered-By header for security (prevents technology fingerprinting)
+app.disable('x-powered-by');
+
 // CORS configuration: permissive in development, restricted/disabled otherwise
 const NODE_ENV = process.env['NODE_ENV'] ?? 'development';
 const CORS_ORIGINS = process.env['CORS_ORIGINS'];
