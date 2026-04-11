@@ -37,3 +37,7 @@
 ## 2026-06-18 - [Accessible Rating Components and Visual Delight in Web]
 **Learning:** In web-based rating components, using a visually hidden pattern (e.g., `.sr-only`) for radio inputs instead of `display: none` ensures they remain accessible to keyboard navigation and screen readers. Adding visual delights like star icons (★) and clear `:focus-visible` indicators significantly improves the interactive experience and provides essential feedback for all users.
 **Action:** Always use `.sr-only` for inputs that need to be hidden but functional, and ensure all custom interactive elements have distinct focus states for keyboard accessibility.
+
+## 2026-07-05 - [Live Validation Feedback in Web Runner]
+**Learning:** Providing real-time, non-intrusive feedback (like character counts and range hints) in web forms as the user types significantly improves the user experience by clarifying constraints before a submission attempt is made. This reduces frustration from post-submission validation errors.
+**Action:** Implement a dedicated feedback container in form interfaces that updates dynamically via `input` events to show field-specific constraints and current status.

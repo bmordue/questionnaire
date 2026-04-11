@@ -38,6 +38,7 @@
       <div class="question-text" id="questionText"></div>
       <div class="question-desc" id="questionDesc"></div>
       <div id="answerArea"></div>
+      <div id="feedback" class="mt-1" style="font-size:0.8rem;color:var(--muted);text-align:right;min-height:1.2em"></div>
     </div>
 
     <div style="display:flex;gap:0.75rem;justify-content:flex-end">
@@ -142,10 +143,10 @@ function renderQuestion(q, total, idx) {
 
   switch (q.type) {
     case 'text':
-      answerEl.innerHTML = `<textarea id="ans" rows="3" placeholder="Type your answer…"></textarea>`;
+      answerEl.innerHTML = `<textarea id="ans" rows="3" placeholder="Type your answer…" ${q.validation?.maxLength !== undefined ? `maxlength="${q.validation.maxLength}"` : ''}></textarea>`;
       break;
     case 'email':
-      answerEl.innerHTML = `<input id="ans" type="email" placeholder="name@example.com" />`;
+      answerEl.innerHTML = `<input id="ans" type="email" placeholder="name@example.com" ${q.validation?.maxLength !== undefined ? `maxlength="${q.validation.maxLength}"` : ''} />`;
       break;
     case 'number':
       answerEl.innerHTML = `<input id="ans" type="number" ${q.validation?.min !== undefined ? `min="${q.validation.min}"` : ''} ${q.validation?.max !== undefined ? `max="${q.validation.max}"` : ''} />`;
@@ -198,6 +199,42 @@ function renderQuestion(q, total, idx) {
     }
     default:
       answerEl.innerHTML = `<input id="ans" type="text" />`;
+  }
+
+  // ── Live feedback ──────────────────────────────────────────────────────────
+  const feedbackEl = document.getElementById('feedback');
+  feedbackEl.textContent = '';
+
+  const ansInput = document.getElementById('ans');
+  if (ansInput) {
+    const updateFeedback = () => {
+      const val = ansInput.value;
+      if ((q.type === 'text' || q.type === 'email') && q.validation?.maxLength) {
+        feedbackEl.textContent = `[${val.length} / ${q.validation.maxLength}]`;
+        feedbackEl.style.color = val.length >= q.validation.maxLength ? 'var(--danger)' : 'var(--muted)';
+      } else if (q.type === 'number' && (q.validation?.min !== undefined || q.validation?.max !== undefined)) {
+        if (!val) {
+          const min = q.validation.min !== undefined ? q.validation.min : '-∞';
+          const max = q.validation.max !== undefined ? q.validation.max : '+∞';
+          feedbackEl.textContent = `Range: ${min} to ${max}`;
+        } else {
+          const n = Number(val);
+          const tooSmall = q.validation.min !== undefined && n < q.validation.min;
+          const tooLarge = q.validation.max !== undefined && n > q.validation.max;
+          if (tooSmall || tooLarge) {
+            feedbackEl.textContent = tooSmall ? `Must be ≥ ${q.validation.min}` : `Must be ≤ ${q.validation.max}`;
+            feedbackEl.style.color = 'var(--danger)';
+          } else {
+            feedbackEl.textContent = '✓ Valid';
+            feedbackEl.style.color = 'var(--success)';
+          }
+        }
+      }
+    };
+
+    ansInput.addEventListener('input', updateFeedback);
+    // Initial feedback for numbers
+    if (q.type === 'number') updateFeedback();
   }
 }
 
