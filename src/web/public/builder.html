@@ -212,10 +212,11 @@ function renderOptions(item, q) {
     });
     optList.appendChild(row);
   });
-  item.querySelector('.add-option-btn').addEventListener('click', () => {
+  item.querySelector('.add-option-btn').onclick = () => {
     q.options.push({ value: '', label: '' });
     renderOptions(item, q);
-  });
+    optList.lastElementChild?.querySelector('input')?.focus();
+  };
 }
 
 // ── Load existing questionnaire for editing ──────────────────────────────────
@@ -249,8 +250,12 @@ if (editId) {
 document.getElementById('addQBtn').addEventListener('click', () => {
   questions.push({ id: genId(), type: 'text', text: '', required: false });
   renderQuestions();
-  // Scroll to the new question
-  document.getElementById('questionList').lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // Scroll to and focus the new question
+  const lastQ = document.getElementById('questionList').lastElementChild;
+  if (lastQ) {
+    lastQ.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    lastQ.querySelector('.q-text')?.focus();
+  }
 });
 
 // ── Save ──────────────────────────────────────────────────────────────────────

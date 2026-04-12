@@ -41,3 +41,7 @@
 ## 2026-07-05 - [Live Validation Feedback in Web Runner]
 **Learning:** Providing real-time, non-intrusive feedback (like character counts and range hints) in web forms as the user types significantly improves the user experience by clarifying constraints before a submission attempt is made. This reduces frustration from post-submission validation errors.
 **Action:** Implement a dedicated feedback container in form interfaces that updates dynamically via `input` events to show field-specific constraints and current status.
+
+## 2026-08-12 - [Input Auto-focus and Event Listener Management in Builder]
+**Learning:** Automatically focusing new primary inputs (like question text or option labels) as they are added to a dynamic builder interface significantly reduces user friction and speeds up the creation process. Additionally, using `.onclick` instead of `addEventListener` for handlers that are re-registered during re-renders prevents memory leaks and unintended behavior from listener accumulation.
+**Action:** Implement auto-focus for all newly added interactive elements in complex builders and prefer idempotent event registration patterns when re-rendering dynamic lists.
