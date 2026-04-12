@@ -194,7 +194,7 @@ app.get('/api/questionnaires', async (_req, res, next) => {
 });
 
 /** Create a new questionnaire */
-app.post('/api/questionnaires', async (req, res, next) => {
+app.post('/api/questionnaires', requireAuth, async (req, res, next) => {
   try {
     const result = safeValidateQuestionnaire(req.body);
     if (!result.success) {
@@ -220,7 +220,7 @@ app.get('/api/questionnaires/:id', async (req, res) => {
 });
 
 /** Update an existing questionnaire */
-app.put('/api/questionnaires/:id', async (req, res, next) => {
+app.put('/api/questionnaires/:id', requireAuth, async (req, res, next) => {
   try {
     const result = safeValidateQuestionnaire(req.body);
     if (!result.success) {
@@ -249,7 +249,7 @@ app.put('/api/questionnaires/:id', async (req, res, next) => {
 });
 
 /** Delete a questionnaire */
-app.delete('/api/questionnaires/:id', async (req, res) => {
+app.delete('/api/questionnaires/:id', requireAuth, async (req, res) => {
   try {
     await storage.deleteQuestionnaire(req.params['id'] ?? '');
     res.status(204).send();
@@ -261,7 +261,7 @@ app.delete('/api/questionnaires/:id', async (req, res) => {
 // ── Response Routes ───────────────────────────────────────────────────────────
 
 /** List all responses (optionally filtered by questionnaireId) */
-app.get('/api/responses', async (req, res, next) => {
+app.get('/api/responses', requireAuth, async (req, res, next) => {
   try {
     const questionnaireId =
       typeof req.query['questionnaireId'] === 'string' ? req.query['questionnaireId'] : undefined;
@@ -468,10 +468,11 @@ app.post('/api/sessions/:sessionId/complete', async (req, res, next) => {
 /**
  * Rate limiter for sensitive auth endpoints (login, register, change-password).
  * Limits each IP to 10 requests per 15-minute window to mitigate brute-force attacks.
+ * In test environments, the limit is increased to avoid failing high-volume E2E tests.
  */
 const authRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10,
+  max: NODE_ENV === 'test' ? 1000 : 10,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests, please try again later.' },

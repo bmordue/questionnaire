@@ -5,10 +5,21 @@
  * Covers questionnaire CRUD operations to prevent regression of HTTP 500 errors.
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
+import { jest, describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
 import { promises as fs } from 'fs';
 import path from 'path';
 import request from 'supertest';
+
+// Mock authentication middleware to allow existing tests to pass without actual auth
+jest.unstable_mockModule('../../web/middleware/auth.js', () => ({
+  loadUser: () => (_req: any, _res: any, next: any) => next(),
+  requireAuth: (_req: any, _res: any, next: any) => next(),
+  requireAdmin: (_req: any, _res: any, next: any) => next(),
+  setAuthCookie: jest.fn(),
+  clearAuthCookie: jest.fn(),
+  AUTH_COOKIE_NAME: 'qsession',
+  extractToken: () => null,
+}));
 
 // DATA_DIR must be set before importing the server so FileStorageService uses our test directory
 const TEST_DATA_DIR = path.join(process.cwd(), 'test-data', 'server-api');
