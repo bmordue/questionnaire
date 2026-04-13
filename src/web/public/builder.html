@@ -260,6 +260,7 @@ document.getElementById('addQBtn').addEventListener('click', () => {
 
 // ── Save ──────────────────────────────────────────────────────────────────────
 document.getElementById('saveBtn').addEventListener('click', async () => {
+  const saveBtn = document.getElementById('saveBtn');
   const alertEl = document.getElementById('alert');
   hideAlert(alertEl);
 
@@ -323,6 +324,10 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
     config: { allowBack: true, showProgress: true, shuffleQuestions: false, allowSkip: false }
   };
 
+  saveBtn.disabled = true;
+  const originalText = saveBtn.textContent;
+  saveBtn.textContent = 'Saving...';
+
   try {
     const method = editId ? 'PUT' : 'POST';
     const url    = editId
@@ -333,6 +338,8 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
     setTimeout(() => { location.href = 'index.html'; }, 1000);
   } catch (err) {
     showAlert(alertEl, 'Save failed: ' + err.message);
+    saveBtn.disabled = false;
+    saveBtn.textContent = originalText;
   }
 });
 </script>

@@ -45,3 +45,7 @@
 ## 2026-08-12 - [Input Auto-focus and Event Listener Management in Builder]
 **Learning:** Automatically focusing new primary inputs (like question text or option labels) as they are added to a dynamic builder interface significantly reduces user friction and speeds up the creation process. Additionally, using `.onclick` instead of `addEventListener` for handlers that are re-registered during re-renders prevents memory leaks and unintended behavior from listener accumulation.
 **Action:** Implement auto-focus for all newly added interactive elements in complex builders and prefer idempotent event registration patterns when re-rendering dynamic lists.
+
+## 2026-04-13 - [Loading State for Action Buttons]
+**Learning:** Providing immediate visual feedback for asynchronous actions (like saving or submitting) by disabling buttons and updating their text (e.g., 'Saving...') reduces user anxiety and prevents accidental double-submissions.
+**Action:** Implement loading states for all primary action buttons in the web interface that trigger network requests, ensuring they are restored to their original state if the request fails.
