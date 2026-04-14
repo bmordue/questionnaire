@@ -186,12 +186,19 @@ function renderQuestion(q, total, idx) {
     case 'rating': {
       const min = q.validation?.min ?? 1;
       const max = q.validation?.max ?? 5;
+      const mid = Math.floor((min + max) / 2);
       const buttons = [];
       for (let v = min; v <= max; v++) {
+        let label = '';
+        if (v === min) label = '<div class="rating-label rating-label-poor">Poor</div>';
+        else if (v === max) label = '<div class="rating-label rating-label-excellent">Excellent</div>';
+        else if (v === mid) label = '<div class="rating-label rating-label-average">Average</div>';
+
         buttons.push(`
           <label>
             <input type="radio" name="ans" value="${v}" class="sr-only" />
             <div class="rating-btn">★ ${v}</div>
+            ${label}
           </label>`);
       }
       answerEl.innerHTML = `<div class="rating-group">${buttons.join('')}</div>`;
