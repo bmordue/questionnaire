@@ -1,0 +1,10 @@
+
+> questionnaire@1.0.0 web /app
+> pnpm run build && node dist/web/server.js
+
+
+> questionnaire@1.0.0 build /app
+> tsc && cpx "src/web/public/**/*" "dist/web/public" --clean
+
+Questionnaire web server running at http://localhost:3000
+Data directory: /app/data

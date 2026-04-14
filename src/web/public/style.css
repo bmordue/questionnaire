@@ -234,6 +234,16 @@ textarea { resize: vertical; min-height: 80px; }
   color: #fff;
 }
 
+.rating-label {
+  font-size: 0.7rem;
+  font-weight: 500;
+  margin-top: 0.15rem;
+}
+
+.rating-label-poor { color: var(--danger); }
+.rating-label-average { color: var(--muted); }
+.rating-label-excellent { color: var(--success); }
+
 /* ── Progress Bar ─────────────────────────────────────────────────────────── */
 .progress-bar-wrap {
   background: var(--border);
