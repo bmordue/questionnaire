@@ -471,29 +471,36 @@ describe('Flow 5: Multi-question session with skipping', () => {
   });
 });
 
-// ── Flow 6: Unauthenticated Access to Protected Routes ───────────────────────
+// ── Flow 6: Guest Access Behaviour ───────────────────────────────────────────
 
 describe('Flow 6: Unauthenticated access to protected routes is rejected', () => {
-  it('returns 401 for stats, summary, and export endpoints without a session cookie', async () => {
+  it('guests are identified at /api/auth/me and cannot access another user\'s questionnaire analytics', async () => {
+    // Create a questionnaire as an authenticated user (Alice)
     const q = makeQuestionnaire();
     await request(app)
       .post('/api/questionnaires')
       .send(q)
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set('remote-user', 'alice@example.com')
+      .set('remote-name', 'Alice');
 
     const id = q.id as string;
 
-    const [statsRes, summaryRes, exportRes, meRes] = await Promise.all([
+    // Guest (no auth headers) cannot access analytics for another user's questionnaire
+    const [statsRes, summaryRes, exportRes] = await Promise.all([
       request(app).get(`/api/questionnaires/${id}/stats`),
       request(app).get(`/api/questionnaires/${id}/summary`),
       request(app).get(`/api/questionnaires/${id}/export`),
-      request(app).get('/api/auth/me'),
     ]);
 
-    expect(statsRes.status).toBe(401);
-    expect(summaryRes.status).toBe(401);
-    expect(exportRes.status).toBe(401);
-    expect(meRes.status).toBe(401);
+    expect(statsRes.status).toBe(403);
+    expect(summaryRes.status).toBe(403);
+    expect(exportRes.status).toBe(403);
+
+    // /api/auth/me returns the guest identity (not 401)
+    const meRes = await request(app).get('/api/auth/me');
+    expect(meRes.status).toBe(200);
+    expect(meRes.body.user.id).toBe('guest');
   });
 });
 

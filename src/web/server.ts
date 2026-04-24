@@ -184,10 +184,21 @@ app.get('/api/questionnaires', requireAuth, async (_req, res, next) => {
       res.json(list);
       return;
     }
-    const visible = list.filter(meta => {
-      const questionnaire = { metadata: meta } as unknown as Questionnaire;
-      return resolvePermission(questionnaire, user.id, user.groups) !== null;
-    });
+    const visible = (
+      await Promise.all(
+        list.map(async meta => {
+          try {
+            const questionnaire = await storage.loadQuestionnaire(meta.id);
+            return resolvePermission(questionnaire, user.id, user.groups) !== null ? meta : null;
+          } catch (err) {
+            if (!isNotFoundError(err)) {
+              console.error(`[questionnaires] Failed to load questionnaire ${meta.id} for permission check:`, err);
+            }
+            return null;
+          }
+        })
+      )
+    ).filter((meta): meta is (typeof list)[number] => meta !== null);
     res.json(visible);
   } catch (err) {
     next(err);
@@ -204,7 +215,7 @@ app.post('/api/questionnaires', requireAuth, async (req, res, next) => {
       return;
     }
     await storage.saveQuestionnaire(result.data);
-    res.json(result.data);
+    res.status(201).json(result.data);
   } catch (err) {
     next(err);
   }

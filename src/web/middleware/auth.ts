@@ -22,6 +22,20 @@ const HEADER_REMOTE_NAME = 'remote-name';
 const HEADER_REMOTE_GROUPS = 'remote-groups';
 
 /**
+ * Sentinel user assigned when no authentication headers are present.
+ * Guest users have no group memberships and therefore no admin privileges.
+ */
+const GUEST_USER: RuntimeUser = {
+  id: 'guest',
+  email: 'guest@localhost',
+  name: 'Guest',
+  createdAt: new Date(0).toISOString(),
+  updatedAt: new Date(0).toISOString(),
+  active: true,
+  groups: [],
+};
+
+/**
  * The name of the group that grants admin (manage-all) access.
  * Override with the ADMIN_GROUP environment variable.
  */
@@ -34,7 +48,8 @@ function adminGroup(): string {
  * record if the email is encountered for the first time.
  *
  * Sets res.locals['user'] as a RuntimeUser (includes per-request groups).
- * Non-blocking — if headers are absent, continues with no user set.
+ * If no authentication headers are present, sets the user to the sentinel
+ * Guest user so that unauthenticated visitors can still access the site.
  */
 export function loadUser(userRepository: FileUserRepository) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -55,9 +70,13 @@ export function loadUser(userRepository: FileUserRepository) {
 
         const runtimeUser: RuntimeUser = { ...user, groups };
         res.locals['user'] = runtimeUser;
+      } else {
+        // No authentication headers — treat as guest
+        res.locals['user'] = GUEST_USER;
       }
     } catch {
-      // Non-fatal: proceed unauthenticated
+      // Non-fatal: proceed as guest
+      res.locals['user'] = GUEST_USER;
     }
     next();
   };
