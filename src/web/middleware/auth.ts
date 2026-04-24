@@ -1,38 +1,60 @@
 /**
  * Auth Middleware
  *
- * Express middleware for session-cookie based authentication.
+ * Reads identity from Authelia forward-auth proxy headers (Remote-User,
+ * Remote-Name, Remote-Groups) set by nginx after authentication succeeds.
+ * The app trusts these headers — nginx MUST strip them from untrusted clients.
+ *
+ * Users are provisioned just-in-time: on the first authenticated request for
+ * a previously-unknown email, a User record is created in the local store.
  */
 
 import type { Request, Response, NextFunction } from 'express';
-import type { AuthService } from '../../core/auth/auth-service.js';
-import type { PublicUser } from '../../core/schemas/user.js';
-
-export const AUTH_COOKIE_NAME = 'qsession';
+import type { FileUserRepository } from '../../core/repositories/file-user-repository.js';
+import type { RuntimeUser } from '../../core/schemas/user.js';
 
 /**
- * Attach the auth service to res.locals so downstream middleware and routes can use it.
+ * Header names as set by Authelia.
+ * Confirm these match your Authelia `headers:` configuration.
  */
-export function injectAuthService(authService: AuthService) {
-  return (_req: Request, res: Response, next: NextFunction): void => {
-    res.locals['authService'] = authService;
-    next();
-  };
+const HEADER_REMOTE_USER = 'remote-user';
+const HEADER_REMOTE_NAME = 'remote-name';
+const HEADER_REMOTE_GROUPS = 'remote-groups';
+
+/**
+ * The name of the group that grants admin (manage-all) access.
+ * Override with the ADMIN_GROUP environment variable.
+ */
+function adminGroup(): string {
+  return process.env['ADMIN_GROUP'] ?? 'admins';
 }
 
 /**
- * Populate res.locals.user if a valid session cookie is present.
- * This is non-blocking – requests without a valid cookie are allowed to continue.
+ * Load user identity from Authelia proxy headers and JIT-provision a User
+ * record if the email is encountered for the first time.
+ *
+ * Sets res.locals['user'] as a RuntimeUser (includes per-request groups).
+ * Non-blocking — if headers are absent, continues with no user set.
  */
-export function loadUser(authService: AuthService) {
+export function loadUser(userRepository: FileUserRepository) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const token = extractToken(req);
-      if (token) {
-        const user = await authService.validateSession(token);
-        if (user) {
-          res.locals['user'] = user;
-        }
+      const email = req.headers[HEADER_REMOTE_USER];
+      if (typeof email === 'string' && email.trim() !== '') {
+        const name = (typeof req.headers[HEADER_REMOTE_NAME] === 'string'
+          ? req.headers[HEADER_REMOTE_NAME]
+          : email) as string;
+
+        const rawGroups = req.headers[HEADER_REMOTE_GROUPS];
+        const groups: string[] = typeof rawGroups === 'string' && rawGroups.trim() !== ''
+          ? rawGroups.split(',').map(g => g.trim()).filter(Boolean)
+          : [];
+
+        // JIT-provision: find existing user or create one
+        const user = await userRepository.findOrCreate(email.toLowerCase(), name);
+
+        const runtimeUser: RuntimeUser = { ...user, groups };
+        res.locals['user'] = runtimeUser;
       }
     } catch {
       // Non-fatal: proceed unauthenticated
@@ -42,7 +64,8 @@ export function loadUser(authService: AuthService) {
 }
 
 /**
- * Require a valid session. Returns 401 if unauthenticated.
+ * Require an authenticated user (proxy headers were present).
+ * Returns 401 if unauthenticated.
  */
 export function requireAuth(_req: Request, res: Response, next: NextFunction): void {
   if (!res.locals['user']) {
@@ -53,11 +76,12 @@ export function requireAuth(_req: Request, res: Response, next: NextFunction): v
 }
 
 /**
- * Require an admin role. Returns 403 if not admin.
+ * Require membership in the admin group (from Remote-Groups).
+ * Returns 403 if the user is not in the configured admin group.
  */
 export function requireAdmin(_req: Request, res: Response, next: NextFunction): void {
-  const user = res.locals['user'] as PublicUser | undefined;
-  if (!user || user.role !== 'admin') {
+  const user = res.locals['user'] as RuntimeUser | undefined;
+  if (!user || !user.groups.includes(adminGroup())) {
     res.status(403).json({ error: 'Admin access required' });
     return;
   }
@@ -65,39 +89,9 @@ export function requireAdmin(_req: Request, res: Response, next: NextFunction): 
 }
 
 /**
- * Set the auth cookie on the response.
+ * Returns true if the request's authenticated user is an admin.
  */
-export function setAuthCookie(res: Response, token: string, maxAgeMs = 24 * 60 * 60 * 1000): void {
-  res.cookie(AUTH_COOKIE_NAME, token, {
-    httpOnly: true,
-    secure: process.env['NODE_ENV'] === 'production',
-    sameSite: 'lax',
-    maxAge: maxAgeMs,
-    path: '/',
-  });
-}
-
-/**
- * Clear the auth cookie.
- */
-export function clearAuthCookie(res: Response): void {
-  res.clearCookie(AUTH_COOKIE_NAME, { path: '/' });
-}
-
-/**
- * Extract the session token from the cookie header.
- */
-export function extractToken(req: Request): string | null {
-  // Express cookie-parser populates req.cookies; fall back to manual parsing
-  const cookies: Record<string, string> = (req as any).cookies ?? parseCookieHeader(req.headers.cookie ?? '');
-  return cookies[AUTH_COOKIE_NAME] ?? null;
-}
-
-function parseCookieHeader(header: string): Record<string, string> {
-  const result: Record<string, string> = {};
-  for (const part of header.split(';')) {
-    const [key, ...valueParts] = part.trim().split('=');
-    if (key) result[key.trim()] = decodeURIComponent(valueParts.join('='));
-  }
-  return result;
+export function isAdmin(res: Response): boolean {
+  const user = res.locals['user'] as RuntimeUser | undefined;
+  return !!user && user.groups.includes(adminGroup());
 }

@@ -29,6 +29,7 @@ async function demonstrateFlowEngine() {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     },
+    permissions: [],
     questions: [
       {
         id: 'q1',

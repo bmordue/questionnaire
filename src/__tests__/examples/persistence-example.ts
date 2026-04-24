@@ -41,6 +41,7 @@ async function main() {
       updatedAt: new Date().toISOString(),
       tags: ['feedback', 'customer-satisfaction']
     },
+    permissions: [],
     questions: [
       {
         id: 'q1',

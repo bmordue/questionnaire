@@ -6,11 +6,6 @@
  */
 
 import { z } from 'zod';
-import { RegisterInputSchema, LoginInputSchema, ChangePasswordInputSchema } from '../../core/schemas/user.js';
-
-// ── Re-export auth input schemas ──────────────────────────────────────────────
-
-export { RegisterInputSchema, LoginInputSchema, ChangePasswordInputSchema };
 
 // ── Questionnaire DTOs ────────────────────────────────────────────────────────
 

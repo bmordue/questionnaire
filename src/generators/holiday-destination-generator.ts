@@ -384,6 +384,7 @@ export const holidayDestinationQuestionnaire: Questionnaire = {
       }
     }
   ],
+  permissions: [],
   config: {
     allowBack: true,
     showProgress: true,

@@ -1,13 +1,14 @@
 /**
  * Web server for managing questionnaires and responses
  *
- * Provides REST API endpoints and serves the static frontend.
+ * Authentication is handled externally by Authelia (forward-auth via nginx).
+ * Identity is read from Remote-User / Remote-Name / Remote-Groups headers.
  */
 
 import express from 'express';
-import type { Request, Response, NextFunction } from 'express';
+import type { Response } from 'express';
 import cors from 'cors';
-import { rateLimit } from 'express-rate-limit';
+import { z } from 'zod';
 import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -17,16 +18,21 @@ import { BackendStorageService } from '../core/storage/backend-storage-service.j
 import { S3StorageBackend, RetryableStorageBackend } from '../core/storage/backend.js';
 import type { S3BackendConfig } from '../core/storage/backend.js';
 import type { StorageService } from '../core/storage/types.js';
-import { safeValidateQuestionnaire } from '../core/schemas/questionnaire.js';
+import {
+  safeValidateQuestionnaire,
+  resolvePermission,
+  permissionSatisfies,
+  PermissionLevelSchema,
+} from '../core/schemas/questionnaire.js';
+import type { Questionnaire } from '../core/schemas/questionnaire.js';
 import { ResponseStatus } from '../core/schemas/response.js';
 import type { Answer } from '../core/schemas/response.js';
+import type { RuntimeUser } from '../core/schemas/user.js';
 import { FileUserRepository } from '../core/repositories/file-user-repository.js';
-import { SessionManager } from '../core/auth/session-manager.js';
-import { AuthService, AuthError } from '../core/auth/auth-service.js';
 import { ReviewService } from '../core/services/review-service.js';
-import { loadUser, requireAuth, setAuthCookie, clearAuthCookie, AUTH_COOKIE_NAME, extractToken } from './middleware/auth.js';
+import { loadUser, requireAuth } from './middleware/auth.js';
+import { requireQuestionnairePermission, requireSessionOwner } from './middleware/acl.js';
 import { errorHandler } from './middleware/error-handler.js';
-import { RegisterInputSchema, LoginInputSchema, ChangePasswordInputSchema } from './dtos/index.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -95,44 +101,29 @@ function createStorage(): StorageService {
 
 const storage = createStorage();
 
-// ── Auth layer ────────────────────────────────────────────────────────────────
+// ── User repository (JIT provisioning) ───────────────────────────────────────
 
 const userRepository = new FileUserRepository({ dataDirectory: DATA_DIR });
-const sessionManager = new SessionManager(DATA_DIR);
-const authService = new AuthService(userRepository, sessionManager);
+userRepository.initialize().catch(err => {
+  console.error('[users] Initialization error:', err);
+});
 
-// Track auth readiness so auth routes can return 503 if not yet initialised
-let authReady = false;
-const authInitPromise = Promise.all([userRepository.initialize(), sessionManager.initialize()])
-  .then(() => {
-    authReady = true;
-  })
-  .catch(err => {
-    console.error('[auth] Initialization error:', err);
-  });
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-/**
- * Middleware that returns 503 if the auth stores have not finished initialising.
- */
-function requireAuthReady(_req: Request, res: Response, next: NextFunction): void {
-  if (!authReady) {
-    res.status(503).json({ error: 'Auth service not ready, please retry shortly.' });
-    return;
-  }
-  next();
-}
-
-/**
- * Returns true when the error indicates a resource was not found on disk.
- * Used to distinguish 404-worthy errors from genuine server failures.
- */
 function isNotFoundError(err: unknown): boolean {
   return err instanceof Error && err.message.toLowerCase().includes('not found');
 }
 
+function currentUser(res: Response): RuntimeUser {
+  return res.locals['user'] as RuntimeUser;
+}
+
+// ── App setup ─────────────────────────────────────────────────────────────────
+
 export const app: express.Express = express();
 
-// Disable X-Powered-By header for security (prevents technology fingerprinting)
+// Trust one proxy hop (nginx) so req.ip reflects the real client IP
+app.set('trust proxy', 1);
 app.disable('x-powered-by');
 
 // CORS configuration: permissive in development, restricted/disabled otherwise
@@ -177,106 +168,226 @@ app.use((_req, res, next) => {
 });
 
 // Parse cookies manually (no external cookie-parser needed; loadUser handles it)
-app.use(loadUser(authService));
+app.use(loadUser(userRepository));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ── Questionnaire Routes ──────────────────────────────────────────────────────
 
-/** List all questionnaires */
-app.get('/api/questionnaires', async (_req, res, next) => {
+/** List questionnaires visible to the current user */
+app.get('/api/questionnaires', requireAuth, async (_req, res, next) => {
   try {
+    const user = currentUser(res);
+    const adminGroup = process.env['ADMIN_GROUP'] ?? 'admins';
+    const isAdmin = user.groups.includes(adminGroup);
     const list = await storage.listQuestionnaires();
-    res.json(list);
+    if (isAdmin) {
+      res.json(list);
+      return;
+    }
+    const visible = list.filter(meta => {
+      const questionnaire = { metadata: meta } as unknown as Questionnaire;
+      return resolvePermission(questionnaire, user.id, user.groups) !== null;
+    });
+    res.json(visible);
   } catch (err) {
-    console.error('Error listing questionnaires:', err);
     next(err);
   }
 });
 
-/** Create a new questionnaire */
-app.post('/api/questionnaires', async (req, res, next) => {
+/** Create a questionnaire; automatically sets ownerId to the calling user */
+app.post('/api/questionnaires', requireAuth, async (req, res, next) => {
   try {
-    const result = safeValidateQuestionnaire(req.body);
+    const user = currentUser(res);
+    const result = safeValidateQuestionnaire({ ...req.body, ownerId: user.id });
     if (!result.success) {
       res.status(400).json({ error: 'Invalid questionnaire', details: result.error });
-      return;
-    }
-    await storage.saveQuestionnaire(result.data);
-    res.status(201).json(result.data);
-  } catch (err) {
-    console.error('Error creating questionnaire:', err);
-    next(err);
-  }
-});
-
-/** Get a single questionnaire by ID */
-app.get('/api/questionnaires/:id', async (req, res) => {
-  try {
-    const questionnaire = await storage.loadQuestionnaire(req.params['id'] ?? '');
-    res.json(questionnaire);
-  } catch {
-    res.status(404).json({ error: 'Questionnaire not found' });
-  }
-});
-
-/** Update an existing questionnaire */
-app.put('/api/questionnaires/:id', async (req, res, next) => {
-  try {
-    const result = safeValidateQuestionnaire(req.body);
-    if (!result.success) {
-      res.status(400).json({ error: 'Invalid questionnaire', details: result.error });
-      return;
-    }
-    const pathId = req.params['id'] ?? '';
-    if (!pathId) {
-      res.status(400).json({ error: 'Missing questionnaire ID in path' });
-      return;
-    }
-    if (result.data.id !== pathId) {
-      res.status(400).json({
-        error: 'Path ID does not match questionnaire ID in body',
-        pathId,
-        bodyId: result.data.id,
-      });
       return;
     }
     await storage.saveQuestionnaire(result.data);
     res.json(result.data);
   } catch (err) {
-    console.error('Error updating questionnaire:', err);
     next(err);
   }
 });
 
-/** Delete a questionnaire */
-app.delete('/api/questionnaires/:id', async (req, res) => {
-  try {
-    await storage.deleteQuestionnaire(req.params['id'] ?? '');
-    res.status(204).send();
-  } catch {
-    res.status(404).json({ error: 'Questionnaire not found' });
-  }
-});
+/** Get a single questionnaire — requires at least 'respond' access */
+app.get(
+  '/api/questionnaires/:id',
+  requireQuestionnairePermission(storage, 'respond'),
+  (_req, res) => {
+    res.json(res.locals['questionnaire']);
+  },
+);
+
+/** Update a questionnaire — requires 'manage' */
+app.put(
+  '/api/questionnaires/:id',
+  requireQuestionnairePermission(storage, 'manage'),
+  async (req, res, next) => {
+    try {
+      const result = safeValidateQuestionnaire(req.body);
+      if (!result.success) {
+        res.status(400).json({ error: 'Invalid questionnaire', details: result.error });
+        return;
+      }
+      const pathId = req.params['id'] ?? '';
+      if (result.data.id !== pathId) {
+        res.status(400).json({ error: 'Path ID does not match questionnaire ID in body' });
+        return;
+      }
+      const stored = res.locals['questionnaire'] as Questionnaire;
+      const updated: Questionnaire = {
+        id: result.data.id,
+        version: result.data.version,
+        metadata: result.data.metadata,
+        questions: result.data.questions,
+        config: result.data.config,
+        ownerId: stored.ownerId,
+        permissions: stored.permissions,
+      };
+      await storage.saveQuestionnaire(updated);
+      res.json(updated);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+/** Delete a questionnaire — requires 'manage' */
+app.delete(
+  '/api/questionnaires/:id',
+  requireQuestionnairePermission(storage, 'manage'),
+  async (req, res, next) => {
+    try {
+      const id: string = Array.isArray(req.params['id']) ? (req.params['id'][0] ?? '') : (req.params['id'] ?? '');
+      await storage.deleteQuestionnaire(id);
+      res.status(204).send();
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// ── Permission Management ─────────────────────────────────────────────────────
+
+/** List permissions on a questionnaire — requires 'manage' */
+app.get(
+  '/api/questionnaires/:id/permissions',
+  requireQuestionnairePermission(storage, 'manage'),
+  (_req, res) => {
+    const q = res.locals['questionnaire'] as Questionnaire;
+    res.json({ ownerId: q.ownerId, permissions: q.permissions });
+  },
+);
+
+const GrantPermissionBodySchema = z.object({ level: PermissionLevelSchema });
+
+/** Grant or update a user's permission on a questionnaire */
+app.put(
+  '/api/questionnaires/:id/permissions/:userId',
+  requireQuestionnairePermission(storage, 'manage'),
+  async (req, res, next) => {
+    try {
+      const parsed = GrantPermissionBodySchema.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({ error: 'Validation failed', details: parsed.error.flatten() });
+        return;
+      }
+      const targetUserIdParam = req.params['userId'];
+      const targetUserId = Array.isArray(targetUserIdParam) ? (targetUserIdParam[0] ?? '') : (targetUserIdParam ?? '');
+      const q = res.locals['questionnaire'] as Questionnaire;
+      if (q.ownerId && q.ownerId === targetUserId) {
+        res.status(400).json({ error: 'Cannot set explicit permission for the owner' });
+        return;
+      }
+      const updated: Questionnaire = {
+        ...q,
+        permissions: [
+          ...q.permissions.filter(p => p.userId !== targetUserId),
+          { userId: targetUserId, level: parsed.data.level },
+        ],
+      };
+      await storage.saveQuestionnaire(updated);
+      res.json({ userId: targetUserId, level: parsed.data.level });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+/** Revoke a user's permission on a questionnaire */
+app.delete(
+  '/api/questionnaires/:id/permissions/:userId',
+  requireQuestionnairePermission(storage, 'manage'),
+  async (req, res, next) => {
+    try {
+      const targetUserIdParam = req.params['userId'];
+      const targetUserId = Array.isArray(targetUserIdParam) ? (targetUserIdParam[0] ?? '') : (targetUserIdParam ?? '');
+      const q = res.locals['questionnaire'] as Questionnaire;
+      await storage.saveQuestionnaire({
+        ...q,
+        permissions: q.permissions.filter(p => p.userId !== targetUserId),
+      });
+      res.status(204).send();
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 // ── Response Routes ───────────────────────────────────────────────────────────
 
-/** List all responses (optionally filtered by questionnaireId) */
-app.get('/api/responses', async (req, res, next) => {
+/** List responses for a questionnaire — requires 'view_responses' */
+app.get('/api/responses', requireAuth, async (req, res, next) => {
   try {
     const questionnaireId =
-      typeof req.query['questionnaireId'] === 'string' ? req.query['questionnaireId'] : undefined;
-    const responses = await storage.listResponses(questionnaireId);
-    res.json(responses);
+      typeof req.query['questionnaireId'] === 'string'
+        ? req.query['questionnaireId']
+        : undefined;
+    if (!questionnaireId) {
+      res.status(400).json({ error: 'questionnaireId query parameter is required' });
+      return;
+    }
+    const user = currentUser(res);
+    let questionnaire: Questionnaire;
+    try {
+      questionnaire = await storage.loadQuestionnaire(questionnaireId);
+    } catch {
+      res.status(404).json({ error: 'Questionnaire not found' });
+      return;
+    }
+    if (
+      !permissionSatisfies(resolvePermission(questionnaire, user.id, user.groups), 'view_responses')
+    ) {
+      res.status(403).json({ error: 'Insufficient permissions' });
+      return;
+    }
+    res.json(await storage.listResponses(questionnaireId));
   } catch (err) {
-    console.error('Error listing responses:', err);
     next(err);
   }
 });
 
-/** Get a single response by session ID */
-app.get('/api/responses/:id', async (req, res) => {
+/** Get a single response — requires 'view_responses' on the parent questionnaire */
+app.get('/api/responses/:id', requireAuth, async (req, res, next) => {
   try {
-    const response = await storage.loadResponse(req.params['id'] ?? '');
+    const responseIdParam = req.params['id'];
+    const responseId = Array.isArray(responseIdParam) ? (responseIdParam[0] ?? '') : (responseIdParam ?? '');
+    const response = await storage.loadResponse(responseId);
+    const user = currentUser(res);
+    let questionnaire: Questionnaire;
+    try {
+      questionnaire = await storage.loadQuestionnaire(response.questionnaireId);
+    } catch {
+      res.status(404).json({ error: 'Questionnaire not found' });
+      return;
+    }
+    if (
+      !permissionSatisfies(resolvePermission(questionnaire, user.id, user.groups), 'view_responses')
+    ) {
+      res.status(403).json({ error: 'Insufficient permissions' });
+      return;
+    }
     res.json(response);
   } catch {
     res.status(404).json({ error: 'Response not found' });
@@ -285,33 +396,46 @@ app.get('/api/responses/:id', async (req, res) => {
 
 // ── Session Routes ────────────────────────────────────────────────────────────
 
-/** Start a new questionnaire session */
-app.post('/api/sessions', async (req, res, next) => {
+/** Start a new session — requires 'respond' access on the questionnaire */
+app.post('/api/sessions', requireAuth, async (req, res, next) => {
   try {
     const body = req.body as { questionnaireId?: string };
     if (!body.questionnaireId) {
       res.status(400).json({ error: 'questionnaireId is required' });
       return;
     }
+    const user = currentUser(res);
+    let questionnaire: Questionnaire;
+    try {
+      questionnaire = await storage.loadQuestionnaire(body.questionnaireId);
+    } catch {
+      res.status(404).json({ error: 'Questionnaire not found' });
+      return;
+    }
+    if (
+      !permissionSatisfies(resolvePermission(questionnaire, user.id, user.groups), 'respond')
+    ) {
+      res.status(403).json({ error: 'Insufficient permissions' });
+      return;
+    }
     const sessionId = await storage.createSession(body.questionnaireId);
+    await storage.updateSession(sessionId, { userId: user.id });
     res.status(201).json({ sessionId });
   } catch (err) {
     if (isNotFoundError(err)) {
       res.status(404).json({ error: 'Questionnaire not found' });
     } else {
-      console.error('Error creating session:', err);
       next(err);
     }
   }
 });
 
 /** Get current session state including the current question */
-app.get('/api/sessions/:sessionId', async (req, res) => {
+app.get('/api/sessions/:sessionId', requireSessionOwner(storage), async (_req, res, next) => {
   try {
-    const sessionId = req.params['sessionId'] ?? '';
-    const session = await storage.loadSession(sessionId);
+    const session = res.locals['session'];
     const questionnaire = await storage.loadQuestionnaire(session.questionnaireId);
-    const response = await storage.loadResponse(sessionId);
+    const response = await storage.loadResponse(session.sessionId);
 
     const currentIndex = response.progress.currentQuestionIndex;
     const currentQuestion = questionnaire.questions[currentIndex] ?? null;
@@ -322,23 +446,23 @@ app.get('/api/sessions/:sessionId', async (req, res) => {
         id: questionnaire.id,
         title: questionnaire.metadata.title,
         totalQuestions: questionnaire.questions.length,
-        config: questionnaire.config
+        config: questionnaire.config,
       },
       currentQuestion,
       currentQuestionIndex: currentIndex,
       progress: response.progress,
-      answers: response.answers
+      answers: response.answers,
     });
-  } catch {
-    res.status(404).json({ error: 'Session not found' });
+  } catch (err) {
+    next(err);
   }
 });
 
 /** Submit an answer and advance to the next question */
-app.post('/api/sessions/:sessionId/answer', async (req, res, next) => {
+app.post('/api/sessions/:sessionId/answer', requireSessionOwner(storage), async (req, res, next) => {
   try {
-    const sessionId = req.params['sessionId'] ?? '';
-    const session = await storage.loadSession(sessionId);
+    const session = res.locals['session'];
+    const sessionId: string = session.sessionId;
     const questionnaire = await storage.loadQuestionnaire(session.questionnaireId);
     const response = await storage.loadResponse(sessionId);
 
@@ -433,112 +557,33 @@ app.post('/api/sessions/:sessionId/answer', async (req, res, next) => {
 });
 
 /** Mark a session as complete */
-app.post('/api/sessions/:sessionId/complete', async (req, res, next) => {
+app.post('/api/sessions/:sessionId/complete', requireSessionOwner(storage), async (_req, res, next) => {
   try {
-    const sessionId = req.params['sessionId'] ?? '';
-    const session = await storage.loadSession(sessionId);
+    const session = res.locals['session'];
+    const sessionId: string = session.sessionId;
     const response = await storage.loadResponse(sessionId);
-
     const now = new Date().toISOString();
-    const completedResponse = {
+    await storage.saveResponse({
       ...response,
       status: ResponseStatus.COMPLETED,
       completedAt: now,
-      lastSavedAt: now
-    };
-
-    await storage.saveResponse(completedResponse);
+      lastSavedAt: now,
+    });
     await storage.updateSession(sessionId, { status: 'completed', updatedAt: now });
-
-    // Return sessionId so callers can fetch the response via GET /api/responses/:id
-    // (responses are stored and loaded by sessionId, not by response.id)
     res.json({ success: true, sessionId });
   } catch (err) {
     if (isNotFoundError(err)) {
       res.status(404).json({ error: 'Session not found' });
     } else {
-      console.error('Error completing session:', err);
       next(err);
     }
   }
 });
 
-// ── Auth Routes ───────────────────────────────────────────────────────────────
+// ── Auth / Identity ───────────────────────────────────────────────────────────
 
-/**
- * Rate limiter for sensitive auth endpoints (login, register, change-password).
- * Limits each IP to 10 requests per 15-minute window to mitigate brute-force attacks.
- */
-const authRateLimit = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Too many requests, please try again later.' },
-});
-
-/** Register a new account */
-app.post('/api/auth/register', requireAuthReady, authRateLimit, async (req, res, next) => {
-  try {
-    const parsed = RegisterInputSchema.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({ error: 'Validation failed', details: parsed.error.flatten() });
-      return;
-    }
-    const registerOpts: { userAgent?: string; ipAddress?: string } = {};
-    const ua = req.headers['user-agent'];
-    if (ua !== undefined) registerOpts.userAgent = ua;
-    if (req.ip !== undefined) registerOpts.ipAddress = req.ip;
-    const result = await authService.register(parsed.data, registerOpts);
-    setAuthCookie(res, result.token);
-    res.status(201).json({ user: result.user });
-  } catch (err) {
-    if (err instanceof AuthError && err.code === 'EMAIL_TAKEN') {
-      res.status(409).json({ error: err.message, code: err.code });
-      return;
-    }
-    next(err);
-  }
-});
-
-/** Log in */
-app.post('/api/auth/login', requireAuthReady, authRateLimit, async (req, res, next) => {
-  try {
-    const parsed = LoginInputSchema.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({ error: 'Validation failed', details: parsed.error.flatten() });
-      return;
-    }
-    const loginOpts: { userAgent?: string; ipAddress?: string } = {};
-    const loginUa = req.headers['user-agent'];
-    if (loginUa !== undefined) loginOpts.userAgent = loginUa;
-    if (req.ip !== undefined) loginOpts.ipAddress = req.ip;
-    const result = await authService.login(parsed.data, loginOpts);
-    setAuthCookie(res, result.token);
-    res.json({ user: result.user });
-  } catch (err) {
-    if (err instanceof AuthError) {
-      res.status(401).json({ error: err.message, code: err.code });
-      return;
-    }
-    next(err);
-  }
-});
-
-/** Log out */
-app.post('/api/auth/logout', requireAuthReady, authRateLimit, async (req, res, next) => {
-  try {
-    const token = extractToken(req);
-    if (token) await authService.logout(token);
-    clearAuthCookie(res);
-    res.json({ success: true });
-  } catch (err) {
-    next(err);
-  }
-});
-
-/** Get current user */
-app.get('/api/auth/me', requireAuthReady, (req, res) => {
+/** Return the current user's identity (sourced from Authelia proxy headers) */
+app.get('/api/auth/me', (_req, res) => {
   const user = res.locals['user'];
   if (!user) {
     res.status(401).json({ error: 'Not authenticated' });
@@ -547,27 +592,14 @@ app.get('/api/auth/me', requireAuthReady, (req, res) => {
   res.json({ user });
 });
 
-/** Change password */
-app.post('/api/auth/change-password', requireAuthReady, authRateLimit, async (req, res, next) => {
+// ── User Directory ────────────────────────────────────────────────────────────
+
+/** List all provisioned users — used by the sharing UI */
+app.get('/api/users', requireAuth, async (_req, res, next) => {
   try {
-    const user = res.locals['user'];
-    if (!user) {
-      res.status(401).json({ error: 'Authentication required' });
-      return;
-    }
-    const parsed = ChangePasswordInputSchema.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({ error: 'Validation failed', details: parsed.error.flatten() });
-      return;
-    }
-    await authService.changePassword(user.id, parsed.data.currentPassword, parsed.data.newPassword);
-    clearAuthCookie(res);
-    res.json({ success: true, message: 'Password changed. Please log in again.' });
+    const users = await userRepository.findAll();
+    res.json(users.map(u => ({ id: u.id, email: u.email, name: u.name })));
   } catch (err) {
-    if (err instanceof AuthError) {
-      res.status(401).json({ error: err.message, code: err.code });
-      return;
-    }
     next(err);
   }
 });
@@ -577,46 +609,55 @@ app.post('/api/auth/change-password', requireAuthReady, authRateLimit, async (re
 const reviewService = new ReviewService(storage);
 
 /** Get completion stats for a questionnaire */
-app.get('/api/questionnaires/:id/stats', requireAuth, async (req, res, next) => {
-  try {
-    const stats = await reviewService.getCompletionStats(req.params['id'] as string);
-    res.json(stats);
-  } catch (err) {
-    next(err);
-  }
-});
+app.get(
+  '/api/questionnaires/:id/stats',
+  requireQuestionnairePermission(storage, 'view_responses'),
+  async (req, res, next) => {
+    try {
+      const stats = await reviewService.getCompletionStats(req.params['id'] as string);
+      res.json(stats);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 /** Get full analytics summary for a questionnaire */
-app.get('/api/questionnaires/:id/summary', requireAuth, async (req, res, next) => {
-  try {
-    const summary = await reviewService.getSummary(req.params['id'] as string);
-    res.json(summary);
-  } catch (err) {
-    next(err);
-  }
-});
+app.get(
+  '/api/questionnaires/:id/summary',
+  requireQuestionnairePermission(storage, 'view_responses'),
+  async (req, res, next) => {
+    try {
+      const summary = await reviewService.getSummary(req.params['id'] as string);
+      res.json(summary);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 /** Export responses for a questionnaire */
-app.get('/api/questionnaires/:id/export', requireAuth, async (req, res, next) => {
-  try {
-    const format = req.query['format'] === 'csv' ? 'csv' : 'json';
-    const id = req.params['id'] as string;
-
-    if (format === 'csv') {
-      const csv = await reviewService.exportToCsv(id);
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', `attachment; filename="responses-${id}.csv"`);
-      res.send(csv);
-    } else {
-      const json = await reviewService.exportToJson(id);
-      res.setHeader('Content-Type', 'application/json');
-      res.setHeader('Content-Disposition', `attachment; filename="responses-${id}.json"`);
-      res.send(json);
+app.get(
+  '/api/questionnaires/:id/export',
+  requireQuestionnairePermission(storage, 'view_responses'),
+  async (req, res, next) => {
+    try {
+      const format = req.query['format'] === 'csv' ? 'csv' : 'json';
+      const id = req.params['id'] as string;
+      if (format === 'csv') {
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="responses-${id}.csv"`);
+        res.send(await reviewService.exportToCsv(id));
+      } else {
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', `attachment; filename="responses-${id}.json"`);
+        res.send(await reviewService.exportToJson(id));
+      }
+    } catch (err) {
+      next(err);
     }
-  } catch (err) {
-    next(err);
-  }
-});
+  },
+);
 
 // ── Error Handling ────────────────────────────────────────────────────────────
 
