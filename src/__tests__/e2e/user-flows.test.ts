@@ -63,36 +63,6 @@ function makeQuestionnaire(overrides: Record<string, unknown> = {}): Record<stri
   };
 }
 
-/** Extract the Set-Cookie header from a supertest response and return it as a header value. */
-function extractCookie(res: request.Response): string {
-  const raw = res.headers['set-cookie'] as string[] | string | undefined;
-  if (!raw) return '';
-  const cookies = Array.isArray(raw) ? raw : [raw];
-  return cookies.map(c => c.split(';')[0]).join('; ');
-}
-
-/**
- * Poll GET /api/auth/me until auth services are ready.
- *
- * `requireAuthReady` returns HTTP 503 until `userRepository.initialize()` and
- * `sessionManager.initialize()` have completed.  Any non-503 response (typically
- * 401 "Not authenticated") means the auth layer is up and tests can proceed.
- */
-async function waitForAuthReady(maxAttempts = 20, delayMs = 100): Promise<void> {
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    try {
-      const res = await request(app).get('/api/auth/me');
-      if (res.status !== 503) {
-        return;
-      }
-    } catch {
-      // Ignore transient errors during startup and retry.
-    }
-    await new Promise(resolve => setTimeout(resolve, delayMs));
-  }
-  throw new Error('Auth services did not become ready within the expected time');
-}
-
 // ── Setup / Teardown ──────────────────────────────────────────────────────────
 
 beforeAll(async () => {
@@ -101,8 +71,6 @@ beforeAll(async () => {
   // NODE_ENV=test (set by Jest) prevents the server from binding to a TCP port.
   const server = await import('../../web/server.js');
   app = server.app;
-  // Wait deterministically for auth services to become ready instead of using a fixed timeout.
-  await waitForAuthReady();
 });
 
 afterAll(async () => {
@@ -213,66 +181,55 @@ describe('Flow 1: Complete questionnaire journey', () => {
 // ── Flow 2: User Authentication Lifecycle ────────────────────────────────────
 
 describe('Flow 2: User authentication lifecycle', () => {
-  it('registers, logs in, accesses a protected route, changes password, then logs out', async () => {
+  it('JIT-provisions a user from Authelia headers and exposes identity via /api/auth/me', async () => {
     const email = `user_${uid()}@example.com`;
-    const password = 'Secret123!';
-    const newPassword = 'NewSecret456!';
 
-    // 1. Register
-    const regRes = await request(app)
-      .post('/api/auth/register')
-      .send({ email, password, name: 'E2E User' })
-      .set('Content-Type', 'application/json');
-    expect(regRes.status).toBe(201);
-    expect(regRes.body.user.email).toBe(email);
-    const regCookie = extractCookie(regRes);
-    expect(regCookie).toBeTruthy();
-
-    // 2. Verify /api/auth/me returns the user
-    const meRes = await request(app)
+    // 1. First authenticated request — user is JIT-provisioned from proxy headers
+    const firstRes = await request(app)
       .get('/api/auth/me')
-      .set('Cookie', regCookie);
-    expect(meRes.status).toBe(200);
-    expect(meRes.body.user.email).toBe(email);
+      .set('remote-user', email)
+      .set('remote-name', 'E2E User');
+    expect(firstRes.status).toBe(200);
+    expect(firstRes.body.user.email).toBe(email);
+    expect(firstRes.body.user.name).toBe('E2E User');
+    const userId = firstRes.body.user.id as string;
+    expect(typeof userId).toBe('string');
 
-    // 3. Logout
-    const logoutRes = await request(app)
-      .post('/api/auth/logout')
-      .set('Cookie', regCookie);
-    expect(logoutRes.status).toBe(200);
-    expect(logoutRes.body.success).toBe(true);
+    // 2. Subsequent request with same headers returns the same user
+    const secondRes = await request(app)
+      .get('/api/auth/me')
+      .set('remote-user', email)
+      .set('remote-name', 'E2E User');
+    expect(secondRes.status).toBe(200);
+    expect(secondRes.body.user.id).toBe(userId);
 
-    // 4. Login with original password
-    const loginRes = await request(app)
-      .post('/api/auth/login')
-      .send({ email, password })
-      .set('Content-Type', 'application/json');
-    expect(loginRes.status).toBe(200);
-    expect(loginRes.body.user.email).toBe(email);
-    const loginCookie = extractCookie(loginRes);
+    // 3. Without headers, the guest identity is returned
+    const guestRes = await request(app).get('/api/auth/me');
+    expect(guestRes.status).toBe(200);
+    expect(guestRes.body.user.id).toBe('guest');
 
-    // 5. Change password
-    const changePwdRes = await request(app)
-      .post('/api/auth/change-password')
-      .send({ currentPassword: password, newPassword })
-      .set('Cookie', loginCookie)
-      .set('Content-Type', 'application/json');
-    expect(changePwdRes.status).toBe(200);
-    expect(changePwdRes.body.success).toBe(true);
+    // 4. Authenticated user can create and manage their own questionnaires
+    const q = makeQuestionnaire();
+    const createRes = await request(app)
+      .post('/api/questionnaires')
+      .send(q)
+      .set('Content-Type', 'application/json')
+      .set('remote-user', email);
+    expect(createRes.status).toBe(201);
+    expect(createRes.body.ownerId).toBe(userId);
 
-    // 6. Old password no longer works
-    const oldLoginRes = await request(app)
-      .post('/api/auth/login')
-      .send({ email, password })
-      .set('Content-Type', 'application/json');
-    expect(oldLoginRes.status).toBe(401);
+    // 5. The same authenticated user can retrieve the questionnaire
+    const getRes = await request(app)
+      .get(`/api/questionnaires/${q.id as string}`)
+      .set('remote-user', email);
+    expect(getRes.status).toBe(200);
 
-    // 7. New password works
-    const newLoginRes = await request(app)
-      .post('/api/auth/login')
-      .send({ email, password: newPassword })
-      .set('Content-Type', 'application/json');
-    expect(newLoginRes.status).toBe(200);
+    // 6. A different user cannot access the questionnaire (no explicit permission granted)
+    const otherEmail = `other_${uid()}@example.com`;
+    const otherRes = await request(app)
+      .get(`/api/questionnaires/${q.id as string}`)
+      .set('remote-user', otherEmail);
+    expect(otherRes.status).toBe(403);
   });
 });
 
@@ -334,78 +291,80 @@ describe('Flow 3: Questionnaire CRUD lifecycle', () => {
 // ── Flow 4: Response Analytics for Authenticated Users ───────────────────────
 
 describe('Flow 4: Response analytics flow (authenticated)', () => {
-  it('registers a user, creates questionnaire, completes two sessions, then retrieves stats, summary, and export', async () => {
-    // 1. Register and obtain auth cookie
+  it('creates questionnaire as owner, completes two sessions, then retrieves stats, summary, and export', async () => {
+    // 1. User identity via Authelia proxy headers
     const email = `analyst_${uid()}@example.com`;
-    const regRes = await request(app)
-      .post('/api/auth/register')
-      .send({ email, password: 'Analyst123!', name: 'Analyst' })
-      .set('Content-Type', 'application/json');
-    expect(regRes.status).toBe(201);
-    const authCookie = extractCookie(regRes);
+    const authHeaders = { 'remote-user': email, 'remote-name': 'Analyst' };
 
-    // 2. Create a simple questionnaire (no auth required)
+    // 2. Create a simple questionnaire as the authenticated owner
     const q = makeQuestionnaire();
-    await request(app)
+    const createRes = await request(app)
       .post('/api/questionnaires')
       .send(q)
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(authHeaders);
+    expect(createRes.status).toBe(201);
 
-    // 3. Complete the questionnaire twice
+    // 3. Complete the questionnaire twice (sessions are associated with the same owner)
     for (let i = 0; i < 2; i++) {
       const sessionRes = await request(app)
         .post('/api/sessions')
         .send({ questionnaireId: q.id })
-        .set('Content-Type', 'application/json');
+        .set('Content-Type', 'application/json')
+        .set(authHeaders);
       const { sessionId } = sessionRes.body as { sessionId: string };
 
       await request(app)
         .post(`/api/sessions/${sessionId}/answer`)
         .send({ questionId: 'q1', value: `User ${i}` })
-        .set('Content-Type', 'application/json');
+        .set('Content-Type', 'application/json')
+        .set(authHeaders);
 
       await request(app)
         .post(`/api/sessions/${sessionId}/answer`)
         .send({ questionId: 'q2', value: `user${i}@example.com` })
-        .set('Content-Type', 'application/json');
+        .set('Content-Type', 'application/json')
+        .set(authHeaders);
 
       await request(app)
         .post(`/api/sessions/${sessionId}/answer`)
         .send({ questionId: 'q3', value: 20 + i })
-        .set('Content-Type', 'application/json');
+        .set('Content-Type', 'application/json')
+        .set(authHeaders);
 
       await request(app)
         .post(`/api/sessions/${sessionId}/complete`)
         .send({})
-        .set('Content-Type', 'application/json');
+        .set('Content-Type', 'application/json')
+        .set(authHeaders);
     }
 
-    // 4. Get stats (requires auth)
+    // 4. Get stats (owner has 'manage' → includes 'view_responses')
     const statsRes = await request(app)
       .get(`/api/questionnaires/${q.id as string}/stats`)
-      .set('Cookie', authCookie);
+      .set(authHeaders);
     expect(statsRes.status).toBe(200);
     expect(statsRes.body).toHaveProperty('totalResponses');
     expect(statsRes.body.totalResponses).toBe(2);
 
-    // 5. Get summary (requires auth)
+    // 5. Get summary
     const summaryRes = await request(app)
       .get(`/api/questionnaires/${q.id as string}/summary`)
-      .set('Cookie', authCookie);
+      .set(authHeaders);
     expect(summaryRes.status).toBe(200);
     expect(summaryRes.body).toHaveProperty('questionnaireId');
 
-    // 6. Export as JSON (requires auth)
+    // 6. Export as JSON
     const exportJsonRes = await request(app)
       .get(`/api/questionnaires/${q.id as string}/export?format=json`)
-      .set('Cookie', authCookie);
+      .set(authHeaders);
     expect(exportJsonRes.status).toBe(200);
     expect(exportJsonRes.headers['content-type']).toMatch(/application\/json/);
 
-    // 7. Export as CSV (requires auth)
+    // 7. Export as CSV
     const exportCsvRes = await request(app)
       .get(`/api/questionnaires/${q.id as string}/export?format=csv`)
-      .set('Cookie', authCookie);
+      .set(authHeaders);
     expect(exportCsvRes.status).toBe(200);
     expect(exportCsvRes.headers['content-type']).toMatch(/text\/csv/);
   });
@@ -551,20 +510,24 @@ describe('Flow 7: Invalid data and error-path handling', () => {
     expect(res.status).toBe(400);
   });
 
-  it('rejects registration with missing fields', async () => {
-    const res = await request(app)
-      .post('/api/auth/register')
-      .send({ email: 'not-an-email' }) // missing password and name
-      .set('Content-Type', 'application/json');
-    expect(res.status).toBe(400);
+  it('guest identity is used when no auth headers are present', async () => {
+    const res = await request(app).get('/api/auth/me');
+    expect(res.status).toBe(200);
+    expect(res.body.user.id).toBe('guest');
   });
 
-  it('rejects login with wrong credentials', async () => {
-    const res = await request(app)
-      .post('/api/auth/login')
-      .send({ email: 'ghost@example.com', password: 'wrong' })
-      .set('Content-Type', 'application/json');
-    expect(res.status).toBe(401);
+  it('returns 403 when guest tries to access a questionnaire they do not own', async () => {
+    // Create a questionnaire as a named user (Alice)
+    const q = makeQuestionnaire();
+    await request(app)
+      .post('/api/questionnaires')
+      .send(q)
+      .set('Content-Type', 'application/json')
+      .set('remote-user', 'alice@example.com');
+
+    // Guest (no Remote-User header) cannot access Alice's questionnaire
+    const res = await request(app).get(`/api/questionnaires/${q.id as string}`);
+    expect(res.status).toBe(403);
   });
 
   it('returns 404 when getting a non-existent questionnaire', async () => {
