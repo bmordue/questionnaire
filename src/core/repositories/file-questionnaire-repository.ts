@@ -56,6 +56,7 @@ export class FileQuestionnaireRepository implements IQuestionnaireRepository {
           ...(data.tags !== undefined && { tags: data.tags }),
         },
         questions: data.questions,
+        permissions: [],
         ...(data.config !== undefined && { config: data.config }),
       };
 

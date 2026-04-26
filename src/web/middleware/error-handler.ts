@@ -5,7 +5,6 @@
  */
 
 import type { Request, Response, NextFunction } from 'express';
-import { AuthError } from '../../core/auth/auth-service.js';
 import {
   QuestionnaireNotFoundError,
   QuestionnaireValidationError,
@@ -25,12 +24,6 @@ export function errorHandler(
   // Handle malformed JSON body (Express body-parser throws SyntaxError)
   if (err instanceof SyntaxError && 'body' in (err as any)) {
     res.status(400).json({ error: 'Invalid JSON in request body' });
-    return;
-  }
-
-  if (err instanceof AuthError) {
-    const status = err.code === 'INVALID_CREDENTIALS' || err.code === 'INVALID_TOKEN' ? 401 : 400;
-    res.status(status).json({ error: err.message, code: err.code });
     return;
   }
 

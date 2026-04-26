@@ -315,9 +315,17 @@ describe('PUT /api/questionnaires/:id', () => {
   it('returns 400 when path ID does not match body ID', async () => {
     const body = makeQuestionnaire();
 
-    const res = await request(app)
-      .put('/api/questionnaires/wrong-id')
+    // Create the questionnaire so the ACL check passes
+    await request(app)
+      .post('/api/questionnaires')
       .send(body)
+      .set('Content-Type', 'application/json');
+
+    // PUT to the questionnaire's correct path, but with a different id in the body → 400
+    const mismatchedBody = { ...body, id: `${body.id as string}-different` };
+    const res = await request(app)
+      .put(`/api/questionnaires/${body.id as string}`)
+      .send(mismatchedBody)
       .set('Content-Type', 'application/json');
 
     expect(res.status).toBe(400);
@@ -325,9 +333,17 @@ describe('PUT /api/questionnaires/:id', () => {
   });
 
   it('returns 400 for invalid questionnaire body', async () => {
+    const existing = makeQuestionnaire();
+
+    // Create the questionnaire so the ACL check passes
+    await request(app)
+      .post('/api/questionnaires')
+      .send(existing)
+      .set('Content-Type', 'application/json');
+
     const res = await request(app)
-      .put('/api/questionnaires/q_test')
-      .send({ id: 'q_test' })
+      .put(`/api/questionnaires/${existing.id as string}`)
+      .send({ id: existing.id }) // missing required fields → 400
       .set('Content-Type', 'application/json');
 
     expect(res.status).toBe(400);
@@ -356,8 +372,14 @@ describe('DELETE /api/questionnaires/:id', () => {
 // ── GET /api/responses ────────────────────────────────────────────────────────
 
 describe('GET /api/responses', () => {
-  it('returns empty array when no responses exist', async () => {
-    const res = await request(app).get('/api/responses');
+  it('returns empty array when no responses exist for a questionnaire', async () => {
+    const q = makeQuestionnaire();
+    await request(app)
+      .post('/api/questionnaires')
+      .send(q)
+      .set('Content-Type', 'application/json');
+
+    const res = await request(app).get(`/api/responses?questionnaireId=${q.id as string}`);
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual([]);
@@ -629,7 +651,7 @@ describe('POST /api/sessions/:sessionId/complete', () => {
       .send({})
       .set('Content-Type', 'application/json');
 
-    const listRes = await request(app).get('/api/responses');
+    const listRes = await request(app).get(`/api/responses?questionnaireId=${q.id as string}`);
     expect(listRes.status).toBe(200);
     expect(listRes.body.length).toBeGreaterThan(0);
 
@@ -690,7 +712,7 @@ describe('Full run-questionnaire → view-response flow', () => {
 
     // 6. Fetch all responses — the UI (responses.html) does this to build the list
     //    and then searches for r.sessionId === sessionId
-    const listRes = await request(app).get('/api/responses');
+    const listRes = await request(app).get(`/api/responses?questionnaireId=${q.id as string}`);
     expect(listRes.status).toBe(200);
     const found = (listRes.body as Array<{ sessionId: string; questionnaireId: string; status: string; answers: unknown[] }>)
       .find(r => r.sessionId === sessionId);

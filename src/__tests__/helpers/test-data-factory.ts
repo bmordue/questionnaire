@@ -153,6 +153,7 @@ export class TestDataFactory {
         this.createValidTextQuestion({ id: 'q1' }),
         this.createValidNumberQuestion({ id: 'q2' })
       ],
+      permissions: [],
       ...overrides
     };
   }
@@ -203,7 +204,8 @@ export class TestDataFactory {
         createdAt: now,
         updatedAt: now
       },
-      questions
+      questions,
+      permissions: []
     };
   }
 

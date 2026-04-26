@@ -13,6 +13,7 @@ describe('MarkdownConverter', () => {
       createdAt: '2025-10-27T10:00:00.000Z',
       updatedAt: '2025-10-27T10:00:00.000Z'
     },
+    permissions: [],
     questions: [
       {
         id: 'q1',

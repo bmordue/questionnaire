@@ -28,6 +28,7 @@ const advancedQuestionnaire: Questionnaire = {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   },
+  permissions: [],
   questions: [
     {
       id: 'age',
