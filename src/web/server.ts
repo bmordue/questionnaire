@@ -30,7 +30,7 @@ import type { Answer } from '../core/schemas/response.js';
 import type { RuntimeUser } from '../core/schemas/user.js';
 import { FileUserRepository } from '../core/repositories/file-user-repository.js';
 import { ReviewService } from '../core/services/review-service.js';
-import { loadUser, requireAuth } from './middleware/auth.js';
+import { loadUser, requireAuth, requireProxyAuth } from './middleware/auth.js';
 import { requireQuestionnairePermission, requireSessionOwner } from './middleware/acl.js';
 import { errorHandler } from './middleware/error-handler.js';
 
@@ -167,7 +167,11 @@ app.use((_req, res, next) => {
   next();
 });
 
-// Parse cookies manually (no external cookie-parser needed; loadUser handles it)
+// Enforce proxy authentication headers in production (defense in depth).
+// In development/test this is a no-op; set REQUIRE_PROXY_AUTH=true to enable it explicitly.
+app.use(requireProxyAuth);
+
+// Resolve user identity from Authelia proxy headers (or dev stub / guest sentinel).
 app.use(loadUser(userRepository));
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -681,8 +685,21 @@ export default app;
 
 // Only start the HTTP server when running locally (not in a Vercel deployment or test environment)
 if (!isVercel && NODE_ENV !== 'test') {
-  app.listen(PORT, () => {
-    console.log(`Questionnaire web server running at http://localhost:${PORT}`);
+  // Bind to 127.0.0.1 in production so the service is only reachable via the
+  // nginx reverse proxy. In development, bind to all interfaces for convenience.
+  const HOST = NODE_ENV === 'production' ? '127.0.0.1' : '0.0.0.0';
+  app.listen(PORT, HOST, () => {
+    console.log(`Questionnaire web server running at http://${HOST}:${PORT}`);
     console.log(`Data directory: ${DATA_DIR}`);
+    if (NODE_ENV === 'production') {
+      console.log('[auth] Production mode: requests without proxy headers will be rejected');
+    } else {
+      const stub = process.env['DEV_STUB_USER'];
+      if (stub) {
+        console.log(`[auth] DEV_STUB_USER is set — stub identity active (${stub.split(':')[0] ?? 'unknown'})`);
+      } else {
+        console.log('[auth] Development mode: no DEV_STUB_USER set; unauthenticated requests use the guest identity');
+      }
+    }
   });
 }
