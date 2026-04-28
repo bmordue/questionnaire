@@ -100,7 +100,7 @@ describe('Property-Based Tests: Validation Utilities', () => {
           fc.double({ min: -1e6, max: 1e6, noNaN: true }),
           fc.double({ min: -1e6, max: 1e6, noNaN: true }),
           (a, b, c) => {
-            const sorted = [a, b, c].sort((x, y) => x - y);
+            const sorted = [a, b, c].sort((x, y) => x - y) as [number, number, number];
             const [min, value, max] = sorted;
             expect(isInRange(value, min, max)).toBe(true);
           }
