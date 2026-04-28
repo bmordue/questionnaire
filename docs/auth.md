@@ -36,13 +36,19 @@ questionnaire service  (binds to 127.0.0.1:3000)
 |------------------|----------------|--------------------------------------------|
 | `Remote-User`    | Authelia/nginx | Primary identity — the user's email        |
 | `Remote-Name`    | Authelia/nginx | Display name                               |
-| `Remote-Email`   | Authelia/nginx | Alternative email field (fallback)         |
+| `Remote-Email`   | Authelia/nginx | Fallback email (used only when `Remote-User` is absent) |
 | `Remote-Groups`  | Authelia/nginx | Comma-separated list of group memberships  |
+
+**Header resolution order** per request:
+
+1. `Remote-User` (preferred) — set by Authelia after forward-auth succeeds
+2. `Remote-Email` — fallback for oauth2-proxy deployments that use this header instead
+3. `DEV_STUB_USER` environment variable — development-only stub (ignored in production)
+4. Guest sentinel — used when none of the above are present (no auth headers, no stub)
 
 The service reads these headers in `src/web/middleware/auth.ts` via the `loadUser` middleware.
 User records are provisioned just-in-time on the first authenticated request.
-
-The `Remote-Email` header is accepted as a fallback when `Remote-User` is absent, for compatibility with oauth2-proxy deployments that use that naming convention.
+All emails from headers are normalised to lowercase before storage or comparison.
 
 ---
 

@@ -142,7 +142,7 @@ export function loadUser(userRepository: FileUserRepository) {
         req.headers[HEADER_REMOTE_USER] ??
         req.headers[HEADER_REMOTE_EMAIL];
 
-      const email = typeof rawEmail === 'string' ? rawEmail.trim() : '';
+      const email = typeof rawEmail === 'string' ? rawEmail.trim().toLowerCase() : '';
 
       if (email !== '') {
         const name = (typeof req.headers[HEADER_REMOTE_NAME] === 'string'
@@ -159,7 +159,7 @@ export function loadUser(userRepository: FileUserRepository) {
 
         const runtimeUser: RuntimeUser = { ...user, groups };
         res.locals['user'] = runtimeUser;
-        console.log(`[auth] principal="${email}" method=${req.method} path=${req.path}`);
+        console.log(`[auth] principal="${email}" method=${req.method} path=${req.originalUrl}`);
       } else {
         // Check for development stub identity
         const stub = parseDevStubUser();
@@ -167,11 +167,11 @@ export function loadUser(userRepository: FileUserRepository) {
           const user = await userRepository.findOrCreate(stub.email.toLowerCase(), stub.name);
           const runtimeUser: RuntimeUser = { ...user, groups: stub.groups };
           res.locals['user'] = runtimeUser;
-          console.log(`[auth] stub principal="${stub.email}" method=${req.method} path=${req.path}`);
+          console.log(`[auth] stub principal="${stub.email}" method=${req.method} path=${req.originalUrl}`);
         } else {
           // No authentication headers and no stub — treat as guest
           res.locals['user'] = GUEST_USER;
-          console.log(`[auth] principal=guest method=${req.method} path=${req.path}`);
+          console.log(`[auth] principal=guest method=${req.method} path=${req.originalUrl}`);
         }
       }
     } catch {
