@@ -44,19 +44,17 @@ The **manifest** records:
 import { BackupConfig } from './src/core/backup/index.js';
 
 const config: BackupConfig = {
-  intervalMs: 3600000,       // 1 hour between automatic backups
   maxBackups: 10,            // Retain the 10 most recent backups
   backupDirectory: './backups',
   verifyAfterCreate: true,   // Verify integrity after each backup
 };
 ```
 
-| Setting            | Default  | Description                                    |
-|--------------------|----------|------------------------------------------------|
-| `intervalMs`       | —        | Milliseconds between scheduled backups         |
-| `maxBackups`       | —        | Number of backups to keep (oldest pruned)       |
-| `backupDirectory`  | —        | Filesystem path for backup storage             |
-| `verifyAfterCreate`| `true`   | Run verification immediately after backup      |
+| Setting            | Default  | Description                                              |
+|--------------------|----------|----------------------------------------------------------|
+| `maxBackups`       | —        | Number of backups to keep (oldest pruned)                |
+| `backupDirectory`  | —        | Filesystem path for backup storage                       |
+| `verifyAfterCreate`| —        | Run verification immediately after backup; must be set explicitly |
 
 ## Creating a Manual Backup
 
@@ -66,7 +64,6 @@ import { createStorageService } from './src/core/storage.js';
 
 const storage = await createStorageService();
 const backupService = new BackupService(storage, {
-  intervalMs: 0,
   maxBackups: 10,
   backupDirectory: './backups',
   verifyAfterCreate: true,
@@ -134,10 +131,14 @@ if (result.success) {
 ```
 
 Restore process:
-1. Reads the backup manifest
+1. Reads the backup manifest and verifies the backup ID matches
 2. Restores questionnaires via `StorageService.saveQuestionnaire()`
 3. Restores responses via `StorageService.saveResponse()`
 4. Restores sessions by writing files directly to the sessions directory
+
+> **Note**: Session restore only works with file-based `StorageService`
+> implementations (e.g. `FileStorageService`). Non-file backends like
+> `BackendStorageService` are not supported for session restore.
 
 ## RPO / RTO
 

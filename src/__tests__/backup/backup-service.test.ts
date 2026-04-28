@@ -44,7 +44,6 @@ describe('Backup System', () => {
     });
 
     config = {
-      intervalMs: 60000,
       maxBackups: 3,
       backupDirectory: dirs.backupDir,
       verifyAfterCreate: false,
@@ -66,7 +65,7 @@ describe('Backup System', () => {
       const result = await backupService.createBackup();
 
       expect(result.success).toBe(true);
-      expect(result.backupId).toMatch(/^backup-\d+$/);
+      expect(result.backupId).toMatch(/^backup-\d+-[0-9a-f]+$/);
       expect(result.counts.questionnaires).toBe(0);
       expect(result.counts.responses).toBe(0);
       expect(result.counts.sessions).toBe(0);
@@ -311,7 +310,7 @@ describe('Backup System', () => {
       const result = await scheduler.triggerNow();
 
       expect(result.success).toBe(true);
-      expect(result.backupId).toMatch(/^backup-\d+$/);
+      expect(result.backupId).toMatch(/^backup-\d+-[0-9a-f]+$/);
     });
 
     it('should run scheduled backups', async () => {

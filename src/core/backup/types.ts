@@ -4,8 +4,6 @@
 
 /** Backup configuration */
 export interface BackupConfig {
-  /** Interval between automatic backups in milliseconds */
-  intervalMs: number;
   /** Maximum number of full backups to retain */
   maxBackups: number;
   /** Directory to store backup archives */

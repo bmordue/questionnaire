@@ -7,8 +7,10 @@
 
 import { promises as fs } from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import type { StorageService } from '../storage/types.js';
 import type { BackupConfig, BackupResult, BackupManifest } from './types.js';
+import { verifyBackup } from './backup-verification.js';
 
 export class BackupService {
   private readonly storageService: StorageService;
@@ -24,7 +26,8 @@ export class BackupService {
    */
   async createBackup(): Promise<BackupResult> {
     const timestamp = Date.now();
-    const backupId = `backup-${timestamp}`;
+    const suffix = crypto.randomBytes(4).toString('hex');
+    const backupId = `backup-${timestamp}-${suffix}`;
     const backupPath = path.join(this.config.backupDirectory, backupId);
     const errors: string[] = [];
 
@@ -102,8 +105,16 @@ export class BackupService {
       // Clean up old backups
       await this.cleanupOldBackups();
 
+      // Verify if configured
+      if (this.config.verifyAfterCreate) {
+        const verification = await verifyBackup(backupPath);
+        if (!verification.valid) {
+          errors.push(...verification.errors.map(e => `Verification: ${e}`));
+        }
+      }
+
       return {
-        success: true,
+        success: errors.length === 0,
         backupId,
         backupPath,
         createdAt: manifest.createdAt,

@@ -26,6 +26,21 @@ export async function verifyBackup(backupPath: string): Promise<BackupVerificati
     if (!manifest.version || !manifest.backupId || !manifest.createdAt) {
       errors.push('Manifest is missing required fields');
     }
+
+    if (
+      !manifest.counts ||
+      typeof manifest.counts !== 'object' ||
+      typeof manifest.counts.questionnaires !== 'number' ||
+      typeof manifest.counts.responses !== 'number' ||
+      typeof manifest.counts.sessions !== 'number'
+    ) {
+      return {
+        valid: false,
+        backupId,
+        counts,
+        errors: [...errors, 'Manifest is missing or has invalid counts'],
+      };
+    }
   } catch (err) {
     return {
       valid: false,
