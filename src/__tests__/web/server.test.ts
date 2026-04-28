@@ -21,6 +21,12 @@ const { app } = await import('../../web/server.js');
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+/** Default proxy headers injected as if Authelia authenticated the request. */
+const AUTH_HEADERS = {
+  'remote-user': 'test@example.com',
+  'remote-name': 'Test User',
+};
+
 let idCounter = 0;
 
 function makeQuestionnaire(overrides: Record<string, unknown> = {}): Record<string, unknown> {
@@ -92,7 +98,8 @@ describe('POST /api/questionnaires', () => {
     const res = await request(app)
       .post('/api/questionnaires')
       .send(body)
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
     expect(res.status).toBe(201);
     expect(res.body).toMatchObject({
@@ -151,7 +158,8 @@ describe('POST /api/questionnaires', () => {
     const res = await request(app)
       .post('/api/questionnaires')
       .send(body)
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
     expect(res.status).toBe(201);
     expect(res.body.questions).toHaveLength(8);
@@ -175,7 +183,8 @@ describe('POST /api/questionnaires', () => {
     const res = await request(app)
       .post('/api/questionnaires')
       .send(body)
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
     expect(res.status).toBe(201);
   });
@@ -184,7 +193,8 @@ describe('POST /api/questionnaires', () => {
     const res = await request(app)
       .post('/api/questionnaires')
       .send({ id: 'q_bad' })
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
     expect(res.status).toBe(400);
     expect(res.body).toMatchObject({ error: 'Invalid questionnaire' });
@@ -202,7 +212,8 @@ describe('POST /api/questionnaires', () => {
     const res = await request(app)
       .post('/api/questionnaires')
       .send(body)
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
     expect(res.status).toBe(400);
   });
@@ -219,7 +230,8 @@ describe('POST /api/questionnaires', () => {
     const res = await request(app)
       .post('/api/questionnaires')
       .send(body)
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
     expect(res.status).toBe(400);
   });
@@ -228,9 +240,20 @@ describe('POST /api/questionnaires', () => {
     const res = await request(app)
       .post('/api/questionnaires')
       .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS)
       .send('{ invalid json }');
 
     expect(res.status).toBe(400);
+  });
+
+  it('returns 401 when no proxy auth headers are present', async () => {
+    const body = makeQuestionnaire();
+    const res = await request(app)
+      .post('/api/questionnaires')
+      .send(body)
+      .set('Content-Type', 'application/json');
+    // No AUTH_HEADERS — guest identity → requireAuth rejects
+    expect(res.status).toBe(401);
   });
 });
 
@@ -238,7 +261,9 @@ describe('POST /api/questionnaires', () => {
 
 describe('GET /api/questionnaires', () => {
   it('returns empty array when no questionnaires exist', async () => {
-    const res = await request(app).get('/api/questionnaires');
+    const res = await request(app)
+      .get('/api/questionnaires')
+      .set(AUTH_HEADERS);
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual([]);
@@ -250,13 +275,21 @@ describe('GET /api/questionnaires', () => {
     await request(app)
       .post('/api/questionnaires')
       .send(body)
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
-    const res = await request(app).get('/api/questionnaires');
+    const res = await request(app)
+      .get('/api/questionnaires')
+      .set(AUTH_HEADERS);
 
     expect(res.status).toBe(200);
     expect(res.body).toHaveLength(1);
     expect(res.body[0]).toMatchObject({ id: body.id });
+  });
+
+  it('returns 401 when no proxy auth headers are present', async () => {
+    const res = await request(app).get('/api/questionnaires');
+    expect(res.status).toBe(401);
   });
 });
 
@@ -269,9 +302,12 @@ describe('GET /api/questionnaires/:id', () => {
     await request(app)
       .post('/api/questionnaires')
       .send(body)
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
-    const res = await request(app).get(`/api/questionnaires/${body.id as string}`);
+    const res = await request(app)
+      .get(`/api/questionnaires/${body.id as string}`)
+      .set(AUTH_HEADERS);
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
@@ -281,7 +317,9 @@ describe('GET /api/questionnaires/:id', () => {
   });
 
   it('returns 404 for non-existent questionnaire', async () => {
-    const res = await request(app).get('/api/questionnaires/does-not-exist');
+    const res = await request(app)
+      .get('/api/questionnaires/does-not-exist')
+      .set(AUTH_HEADERS);
 
     expect(res.status).toBe(404);
   });
@@ -296,7 +334,8 @@ describe('PUT /api/questionnaires/:id', () => {
     await request(app)
       .post('/api/questionnaires')
       .send(body)
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
     const updated = {
       ...body,
@@ -306,7 +345,8 @@ describe('PUT /api/questionnaires/:id', () => {
     const res = await request(app)
       .put(`/api/questionnaires/${body.id as string}`)
       .send(updated)
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
     expect(res.status).toBe(200);
     expect(res.body.metadata.title).toBe('Updated Title');
@@ -319,14 +359,16 @@ describe('PUT /api/questionnaires/:id', () => {
     await request(app)
       .post('/api/questionnaires')
       .send(body)
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
     // PUT to the questionnaire's correct path, but with a different id in the body → 400
     const mismatchedBody = { ...body, id: `${body.id as string}-different` };
     const res = await request(app)
       .put(`/api/questionnaires/${body.id as string}`)
       .send(mismatchedBody)
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
     expect(res.status).toBe(400);
     expect(res.body).toMatchObject({ error: expect.stringContaining('ID') });
@@ -339,12 +381,14 @@ describe('PUT /api/questionnaires/:id', () => {
     await request(app)
       .post('/api/questionnaires')
       .send(existing)
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
     const res = await request(app)
       .put(`/api/questionnaires/${existing.id as string}`)
       .send({ id: existing.id }) // missing required fields → 400
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
     expect(res.status).toBe(400);
   });
@@ -359,12 +403,17 @@ describe('DELETE /api/questionnaires/:id', () => {
     await request(app)
       .post('/api/questionnaires')
       .send(body)
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
-    const deleteRes = await request(app).delete(`/api/questionnaires/${body.id as string}`);
+    const deleteRes = await request(app)
+      .delete(`/api/questionnaires/${body.id as string}`)
+      .set(AUTH_HEADERS);
     expect(deleteRes.status).toBe(204);
 
-    const getRes = await request(app).get(`/api/questionnaires/${body.id as string}`);
+    const getRes = await request(app)
+      .get(`/api/questionnaires/${body.id as string}`)
+      .set(AUTH_HEADERS);
     expect(getRes.status).toBe(404);
   });
 });
@@ -377,9 +426,12 @@ describe('GET /api/responses', () => {
     await request(app)
       .post('/api/questionnaires')
       .send(q)
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
-    const res = await request(app).get(`/api/responses?questionnaireId=${q.id as string}`);
+    const res = await request(app)
+      .get(`/api/responses?questionnaireId=${q.id as string}`)
+      .set(AUTH_HEADERS);
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual([]);
@@ -390,7 +442,9 @@ describe('GET /api/responses', () => {
 
 describe('GET /api/responses/:id', () => {
   it('returns 404 for non-existent response', async () => {
-    const res = await request(app).get('/api/responses/does-not-exist');
+    const res = await request(app)
+      .get('/api/responses/does-not-exist')
+      .set(AUTH_HEADERS);
 
     expect(res.status).toBe(404);
   });
@@ -401,18 +455,22 @@ describe('GET /api/responses/:id', () => {
     await request(app)
       .post('/api/questionnaires')
       .send(q)
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
     // Start a session
     const sessionRes = await request(app)
       .post('/api/sessions')
       .send({ questionnaireId: q.id })
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
     expect(sessionRes.status).toBe(201);
     const { sessionId } = sessionRes.body as { sessionId: string };
 
     // Fetch the response using the session ID
-    const res = await request(app).get(`/api/responses/${sessionId}`);
+    const res = await request(app)
+      .get(`/api/responses/${sessionId}`)
+      .set(AUTH_HEADERS);
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
       questionnaireId: q.id,
@@ -427,7 +485,8 @@ describe('POST /api/sessions', () => {
     const res = await request(app)
       .post('/api/sessions')
       .send({})
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
     expect(res.status).toBe(400);
     expect(res.body).toMatchObject({ error: expect.stringContaining('questionnaireId') });
@@ -437,7 +496,8 @@ describe('POST /api/sessions', () => {
     const res = await request(app)
       .post('/api/sessions')
       .send({ questionnaireId: 'non-existent-id' })
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
     expect(res.status).toBe(404);
   });
@@ -447,16 +507,27 @@ describe('POST /api/sessions', () => {
     await request(app)
       .post('/api/questionnaires')
       .send(q)
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
     const res = await request(app)
       .post('/api/sessions')
       .send({ questionnaireId: q.id })
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
     expect(res.status).toBe(201);
     expect(res.body).toHaveProperty('sessionId');
     expect(typeof res.body.sessionId).toBe('string');
+  });
+
+  it('returns 401 when no proxy auth headers are present', async () => {
+    const res = await request(app)
+      .post('/api/sessions')
+      .send({ questionnaireId: 'any-id' })
+      .set('Content-Type', 'application/json');
+    // No AUTH_HEADERS — guest identity → requireAuth rejects
+    expect(res.status).toBe(401);
   });
 });
 
@@ -474,15 +545,19 @@ describe('GET /api/sessions/:sessionId', () => {
     await request(app)
       .post('/api/questionnaires')
       .send(q)
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
     const sessionRes = await request(app)
       .post('/api/sessions')
       .send({ questionnaireId: q.id })
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
     const { sessionId } = sessionRes.body as { sessionId: string };
 
-    const res = await request(app).get(`/api/sessions/${sessionId}`);
+    const res = await request(app)
+      .get(`/api/sessions/${sessionId}`)
+      .set(AUTH_HEADERS);
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
@@ -514,18 +589,21 @@ describe('POST /api/sessions/:sessionId/answer', () => {
     await request(app)
       .post('/api/questionnaires')
       .send(q)
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
     const sessionRes = await request(app)
       .post('/api/sessions')
       .send({ questionnaireId: q.id })
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
     const { sessionId } = sessionRes.body as { sessionId: string };
 
     const res = await request(app)
       .post(`/api/sessions/${sessionId}/answer`)
       .send({ value: 'hello' })
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
     expect(res.status).toBe(400);
     expect(res.body).toMatchObject({ error: expect.stringContaining('questionId') });
@@ -536,18 +614,21 @@ describe('POST /api/sessions/:sessionId/answer', () => {
     await request(app)
       .post('/api/questionnaires')
       .send(q)
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
     const sessionRes = await request(app)
       .post('/api/sessions')
       .send({ questionnaireId: q.id })
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
     const { sessionId } = sessionRes.body as { sessionId: string };
 
     const res = await request(app)
       .post(`/api/sessions/${sessionId}/answer`)
       .send({ questionId: 'q1', value: 'Test Answer' })
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
@@ -568,18 +649,21 @@ describe('POST /api/sessions/:sessionId/answer', () => {
     await request(app)
       .post('/api/questionnaires')
       .send(q)
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
     const sessionRes = await request(app)
       .post('/api/sessions')
       .send({ questionnaireId: q.id })
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
     const { sessionId } = sessionRes.body as { sessionId: string };
 
     const res = await request(app)
       .post(`/api/sessions/${sessionId}/answer`)
       .send({ questionId: 'q1', value: 'First Answer' })
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
@@ -607,18 +691,21 @@ describe('POST /api/sessions/:sessionId/complete', () => {
     await request(app)
       .post('/api/questionnaires')
       .send(q)
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
     const sessionRes = await request(app)
       .post('/api/sessions')
       .send({ questionnaireId: q.id })
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
     const { sessionId } = sessionRes.body as { sessionId: string };
 
     const res = await request(app)
       .post(`/api/sessions/${sessionId}/complete`)
       .send({})
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ success: true });
@@ -628,7 +715,9 @@ describe('POST /api/sessions/:sessionId/complete', () => {
     expect(typeof completedSessionId).toBe('string');
     expect(completedSessionId.length).toBeGreaterThan(0);
 
-    const getRes = await request(app).get(`/api/responses/${completedSessionId}`);
+    const getRes = await request(app)
+      .get(`/api/responses/${completedSessionId}`)
+      .set(AUTH_HEADERS);
     expect(getRes.status).toBe(200);
     expect(getRes.body).toMatchObject({ questionnaireId: q.id });
   });
@@ -638,24 +727,31 @@ describe('POST /api/sessions/:sessionId/complete', () => {
     await request(app)
       .post('/api/questionnaires')
       .send(q)
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
     const sessionRes = await request(app)
       .post('/api/sessions')
       .send({ questionnaireId: q.id })
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
     const { sessionId } = sessionRes.body as { sessionId: string };
 
     await request(app)
       .post(`/api/sessions/${sessionId}/complete`)
       .send({})
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
-    const listRes = await request(app).get(`/api/responses?questionnaireId=${q.id as string}`);
+    const listRes = await request(app)
+      .get(`/api/responses?questionnaireId=${q.id as string}`)
+      .set(AUTH_HEADERS);
     expect(listRes.status).toBe(200);
     expect(listRes.body.length).toBeGreaterThan(0);
 
-    const filterRes = await request(app).get(`/api/responses?questionnaireId=${q.id as string}`);
+    const filterRes = await request(app)
+      .get(`/api/responses?questionnaireId=${q.id as string}`)
+      .set(AUTH_HEADERS);
     expect(filterRes.status).toBe(200);
     expect(filterRes.body).toHaveLength(1);
     expect(filterRes.body[0]).toMatchObject({ questionnaireId: q.id });
@@ -676,13 +772,15 @@ describe('Full run-questionnaire → view-response flow', () => {
     await request(app)
       .post('/api/questionnaires')
       .send(q)
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
     // 2. Start session
     const sessionRes = await request(app)
       .post('/api/sessions')
       .send({ questionnaireId: q.id })
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
     expect(sessionRes.status).toBe(201);
     const { sessionId } = sessionRes.body as { sessionId: string };
 
@@ -690,7 +788,8 @@ describe('Full run-questionnaire → view-response flow', () => {
     const ans1 = await request(app)
       .post(`/api/sessions/${sessionId}/answer`)
       .send({ questionId: 'q1', value: 'Alice' })
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
     expect(ans1.status).toBe(200);
     expect(ans1.body.isComplete).toBe(false);
 
@@ -698,7 +797,8 @@ describe('Full run-questionnaire → view-response flow', () => {
     const ans2 = await request(app)
       .post(`/api/sessions/${sessionId}/answer`)
       .send({ questionId: 'q2', value: '30' })
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
     expect(ans2.status).toBe(200);
     expect(ans2.body.isComplete).toBe(true);
 
@@ -706,13 +806,16 @@ describe('Full run-questionnaire → view-response flow', () => {
     const completeRes = await request(app)
       .post(`/api/sessions/${sessionId}/complete`)
       .send({})
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
     expect(completeRes.status).toBe(200);
     expect(completeRes.body).toMatchObject({ success: true, sessionId });
 
     // 6. Fetch all responses — the UI (responses.html) does this to build the list
     //    and then searches for r.sessionId === sessionId
-    const listRes = await request(app).get(`/api/responses?questionnaireId=${q.id as string}`);
+    const listRes = await request(app)
+      .get(`/api/responses?questionnaireId=${q.id as string}`)
+      .set(AUTH_HEADERS);
     expect(listRes.status).toBe(200);
     const found = (listRes.body as Array<{ sessionId: string; questionnaireId: string; status: string; answers: unknown[] }>)
       .find(r => r.sessionId === sessionId);
@@ -725,7 +828,9 @@ describe('Full run-questionnaire → view-response flow', () => {
     expect(found!.answers).toHaveLength(2);
 
     // 7. Fetch the response directly by sessionId (as GET /api/responses/:id does)
-    const directRes = await request(app).get(`/api/responses/${sessionId}`);
+    const directRes = await request(app)
+      .get(`/api/responses/${sessionId}`)
+      .set(AUTH_HEADERS);
     expect(directRes.status).toBe(200);
     expect(directRes.body).toMatchObject({
       questionnaireId: q.id,
@@ -735,3 +840,4 @@ describe('Full run-questionnaire → view-response flow', () => {
     expect(directRes.body.answers).toHaveLength(2);
   });
 });
+
