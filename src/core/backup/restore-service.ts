@@ -9,7 +9,6 @@ import path from 'path';
 import type { StorageService } from '../storage/types.js';
 import type { BackupManifest, RestoreResult } from './types.js';
 import type { Questionnaire, QuestionnaireResponse } from '../schema.js';
-import type { SessionData } from '../storage/types.js';
 
 export class RestoreService {
   private readonly backupDirectory: string;
@@ -78,18 +77,20 @@ export class RestoreService {
       // No responses directory
     }
 
-    // Restore sessions
+    // Restore sessions by writing files directly to the sessions directory.
+    // The StorageService.createSession() generates a new sessionId which would
+    // not match the backed-up sessionId, so we write session files directly.
     try {
       const sDir = path.join(backupPath, 'sessions');
       const files = await fs.readdir(sDir);
+      const sessionsDir = path.join(storageService.getDataDirectory(), 'sessions');
+      await fs.mkdir(sessionsDir, { recursive: true });
       for (const file of files) {
         if (!file.endsWith('.json')) continue;
         try {
           const content = await fs.readFile(path.join(sDir, file), 'utf-8');
-          const session = JSON.parse(content) as SessionData;
-          // Create session then update with full data
-          await storageService.createSession(session.questionnaireId);
-          await storageService.updateSession(session.sessionId, session);
+          JSON.parse(content); // Validate JSON
+          await fs.writeFile(path.join(sessionsDir, file), content, 'utf-8');
           counts.sessions++;
         } catch (err) {
           errors.push(`Failed to restore session ${file}: ${String(err)}`);

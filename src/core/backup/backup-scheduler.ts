@@ -11,6 +11,7 @@ export class BackupScheduler {
   private readonly backupService: BackupService;
   private readonly intervalMs: number;
   private timer: ReturnType<typeof setInterval> | null = null;
+  private running = false;
 
   constructor(backupService: BackupService, intervalMs: number) {
     this.backupService = backupService;
@@ -21,6 +22,7 @@ export class BackupScheduler {
   start(): void {
     if (this.timer) return;
     this.timer = setInterval(() => {
+      if (this.running) return; // Skip if a backup is already in progress
       void this.runBackup();
     }, this.intervalMs);
   }
@@ -44,6 +46,7 @@ export class BackupScheduler {
   }
 
   private async runBackup(): Promise<BackupResult> {
+    this.running = true;
     try {
       const result = await this.backupService.createBackup();
       if (result.success) {
@@ -55,6 +58,8 @@ export class BackupScheduler {
     } catch (err) {
       console.error(`Backup error: ${String(err)}`);
       throw err;
+    } finally {
+      this.running = false;
     }
   }
 }
