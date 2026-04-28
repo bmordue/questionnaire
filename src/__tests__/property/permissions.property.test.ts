@@ -16,8 +16,9 @@ describe('Property-Based Tests: Permissions', () => {
         fc.property(
           fc.string({ minLength: 1 }),
           (userId) => {
+            const adminGroup = process.env.ADMIN_GROUP ?? 'admins';
             const questionnaire = TestDataFactory.createValidQuestionnaire();
-            const result = resolvePermission(questionnaire, userId, ['admins']);
+            const result = resolvePermission(questionnaire, userId, [adminGroup]);
             expect(result).toBe('manage');
           }
         )
