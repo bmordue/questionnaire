@@ -9,8 +9,17 @@
  * Users are provisioned just-in-time: on the first authenticated request for
  * a previously-unknown email, a User record is created in the local store.
  *
- * Production mode (NODE_ENV=production or REQUIRE_PROXY_AUTH=true):
- *   requireProxyAuth() rejects any request arriving without identity headers.
+ * Requests that arrive without any identity headers are processed as the
+ * built-in guest user (see GUEST_USER). The guest sentinel has no group
+ * memberships and therefore no admin or ownership privileges; protected
+ * endpoints still gate access via requireAuth and per-resource ACL checks.
+ *
+ * Optional strict mode:
+ *   requireProxyAuth() is exported for deployments that want to reject
+ *   unauthenticated requests outright (defense in depth behind a proxy).
+ *   It is no longer registered by default; opt in by calling it explicitly
+ *   in the middleware stack. It is gated by NODE_ENV=production or
+ *   REQUIRE_PROXY_AUTH=true.
  *
  * Development/local mode:
  *   Set DEV_STUB_USER="email:Display Name:group1,group2" to inject a fake
@@ -99,12 +108,16 @@ function parseDevStubUser(): { email: string; name: string; groups: string[] } |
 }
 
 /**
- * Middleware: enforce that every request carries Authelia proxy headers.
+ * Optional strict-mode middleware: enforce that every request carries Authelia
+ * proxy headers.
  *
- * Active when NODE_ENV=production or REQUIRE_PROXY_AUTH=true.
- * Must be registered early in the middleware stack, before route handlers.
- * Returns 401 if the Remote-User header is absent, which in production means
- * the request bypassed the nginx → Authelia forward-auth layer.
+ * Active when NODE_ENV=production or REQUIRE_PROXY_AUTH=true (otherwise it is
+ * a pass-through). Returns 401 if the Remote-User header is absent.
+ *
+ * This middleware is **not** registered by default — by default, requests
+ * without identity headers fall through to the guest identity in loadUser.
+ * Call this explicitly in your middleware stack if you want to reject
+ * unauthenticated requests as a defense-in-depth measure.
  */
 export function requireProxyAuth(req: Request, res: Response, next: NextFunction): void {
   if (!proxyAuthRequired()) {

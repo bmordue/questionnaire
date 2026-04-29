@@ -30,7 +30,7 @@ import type { Answer } from '../core/schemas/response.js';
 import type { RuntimeUser } from '../core/schemas/user.js';
 import { FileUserRepository } from '../core/repositories/file-user-repository.js';
 import { ReviewService } from '../core/services/review-service.js';
-import { loadUser, requireAuth, requireProxyAuth } from './middleware/auth.js';
+import { loadUser, requireAuth } from './middleware/auth.js';
 import { requireQuestionnairePermission, requireSessionOwner } from './middleware/acl.js';
 import { errorHandler } from './middleware/error-handler.js';
 
@@ -167,11 +167,9 @@ app.use((_req, res, next) => {
   next();
 });
 
-// Enforce proxy authentication headers in production (defense in depth).
-// In development/test this is a no-op; set REQUIRE_PROXY_AUTH=true to enable it explicitly.
-app.use(requireProxyAuth);
-
 // Resolve user identity from Authelia proxy headers (or dev stub / guest sentinel).
+// Requests without identity headers are treated as the built-in guest user; protected
+// endpoints still gate access via requireAuth and per-resource ACL checks.
 app.use(loadUser(userRepository));
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -692,7 +690,7 @@ if (!isVercel && NODE_ENV !== 'test') {
     console.log(`Questionnaire web server running at http://${HOST}:${PORT}`);
     console.log(`Data directory: ${DATA_DIR}`);
     if (NODE_ENV === 'production') {
-      console.log('[auth] Production mode: requests without proxy headers will be rejected');
+      console.log('[auth] Production mode: requests without proxy headers are processed as the guest identity');
     } else {
       const stub = process.env['DEV_STUB_USER'];
       if (stub) {
