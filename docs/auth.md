@@ -161,7 +161,7 @@ const accessToken = req.headers['x-forwarded-access-token'];
 | Variable             | Default          | Description                                                              |
 |----------------------|------------------|--------------------------------------------------------------------------|
 | `NODE_ENV`           | `development`    | Set to `production` for production-style binding (127.0.0.1) and logging |
-| `REQUIRE_PROXY_AUTH` | (unset)          | Reserved for the optional `requireProxyAuth` middleware (not registered by default) |
+| `REQUIRE_PROXY_AUTH` | (unset)          | When `true`, disables `DEV_STUB_USER` and enables strict proxy-auth behavior for the optional `requireProxyAuth` middleware when that middleware is registered |
 | `DEV_STUB_USER`      | (unset)          | Development-only stub identity (ignored in production; see below)        |
 | `ADMIN_GROUP`        | `admins`         | Name of the group whose members have admin privileges                    |
 | `PORT`               | `3000`           | TCP port the server listens on                                           |

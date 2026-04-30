@@ -858,10 +858,10 @@ describe('Guest identity when no auth headers are provided', () => {
   });
 
   it('still returns the guest identity when REQUIRE_PROXY_AUTH=true is set', async () => {
-    // Previously, REQUIRE_PROXY_AUTH=true would have caused the global
-    // requireProxyAuth middleware to reject the request with 401. With the
-    // guest-user-by-default behaviour, requests without identity headers are
-    // resolved to the guest sentinel regardless of this flag.
+    // In the default server middleware stack exercised by this test, requests
+    // without identity headers are resolved to the guest sentinel and
+    // requireProxyAuth is not registered, so setting REQUIRE_PROXY_AUTH=true
+    // does not change the outcome here.
     const original = process.env['REQUIRE_PROXY_AUTH'];
     process.env['REQUIRE_PROXY_AUTH'] = 'true';
     try {

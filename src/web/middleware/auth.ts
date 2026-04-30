@@ -10,7 +10,8 @@
  * a previously-unknown email, a User record is created in the local store.
  *
  * Requests that arrive without any identity headers are processed as the
- * built-in guest user (see GUEST_USER). The guest sentinel has no group
+ * built-in guest user (see GUEST_USER), including in production unless
+ * strict proxy-auth mode is enabled. The guest sentinel has no group
  * memberships and therefore no admin or ownership privileges; protected
  * endpoints still gate access via requireAuth and per-resource ACL checks.
  *
