@@ -841,3 +841,40 @@ describe('Full run-questionnaire → view-response flow', () => {
   });
 });
 
+// ── Guest identity (issue: "allow guest user") ────────────────────────────────
+
+describe('Guest identity when no auth headers are provided', () => {
+  it('GET /api/auth/me returns the built-in guest user when no headers are sent', async () => {
+    const res = await request(app).get('/api/auth/me');
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      user: {
+        id: 'guest',
+        email: 'guest@localhost',
+        name: 'Guest',
+        groups: [],
+      },
+    });
+  });
+
+  it('still returns the guest identity when REQUIRE_PROXY_AUTH=true is set', async () => {
+    // In the default server middleware stack exercised by this test, requests
+    // without identity headers are resolved to the guest sentinel and
+    // requireProxyAuth is not registered, so setting REQUIRE_PROXY_AUTH=true
+    // does not change the outcome here.
+    const original = process.env['REQUIRE_PROXY_AUTH'];
+    process.env['REQUIRE_PROXY_AUTH'] = 'true';
+    try {
+      const res = await request(app).get('/api/auth/me');
+      expect(res.status).toBe(200);
+      expect(res.body.user.id).toBe('guest');
+    } finally {
+      if (original === undefined) {
+        delete process.env['REQUIRE_PROXY_AUTH'];
+      } else {
+        process.env['REQUIRE_PROXY_AUTH'] = original;
+      }
+    }
+  });
+});
+

@@ -26,7 +26,8 @@ questionnaire service  (binds to 127.0.0.1:3000)
 
 * nginx MUST strip any incoming `Remote-User`, `Remote-Name`, `Remote-Email`, and `Remote-Groups` headers sent by untrusted clients **before** forwarding them to the application.
 * The service binds to `127.0.0.1` in production so it cannot be reached without going through the proxy.
-* If a request reaches the service without the expected identity headers in production mode, it is rejected with `401 Unauthorized`.
+* If a request reaches the service without the expected identity headers, it is processed as the built-in guest user. The guest user has no group memberships and no ownership privileges, so protected endpoints (those wrapped in `requireAuth` or per-resource ACL checks) will still reject the request with `401` or `403` as appropriate.
+* Deployments that prefer to reject unauthenticated requests outright as defense-in-depth can opt in to the `requireProxyAuth` middleware (see `src/web/middleware/auth.ts`).
 
 ---
 
@@ -159,8 +160,8 @@ const accessToken = req.headers['x-forwarded-access-token'];
 
 | Variable             | Default          | Description                                                              |
 |----------------------|------------------|--------------------------------------------------------------------------|
-| `NODE_ENV`           | `development`    | Set to `production` to enable strict proxy-auth enforcement              |
-| `REQUIRE_PROXY_AUTH` | (unset)          | Set to `true` to enforce proxy headers independently of `NODE_ENV`       |
+| `NODE_ENV`           | `development`    | Set to `production` for production-style binding (127.0.0.1) and logging |
+| `REQUIRE_PROXY_AUTH` | (unset)          | When `true`, disables `DEV_STUB_USER` and enables strict proxy-auth behavior for the optional `requireProxyAuth` middleware when that middleware is registered |
 | `DEV_STUB_USER`      | (unset)          | Development-only stub identity (ignored in production; see below)        |
 | `ADMIN_GROUP`        | `admins`         | Name of the group whose members have admin privileges                    |
 | `PORT`               | `3000`           | TCP port the server listens on                                           |
@@ -189,10 +190,10 @@ If neither proxy headers nor `DEV_STUB_USER` are present, the request is process
 
 - [ ] nginx strips `Remote-User`, `Remote-Name`, `Remote-Email`, `Remote-Groups` from client requests
 - [ ] Authelia `auth_request` is configured and injects headers on success
-- [ ] `NODE_ENV=production` is set (or `REQUIRE_PROXY_AUTH=true`) so the service rejects requests without identity headers
 - [ ] The service is bound to `127.0.0.1` (automatic when `NODE_ENV=production`)
 - [ ] `DEV_STUB_USER` is **not** set in production
 - [ ] Audit logs show `[auth] principal="..."` lines for every request
+- [ ] (Optional) Register the `requireProxyAuth` middleware if you want to reject unauthenticated requests outright instead of treating them as guest
 
 ---
 
@@ -201,7 +202,7 @@ If neither proxy headers nor `DEV_STUB_USER` are present, the request is process
 | Threat                                   | Mitigation                                                                           |
 |------------------------------------------|--------------------------------------------------------------------------------------|
 | Client spoofs identity headers           | nginx strips `Remote-*` headers from untrusted clients before forwarding             |
-| Request bypasses nginx                   | Service binds to `127.0.0.1`; rejected with 401 if headers absent in prod mode      |
+| Request bypasses nginx                   | Service binds to `127.0.0.1`; unauthenticated requests are processed as the unprivileged guest identity (or rejected with 401 if `requireProxyAuth` is enabled) |
 | Token leakage via logs                   | Only the principal email is logged; tokens and passwords are never logged            |
 | Privilege escalation via group spoofing  | Groups are injected by Authelia only after authentication; clients cannot set them   |
 
