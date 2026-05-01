@@ -13,7 +13,8 @@
 
 /** Thin wrapper around fetch that always parses JSON and rejects on HTTP errors */
 async function apiFetch(url, options = {}) {
-  const resp = await fetch(url, {
+  const fullUrl = url.startsWith('/') ? (window.APP_BASE || '') + url : url;
+  const resp = await fetch(fullUrl, {
     headers: { 'Content-Type': 'application/json', ...(options.headers ?? {}) },
     ...options
   });

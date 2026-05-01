@@ -44,6 +44,38 @@ node dist/web/server.js
 
 For quick development you can run the TypeScript source directly using a tool like `ts-node` or your editor's run configuration.
 
+Configuration
+-------------
+
+The web server reads the following environment variables at startup:
+
+| Variable   | Default        | Description                                                                                              |
+| ---------- | -------------- | -------------------------------------------------------------------------------------------------------- |
+| `PORT`     | `3000`         | TCP port the server listens on.                                                                          |
+| `DATA_DIR` | `./data`       | Directory used for file-based storage. Ignored when `S3_BUCKET` is set.                                 |
+| `BASE_PATH`| *(empty)*      | Optional URL path prefix. When set, the UI and API are both served under this prefix (see below).       |
+| `NODE_ENV` | `development`  | Set to `production` to enforce stricter CORS and disable development-only behaviour.                    |
+| `CORS_ORIGINS` | *(empty)*  | Comma-separated list of allowed origins for CORS in non-development environments.                       |
+
+See the repository root README for the full list of storage-related variables (`S3_BUCKET`, etc.).
+
+### Hosting under a sub-path (`BASE_PATH`)
+
+By default the server mounts the UI at `/` and the API at `/api`. If you need to host the application under a path prefix — for example behind an nginx `location /qqq` block — set the `BASE_PATH` environment variable:
+
+```
+BASE_PATH=/qqq node dist/web/server.js
+```
+
+With this configuration:
+
+- The landing page is served at `http://host/qqq/`
+- All API endpoints are available under `http://host/qqq/api/`
+
+The server automatically injects the base path into the browser via a small `/qqq/config.js` script that sets `window.APP_BASE`, which the frontend JavaScript uses when constructing API request URLs.
+
+Leading slashes are normalised automatically; trailing slashes are stripped. Both `BASE_PATH=qqq` and `BASE_PATH=/qqq` produce the same result.
+
 Notes
 -----
 

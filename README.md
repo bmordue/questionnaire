@@ -198,6 +198,35 @@ Notes:
     - `sessions/{sessionId}.json`
   - Backups and rotating temporary files are handled by the filesystem-based stores; generic backends (S3) do not currently perform automatic backup rotation.
 
+## Web Server Sub-path Hosting
+
+The web server can run the entire application — UI and API — under a URL path prefix. This is useful when hosting behind a reverse proxy (nginx, Traefik, Caddy) that forwards a sub-path to the app.
+
+Set the `BASE_PATH` environment variable:
+
+```bash
+BASE_PATH=/qqq node dist/web/server.js
+```
+
+With this setting:
+
+- The landing page is at `https://myserver.com/qqq/`
+- The REST API is at `https://myserver.com/qqq/api/`
+
+Without `BASE_PATH` (the default), everything is served from the root, as before.
+
+### nginx example
+
+```nginx
+location /qqq/ {
+    proxy_pass http://localhost:3000/qqq/;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+}
+```
+
+Then start the server with `BASE_PATH=/qqq`.
+
 ## Project Structure
 
 ```
