@@ -24,6 +24,7 @@ Files
   - `responses.html` — page for viewing stored responses.
   - `runner.html` — runner UI used to execute a questionnaire in a browser.
   - `style.css` — styles for the frontend pages.
+  - `config.js` — **served dynamically by the server** (not a static file); sets `window.APP_BASE` to the configured `BASE_PATH` value so the frontend knows the URL prefix.
 
 Running / Development
 ---------------------

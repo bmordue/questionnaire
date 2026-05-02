@@ -42,6 +42,18 @@ const PORT = (() => {
 })();
 const isVercel = process.env['VERCEL'] === '1' || process.env['VERCEL'] === 'true';
 
+/**
+ * Normalise a BASE_PATH value: ensure a leading slash and strip trailing
+ * slashes.  Both `BASE_PATH=qqq` and `BASE_PATH=/qqq` produce `/qqq`.
+ * An empty or missing value results in an empty string (serve from root).
+ */
+const BASE_PATH = (() => {
+  const bp = (process.env['BASE_PATH'] ?? '').trim();
+  if (!bp) return '';
+  const normalised = '/' + bp.replace(/^\/+/, '').replace(/\/+$/, '');
+  return normalised === '/' ? '' : normalised;
+})();
+
 // On Vercel, process.cwd() points to /var/task which is read-only.
 // Fall back to os.tmpdir() (writable, but ephemeral) when DATA_DIR is not explicitly set.
 const DATA_DIR =
@@ -169,12 +181,34 @@ app.use((_req, res, next) => {
 
 // Parse cookies manually (no external cookie-parser needed; loadUser handles it)
 app.use(loadUser(userRepository));
-app.use(express.static(path.join(__dirname, 'public')));
+
+// ── Application router (mounted at BASE_PATH) ─────────────────────────────────
+
+/**
+ * All application routes (static assets + API) are registered on this router
+ * so that they can be mounted at an optional BASE_PATH prefix without having
+ * to repeat the prefix on every route definition.
+ */
+const router = express.Router();
+
+// Serve a generated config.js that exposes APP_BASE to the browser.
+// Must be registered before express.static so the server-generated response
+// takes precedence over any file that might exist in public/.
+router.get('/config.js', (_req, res) => {
+  res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.send(`window.APP_BASE = ${JSON.stringify(BASE_PATH)};`);
+});
+
+router.use(express.static(path.join(__dirname, 'public')));
+
+// Mount the router at BASE_PATH (or at root if BASE_PATH is empty)
+app.use(BASE_PATH || '/', router);
 
 // ── Questionnaire Routes ──────────────────────────────────────────────────────
 
 /** List questionnaires visible to the current user */
-app.get('/api/questionnaires', requireAuth, async (_req, res, next) => {
+router.get('/api/questionnaires', requireAuth, async (_req, res, next) => {
   try {
     const user = currentUser(res);
     const adminGroup = process.env['ADMIN_GROUP'] ?? 'admins';
@@ -195,7 +229,7 @@ app.get('/api/questionnaires', requireAuth, async (_req, res, next) => {
 });
 
 /** Create a questionnaire; automatically sets ownerId to the calling user */
-app.post('/api/questionnaires', requireAuth, async (req, res, next) => {
+router.post('/api/questionnaires', requireAuth, async (req, res, next) => {
   try {
     const user = currentUser(res);
     const result = safeValidateQuestionnaire({ ...req.body, ownerId: user.id });
@@ -204,14 +238,14 @@ app.post('/api/questionnaires', requireAuth, async (req, res, next) => {
       return;
     }
     await storage.saveQuestionnaire(result.data);
-    res.json(result.data);
+    res.status(201).json(result.data);
   } catch (err) {
     next(err);
   }
 });
 
 /** Get a single questionnaire — requires at least 'respond' access */
-app.get(
+router.get(
   '/api/questionnaires/:id',
   requireQuestionnairePermission(storage, 'respond'),
   (_req, res) => {
@@ -220,7 +254,7 @@ app.get(
 );
 
 /** Update a questionnaire — requires 'manage' */
-app.put(
+router.put(
   '/api/questionnaires/:id',
   requireQuestionnairePermission(storage, 'manage'),
   async (req, res, next) => {
@@ -254,7 +288,7 @@ app.put(
 );
 
 /** Delete a questionnaire — requires 'manage' */
-app.delete(
+router.delete(
   '/api/questionnaires/:id',
   requireQuestionnairePermission(storage, 'manage'),
   async (req, res, next) => {
@@ -271,7 +305,7 @@ app.delete(
 // ── Permission Management ─────────────────────────────────────────────────────
 
 /** List permissions on a questionnaire — requires 'manage' */
-app.get(
+router.get(
   '/api/questionnaires/:id/permissions',
   requireQuestionnairePermission(storage, 'manage'),
   (_req, res) => {
@@ -283,7 +317,7 @@ app.get(
 const GrantPermissionBodySchema = z.object({ level: PermissionLevelSchema });
 
 /** Grant or update a user's permission on a questionnaire */
-app.put(
+router.put(
   '/api/questionnaires/:id/permissions/:userId',
   requireQuestionnairePermission(storage, 'manage'),
   async (req, res, next) => {
@@ -316,7 +350,7 @@ app.put(
 );
 
 /** Revoke a user's permission on a questionnaire */
-app.delete(
+router.delete(
   '/api/questionnaires/:id/permissions/:userId',
   requireQuestionnairePermission(storage, 'manage'),
   async (req, res, next) => {
@@ -338,7 +372,7 @@ app.delete(
 // ── Response Routes ───────────────────────────────────────────────────────────
 
 /** List responses for a questionnaire — requires 'view_responses' */
-app.get('/api/responses', requireAuth, async (req, res, next) => {
+router.get('/api/responses', requireAuth, async (req, res, next) => {
   try {
     const questionnaireId =
       typeof req.query['questionnaireId'] === 'string'
@@ -369,7 +403,7 @@ app.get('/api/responses', requireAuth, async (req, res, next) => {
 });
 
 /** Get a single response — requires 'view_responses' on the parent questionnaire */
-app.get('/api/responses/:id', requireAuth, async (req, res, next) => {
+router.get('/api/responses/:id', requireAuth, async (req, res, next) => {
   try {
     const responseIdParam = req.params['id'];
     const responseId = Array.isArray(responseIdParam) ? (responseIdParam[0] ?? '') : (responseIdParam ?? '');
@@ -397,7 +431,7 @@ app.get('/api/responses/:id', requireAuth, async (req, res, next) => {
 // ── Session Routes ────────────────────────────────────────────────────────────
 
 /** Start a new session — requires 'respond' access on the questionnaire */
-app.post('/api/sessions', requireAuth, async (req, res, next) => {
+router.post('/api/sessions', requireAuth, async (req, res, next) => {
   try {
     const body = req.body as { questionnaireId?: string };
     if (!body.questionnaireId) {
@@ -431,7 +465,7 @@ app.post('/api/sessions', requireAuth, async (req, res, next) => {
 });
 
 /** Get current session state including the current question */
-app.get('/api/sessions/:sessionId', requireSessionOwner(storage), async (_req, res, next) => {
+router.get('/api/sessions/:sessionId', requireSessionOwner(storage), async (_req, res, next) => {
   try {
     const session = res.locals['session'];
     const questionnaire = await storage.loadQuestionnaire(session.questionnaireId);
@@ -459,7 +493,7 @@ app.get('/api/sessions/:sessionId', requireSessionOwner(storage), async (_req, r
 });
 
 /** Submit an answer and advance to the next question */
-app.post('/api/sessions/:sessionId/answer', requireSessionOwner(storage), async (req, res, next) => {
+router.post('/api/sessions/:sessionId/answer', requireSessionOwner(storage), async (req, res, next) => {
   try {
     const session = res.locals['session'];
     const sessionId: string = session.sessionId;
@@ -557,7 +591,7 @@ app.post('/api/sessions/:sessionId/answer', requireSessionOwner(storage), async 
 });
 
 /** Mark a session as complete */
-app.post('/api/sessions/:sessionId/complete', requireSessionOwner(storage), async (_req, res, next) => {
+router.post('/api/sessions/:sessionId/complete', requireSessionOwner(storage), async (_req, res, next) => {
   try {
     const session = res.locals['session'];
     const sessionId: string = session.sessionId;
@@ -583,7 +617,7 @@ app.post('/api/sessions/:sessionId/complete', requireSessionOwner(storage), asyn
 // ── Auth / Identity ───────────────────────────────────────────────────────────
 
 /** Return the current user's identity (sourced from Authelia proxy headers) */
-app.get('/api/auth/me', (_req, res) => {
+router.get('/api/auth/me', (_req, res) => {
   const user = res.locals['user'];
   if (!user) {
     res.status(401).json({ error: 'Not authenticated' });
@@ -595,7 +629,7 @@ app.get('/api/auth/me', (_req, res) => {
 // ── User Directory ────────────────────────────────────────────────────────────
 
 /** List all provisioned users — used by the sharing UI */
-app.get('/api/users', requireAuth, async (_req, res, next) => {
+router.get('/api/users', requireAuth, async (_req, res, next) => {
   try {
     const users = await userRepository.findAll();
     res.json(users.map(u => ({ id: u.id, email: u.email, name: u.name })));
@@ -609,7 +643,7 @@ app.get('/api/users', requireAuth, async (_req, res, next) => {
 const reviewService = new ReviewService(storage);
 
 /** Get completion stats for a questionnaire */
-app.get(
+router.get(
   '/api/questionnaires/:id/stats',
   requireQuestionnairePermission(storage, 'view_responses'),
   async (req, res, next) => {
@@ -623,7 +657,7 @@ app.get(
 );
 
 /** Get full analytics summary for a questionnaire */
-app.get(
+router.get(
   '/api/questionnaires/:id/summary',
   requireQuestionnairePermission(storage, 'view_responses'),
   async (req, res, next) => {
@@ -637,7 +671,7 @@ app.get(
 );
 
 /** Export responses for a questionnaire */
-app.get(
+router.get(
   '/api/questionnaires/:id/export',
   requireQuestionnairePermission(storage, 'view_responses'),
   async (req, res, next) => {
@@ -671,7 +705,10 @@ export default app;
 // Only start the HTTP server when running locally (not in a Vercel deployment or test environment)
 if (!isVercel && NODE_ENV !== 'test') {
   app.listen(PORT, () => {
-    console.log(`Questionnaire web server running at http://localhost:${PORT}`);
+    console.log(`Questionnaire web server running at http://localhost:${PORT}${BASE_PATH || '/'}`);
     console.log(`Data directory: ${DATA_DIR}`);
+    if (BASE_PATH) {
+      console.log(`Sub-path: ${BASE_PATH}`);
+    }
   });
 }

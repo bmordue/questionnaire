@@ -6,7 +6,7 @@
  *
  * Covered flows:
  *  1. Complete questionnaire journey: create → start session → answer all questions → complete → retrieve response
- *  2. User authentication lifecycle: register → login → access protected route → change password → logout
+ *  2. Proxy-auth identity: accessing /api/auth/me with and without proxy headers
  *  3. Questionnaire CRUD lifecycle: create → list → get → update → delete
  *  4. Response analytics flow: authenticated user completes responses then views stats/summary/export
  *  5. Multi-question session with skipping: start → skip some questions → complete
@@ -29,6 +29,18 @@ process.env['DATA_DIR'] = TEST_DATA_DIR;
 // import always picks up this file's TEST_DATA_DIR even if the Jest worker has already
 // evaluated another test file that also imports server.js.
 let app: Express;
+
+// ── Auth helpers ──────────────────────────────────────────────────────────────
+
+/**
+ * Proxy-auth headers that simulate an authenticated admin user.
+ * Using the admins group bypasses per-questionnaire permission checks.
+ */
+const AUTH_HEADERS = {
+  'remote-user': 'e2e@example.com',
+  'remote-name': 'E2E User',
+  'remote-groups': 'admins',
+};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -63,36 +75,6 @@ function makeQuestionnaire(overrides: Record<string, unknown> = {}): Record<stri
   };
 }
 
-/** Extract the Set-Cookie header from a supertest response and return it as a header value. */
-function extractCookie(res: request.Response): string {
-  const raw = res.headers['set-cookie'] as string[] | string | undefined;
-  if (!raw) return '';
-  const cookies = Array.isArray(raw) ? raw : [raw];
-  return cookies.map(c => c.split(';')[0]).join('; ');
-}
-
-/**
- * Poll GET /api/auth/me until auth services are ready.
- *
- * `requireAuthReady` returns HTTP 503 until `userRepository.initialize()` and
- * `sessionManager.initialize()` have completed.  Any non-503 response (typically
- * 401 "Not authenticated") means the auth layer is up and tests can proceed.
- */
-async function waitForAuthReady(maxAttempts = 20, delayMs = 100): Promise<void> {
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    try {
-      const res = await request(app).get('/api/auth/me');
-      if (res.status !== 503) {
-        return;
-      }
-    } catch {
-      // Ignore transient errors during startup and retry.
-    }
-    await new Promise(resolve => setTimeout(resolve, delayMs));
-  }
-  throw new Error('Auth services did not become ready within the expected time');
-}
-
 // ── Setup / Teardown ──────────────────────────────────────────────────────────
 
 beforeAll(async () => {
@@ -101,8 +83,6 @@ beforeAll(async () => {
   // NODE_ENV=test (set by Jest) prevents the server from binding to a TCP port.
   const server = await import('../../web/server.js');
   app = server.app;
-  // Wait deterministically for auth services to become ready instead of using a fixed timeout.
-  await waitForAuthReady();
 });
 
 afterAll(async () => {
@@ -138,7 +118,8 @@ describe('Flow 1: Complete questionnaire journey', () => {
     const createRes = await request(app)
       .post('/api/questionnaires')
       .send(q)
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
     expect(createRes.status).toBe(201);
     expect(createRes.body.id).toBe(q.id);
 
@@ -146,14 +127,17 @@ describe('Flow 1: Complete questionnaire journey', () => {
     const sessionRes = await request(app)
       .post('/api/sessions')
       .send({ questionnaireId: q.id })
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
     expect(sessionRes.status).toBe(201);
     const { sessionId } = sessionRes.body as { sessionId: string };
     expect(typeof sessionId).toBe('string');
     expect(sessionId.length).toBeGreaterThan(0);
 
     // 3. Inspect initial session state
-    const stateRes = await request(app).get(`/api/sessions/${sessionId}`);
+    const stateRes = await request(app)
+      .get(`/api/sessions/${sessionId}`)
+      .set(AUTH_HEADERS);
     expect(stateRes.status).toBe(200);
     expect(stateRes.body.currentQuestion.id).toBe('q1');
     expect(stateRes.body.progress.percentComplete).toBe(0);
@@ -162,7 +146,8 @@ describe('Flow 1: Complete questionnaire journey', () => {
     const ans1 = await request(app)
       .post(`/api/sessions/${sessionId}/answer`)
       .send({ questionId: 'q1', value: 'Alice' })
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
     expect(ans1.status).toBe(200);
     expect(ans1.body.isComplete).toBe(false);
     expect(ans1.body.nextQuestion.id).toBe('q2');
@@ -171,7 +156,8 @@ describe('Flow 1: Complete questionnaire journey', () => {
     const ans2 = await request(app)
       .post(`/api/sessions/${sessionId}/answer`)
       .send({ questionId: 'q2', value: 'alice@example.com' })
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
     expect(ans2.status).toBe(200);
     expect(ans2.body.isComplete).toBe(false);
     expect(ans2.body.nextQuestion.id).toBe('q3');
@@ -180,7 +166,8 @@ describe('Flow 1: Complete questionnaire journey', () => {
     const ans3 = await request(app)
       .post(`/api/sessions/${sessionId}/answer`)
       .send({ questionId: 'q3', value: 30 })
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
     expect(ans3.status).toBe(200);
     expect(ans3.body.isComplete).toBe(true);
     expect(ans3.body.nextQuestion).toBeNull();
@@ -190,89 +177,45 @@ describe('Flow 1: Complete questionnaire journey', () => {
     const completeRes = await request(app)
       .post(`/api/sessions/${sessionId}/complete`)
       .send({})
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
     expect(completeRes.status).toBe(200);
     expect(completeRes.body.success).toBe(true);
 
     // 8. Retrieve the persisted response
     const responseId = (completeRes.body as { sessionId: string }).sessionId;
-    const getRes = await request(app).get(`/api/responses/${responseId}`);
+    const getRes = await request(app)
+      .get(`/api/responses/${responseId}`)
+      .set(AUTH_HEADERS);
     expect(getRes.status).toBe(200);
     expect(getRes.body.questionnaireId).toBe(q.id);
     expect(getRes.body.status).toBe('completed');
     expect(getRes.body.answers).toHaveLength(3);
 
     // 9. Verify response appears in the list filtered by questionnaireId
-    const listRes = await request(app).get(`/api/responses?questionnaireId=${q.id as string}`);
+    const listRes = await request(app)
+      .get(`/api/responses?questionnaireId=${q.id as string}`)
+      .set(AUTH_HEADERS);
     expect(listRes.status).toBe(200);
     expect(listRes.body).toHaveLength(1);
     expect(listRes.body[0].questionnaireId).toBe(q.id);
   });
 });
 
-// ── Flow 2: User Authentication Lifecycle ────────────────────────────────────
+// ── Flow 2: Proxy-Auth Identity ───────────────────────────────────────────────
 
-describe('Flow 2: User authentication lifecycle', () => {
-  it('registers, logs in, accesses a protected route, changes password, then logs out', async () => {
-    const email = `user_${uid()}@example.com`;
-    const password = 'Secret123!';
-    const newPassword = 'NewSecret456!';
-
-    // 1. Register
-    const regRes = await request(app)
-      .post('/api/auth/register')
-      .send({ email, password, name: 'E2E User' })
-      .set('Content-Type', 'application/json');
-    expect(regRes.status).toBe(201);
-    expect(regRes.body.user.email).toBe(email);
-    const regCookie = extractCookie(regRes);
-    expect(regCookie).toBeTruthy();
-
-    // 2. Verify /api/auth/me returns the user
+describe('Flow 2: Proxy-auth identity', () => {
+  it('returns user identity when proxy headers are present', async () => {
     const meRes = await request(app)
       .get('/api/auth/me')
-      .set('Cookie', regCookie);
+      .set(AUTH_HEADERS);
     expect(meRes.status).toBe(200);
-    expect(meRes.body.user.email).toBe(email);
+    expect(meRes.body.user.email).toBe('e2e@example.com');
+  });
 
-    // 3. Logout
-    const logoutRes = await request(app)
-      .post('/api/auth/logout')
-      .set('Cookie', regCookie);
-    expect(logoutRes.status).toBe(200);
-    expect(logoutRes.body.success).toBe(true);
-
-    // 4. Login with original password
-    const loginRes = await request(app)
-      .post('/api/auth/login')
-      .send({ email, password })
-      .set('Content-Type', 'application/json');
-    expect(loginRes.status).toBe(200);
-    expect(loginRes.body.user.email).toBe(email);
-    const loginCookie = extractCookie(loginRes);
-
-    // 5. Change password
-    const changePwdRes = await request(app)
-      .post('/api/auth/change-password')
-      .send({ currentPassword: password, newPassword })
-      .set('Cookie', loginCookie)
-      .set('Content-Type', 'application/json');
-    expect(changePwdRes.status).toBe(200);
-    expect(changePwdRes.body.success).toBe(true);
-
-    // 6. Old password no longer works
-    const oldLoginRes = await request(app)
-      .post('/api/auth/login')
-      .send({ email, password })
-      .set('Content-Type', 'application/json');
-    expect(oldLoginRes.status).toBe(401);
-
-    // 7. New password works
-    const newLoginRes = await request(app)
-      .post('/api/auth/login')
-      .send({ email, password: newPassword })
-      .set('Content-Type', 'application/json');
-    expect(newLoginRes.status).toBe(200);
+  it('returns 401 when proxy headers are absent', async () => {
+    const meRes = await request(app).get('/api/auth/me');
+    expect(meRes.status).toBe(401);
   });
 });
 
@@ -288,18 +231,23 @@ describe('Flow 3: Questionnaire CRUD lifecycle', () => {
     const createRes = await request(app)
       .post('/api/questionnaires')
       .send(q)
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
     expect(createRes.status).toBe(201);
     const id = createRes.body.id as string;
 
     // 2. List – should contain the new questionnaire
-    const listRes = await request(app).get('/api/questionnaires');
+    const listRes = await request(app)
+      .get('/api/questionnaires')
+      .set(AUTH_HEADERS);
     expect(listRes.status).toBe(200);
     const ids = (listRes.body as Array<{ id: string }>).map(item => item.id);
     expect(ids).toContain(id);
 
     // 3. Get by ID
-    const getRes = await request(app).get(`/api/questionnaires/${id}`);
+    const getRes = await request(app)
+      .get(`/api/questionnaires/${id}`)
+      .set(AUTH_HEADERS);
     expect(getRes.status).toBe(200);
     expect(getRes.body.id).toBe(id);
     expect(getRes.body.metadata.title).toBe('Original Title');
@@ -312,21 +260,28 @@ describe('Flow 3: Questionnaire CRUD lifecycle', () => {
     const updateRes = await request(app)
       .put(`/api/questionnaires/${id}`)
       .send(updated)
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
     expect(updateRes.status).toBe(200);
     expect(updateRes.body.metadata.title).toBe('Updated Title');
 
     // 5. Confirm the update is persisted
-    const getUpdatedRes = await request(app).get(`/api/questionnaires/${id}`);
+    const getUpdatedRes = await request(app)
+      .get(`/api/questionnaires/${id}`)
+      .set(AUTH_HEADERS);
     expect(getUpdatedRes.status).toBe(200);
     expect(getUpdatedRes.body.metadata.title).toBe('Updated Title');
 
     // 6. Delete
-    const deleteRes = await request(app).delete(`/api/questionnaires/${id}`);
+    const deleteRes = await request(app)
+      .delete(`/api/questionnaires/${id}`)
+      .set(AUTH_HEADERS);
     expect([200, 204]).toContain(deleteRes.status);
 
     // 7. Confirm deletion
-    const getMissingRes = await request(app).get(`/api/questionnaires/${id}`);
+    const getMissingRes = await request(app)
+      .get(`/api/questionnaires/${id}`)
+      .set(AUTH_HEADERS);
     expect(getMissingRes.status).toBe(404);
   });
 });
@@ -334,78 +289,75 @@ describe('Flow 3: Questionnaire CRUD lifecycle', () => {
 // ── Flow 4: Response Analytics for Authenticated Users ───────────────────────
 
 describe('Flow 4: Response analytics flow (authenticated)', () => {
-  it('registers a user, creates questionnaire, completes two sessions, then retrieves stats, summary, and export', async () => {
-    // 1. Register and obtain auth cookie
-    const email = `analyst_${uid()}@example.com`;
-    const regRes = await request(app)
-      .post('/api/auth/register')
-      .send({ email, password: 'Analyst123!', name: 'Analyst' })
-      .set('Content-Type', 'application/json');
-    expect(regRes.status).toBe(201);
-    const authCookie = extractCookie(regRes);
-
-    // 2. Create a simple questionnaire (no auth required)
+  it('creates questionnaire, completes two sessions, then retrieves stats, summary, and export', async () => {
+    // 1. Create a simple questionnaire
     const q = makeQuestionnaire();
     await request(app)
       .post('/api/questionnaires')
       .send(q)
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
-    // 3. Complete the questionnaire twice
+    // 2. Complete the questionnaire twice
     for (let i = 0; i < 2; i++) {
       const sessionRes = await request(app)
         .post('/api/sessions')
         .send({ questionnaireId: q.id })
-        .set('Content-Type', 'application/json');
+        .set('Content-Type', 'application/json')
+        .set(AUTH_HEADERS);
       const { sessionId } = sessionRes.body as { sessionId: string };
 
       await request(app)
         .post(`/api/sessions/${sessionId}/answer`)
         .send({ questionId: 'q1', value: `User ${i}` })
-        .set('Content-Type', 'application/json');
+        .set('Content-Type', 'application/json')
+        .set(AUTH_HEADERS);
 
       await request(app)
         .post(`/api/sessions/${sessionId}/answer`)
         .send({ questionId: 'q2', value: `user${i}@example.com` })
-        .set('Content-Type', 'application/json');
+        .set('Content-Type', 'application/json')
+        .set(AUTH_HEADERS);
 
       await request(app)
         .post(`/api/sessions/${sessionId}/answer`)
         .send({ questionId: 'q3', value: 20 + i })
-        .set('Content-Type', 'application/json');
+        .set('Content-Type', 'application/json')
+        .set(AUTH_HEADERS);
 
       await request(app)
         .post(`/api/sessions/${sessionId}/complete`)
         .send({})
-        .set('Content-Type', 'application/json');
+        .set('Content-Type', 'application/json')
+        .set(AUTH_HEADERS);
     }
 
-    // 4. Get stats (requires auth)
+    // 3. Get stats (requires auth with view_responses permission)
     const statsRes = await request(app)
       .get(`/api/questionnaires/${q.id as string}/stats`)
-      .set('Cookie', authCookie);
+      .set(AUTH_HEADERS);
     expect(statsRes.status).toBe(200);
     expect(statsRes.body).toHaveProperty('totalResponses');
     expect(statsRes.body.totalResponses).toBe(2);
 
-    // 5. Get summary (requires auth)
+    // 4. Get summary (requires auth with view_responses permission)
     const summaryRes = await request(app)
       .get(`/api/questionnaires/${q.id as string}/summary`)
-      .set('Cookie', authCookie);
+      .set(AUTH_HEADERS);
     expect(summaryRes.status).toBe(200);
     expect(summaryRes.body).toHaveProperty('questionnaireId');
 
-    // 6. Export as JSON (requires auth)
+    // 5. Export as JSON (requires auth with view_responses permission)
     const exportJsonRes = await request(app)
       .get(`/api/questionnaires/${q.id as string}/export?format=json`)
-      .set('Cookie', authCookie);
+      .set(AUTH_HEADERS);
     expect(exportJsonRes.status).toBe(200);
     expect(exportJsonRes.headers['content-type']).toMatch(/application\/json/);
 
-    // 7. Export as CSV (requires auth)
+    // 6. Export as CSV (requires auth with view_responses permission)
     const exportCsvRes = await request(app)
       .get(`/api/questionnaires/${q.id as string}/export?format=csv`)
-      .set('Cookie', authCookie);
+      .set(AUTH_HEADERS);
     expect(exportCsvRes.status).toBe(200);
     expect(exportCsvRes.headers['content-type']).toMatch(/text\/csv/);
   });
@@ -421,13 +373,15 @@ describe('Flow 5: Multi-question session with skipping', () => {
     await request(app)
       .post('/api/questionnaires')
       .send(q)
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
     // Start session
     const sessionRes = await request(app)
       .post('/api/sessions')
       .send({ questionnaireId: q.id })
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
     expect(sessionRes.status).toBe(201);
     const { sessionId } = sessionRes.body as { sessionId: string };
 
@@ -435,13 +389,15 @@ describe('Flow 5: Multi-question session with skipping', () => {
     await request(app)
       .post(`/api/sessions/${sessionId}/answer`)
       .send({ questionId: 'q1', value: 'Bob' })
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
     // Skip q2 (mark as skipped)
     const skipRes = await request(app)
       .post(`/api/sessions/${sessionId}/answer`)
       .send({ questionId: 'q2', value: null, skipped: true })
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
     expect(skipRes.status).toBe(200);
     expect(skipRes.body.isComplete).toBe(false);
 
@@ -449,7 +405,8 @@ describe('Flow 5: Multi-question session with skipping', () => {
     const lastAns = await request(app)
       .post(`/api/sessions/${sessionId}/answer`)
       .send({ questionId: 'q3', value: 25 })
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
     expect(lastAns.status).toBe(200);
     expect(lastAns.body.isComplete).toBe(true);
 
@@ -457,12 +414,15 @@ describe('Flow 5: Multi-question session with skipping', () => {
     const completeRes = await request(app)
       .post(`/api/sessions/${sessionId}/complete`)
       .send({})
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
     expect(completeRes.status).toBe(200);
 
     // Verify response reflects the skip
     const responseId = (completeRes.body as { sessionId: string }).sessionId;
-    const getRes = await request(app).get(`/api/responses/${responseId}`);
+    const getRes = await request(app)
+      .get(`/api/responses/${responseId}`)
+      .set(AUTH_HEADERS);
     expect(getRes.status).toBe(200);
     expect(getRes.body.status).toBe('completed');
 
@@ -474,15 +434,18 @@ describe('Flow 5: Multi-question session with skipping', () => {
 // ── Flow 6: Unauthenticated Access to Protected Routes ───────────────────────
 
 describe('Flow 6: Unauthenticated access to protected routes is rejected', () => {
-  it('returns 401 for stats, summary, and export endpoints without a session cookie', async () => {
+  it('returns 401 for stats, summary, and export endpoints without proxy headers', async () => {
+    // Create a questionnaire first (with auth) so the ID is valid
     const q = makeQuestionnaire();
     await request(app)
       .post('/api/questionnaires')
       .send(q)
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
     const id = q.id as string;
 
+    // Unauthenticated requests (no proxy headers) to protected analytics endpoints
     const [statsRes, summaryRes, exportRes, meRes] = await Promise.all([
       request(app).get(`/api/questionnaires/${id}/stats`),
       request(app).get(`/api/questionnaires/${id}/summary`),
@@ -504,7 +467,8 @@ describe('Flow 7: Invalid data and error-path handling', () => {
     const res = await request(app)
       .post('/api/questionnaires')
       .send({ id: 'bad', version: '1.0' }) // missing metadata and questions
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
     expect(res.status).toBe(400);
   });
 
@@ -512,7 +476,8 @@ describe('Flow 7: Invalid data and error-path handling', () => {
     const res = await request(app)
       .post('/api/sessions')
       .send({ questionnaireId: 'does-not-exist' })
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
     expect(res.status).toBe(404);
   });
 
@@ -520,7 +485,8 @@ describe('Flow 7: Invalid data and error-path handling', () => {
     const res = await request(app)
       .post('/api/sessions/no-such-session/answer')
       .send({ questionId: 'q1', value: 'hello' })
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
     expect(res.status).toBe(404);
   });
 
@@ -529,39 +495,34 @@ describe('Flow 7: Invalid data and error-path handling', () => {
     await request(app)
       .post('/api/questionnaires')
       .send(q)
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
 
     const sessionRes = await request(app)
       .post('/api/sessions')
       .send({ questionnaireId: q.id })
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
     const { sessionId } = sessionRes.body as { sessionId: string };
 
     const res = await request(app)
       .post(`/api/sessions/${sessionId}/answer`)
       .send({ value: 'hello' }) // missing questionId
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
     expect(res.status).toBe(400);
   });
 
-  it('rejects registration with missing fields', async () => {
-    const res = await request(app)
-      .post('/api/auth/register')
-      .send({ email: 'not-an-email' }) // missing password and name
-      .set('Content-Type', 'application/json');
-    expect(res.status).toBe(400);
-  });
-
-  it('rejects login with wrong credentials', async () => {
-    const res = await request(app)
-      .post('/api/auth/login')
-      .send({ email: 'ghost@example.com', password: 'wrong' })
-      .set('Content-Type', 'application/json');
+  it('returns 401 when accessing protected routes without proxy headers', async () => {
+    const res = await request(app).get('/api/questionnaires');
     expect(res.status).toBe(401);
   });
 
   it('returns 404 when getting a non-existent questionnaire', async () => {
-    const res = await request(app).get('/api/questionnaires/nonexistent-id');
+    const res = await request(app)
+      .get('/api/questionnaires/nonexistent-id')
+      .set(AUTH_HEADERS);
     expect(res.status).toBe(404);
   });
 });
+
