@@ -6,7 +6,7 @@
  *
  * Covered flows:
  *  1. Complete questionnaire journey: create → start session → answer all questions → complete → retrieve response
- *  2. Proxy-auth identity: accessing /api/auth/me with and without proxy headers
+ *  2. Proxy-auth identity: accessing /api/auth/me with and without proxy headers (the app uses proxy-injected identity; no local register/login)
  *  3. Questionnaire CRUD lifecycle: create → list → get → update → delete
  *  4. Response analytics flow: authenticated user completes responses then views stats/summary/export
  *  5. Multi-question session with skipping: start → skip some questions → complete

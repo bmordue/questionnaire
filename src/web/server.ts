@@ -44,8 +44,15 @@ const isVercel = process.env['VERCEL'] === '1' || process.env['VERCEL'] === 'tru
 
 /**
  * Normalise a BASE_PATH value: ensure a leading slash and strip trailing
- * slashes.  Both `BASE_PATH=qqq` and `BASE_PATH=/qqq` produce `/qqq`.
- * An empty or missing value results in an empty string (serve from root).
+ * slashes.  An empty or missing value results in an empty string (serve from
+ * root).
+ *
+ * Examples:
+ *   BASE_PATH=qqq   → '/qqq'
+ *   BASE_PATH=/qqq  → '/qqq'
+ *   BASE_PATH=/qqq/ → '/qqq'
+ *   BASE_PATH=/     → ''
+ *   (unset)         → ''
  */
 const BASE_PATH = (() => {
   const bp = (process.env['BASE_PATH'] ?? '').trim();

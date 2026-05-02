@@ -17,7 +17,7 @@ const originalDataDir = process.env['DATA_DIR'];
 process.env['DATA_DIR'] = TEST_DATA_DIR;
 
 // app is populated in beforeAll (after the test directory is created) so that
-// userRepository.initialize() can write its index file successfully.
+// userRepository.initialize() can write its index file and email-index successfully.
 let app: Express;
 
 // ── Auth helpers ──────────────────────────────────────────────────────────────
@@ -345,6 +345,17 @@ describe('PUT /api/questionnaires/:id', () => {
 
     expect(res.status).toBe(400);
     expect(res.body).toMatchObject({ error: expect.stringContaining('ID') });
+  });
+
+  it('returns 404 when the questionnaire in the path does not exist', async () => {
+    const body = makeQuestionnaire();
+
+    const res = await request(app)
+      .put('/api/questionnaires/does-not-exist')
+      .send(body)
+      .set('Content-Type', 'application/json').set(AUTH_HEADERS);
+
+    expect(res.status).toBe(404);
   });
 
   it('returns 400 for invalid questionnaire body', async () => {
