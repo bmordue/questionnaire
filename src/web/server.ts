@@ -186,7 +186,9 @@ app.use((_req, res, next) => {
   next();
 });
 
-// Parse cookies manually (no external cookie-parser needed; loadUser handles it)
+// Resolve user identity from Authelia proxy headers (or dev stub / guest sentinel).
+// Requests without identity headers are treated as the built-in guest user; protected
+// endpoints still gate access via requireAuth and per-resource ACL checks.
 app.use(loadUser(userRepository));
 
 // ── Application router (mounted at BASE_PATH) ─────────────────────────────────
@@ -225,10 +227,21 @@ router.get('/api/questionnaires', requireAuth, async (_req, res, next) => {
       res.json(list);
       return;
     }
-    const visible = list.filter(meta => {
-      const questionnaire = { metadata: meta } as unknown as Questionnaire;
-      return resolvePermission(questionnaire, user.id, user.groups) !== null;
-    });
+    const visible = (
+      await Promise.all(
+        list.map(async meta => {
+          try {
+            const questionnaire = await storage.loadQuestionnaire(meta.id);
+            return resolvePermission(questionnaire, user.id, user.groups) !== null ? meta : null;
+          } catch (err) {
+            if (!isNotFoundError(err)) {
+              console.error(`[questionnaires] Failed to load questionnaire ${meta.id} for permission check:`, err);
+            }
+            return null;
+          }
+        })
+      )
+    ).filter((meta): meta is (typeof list)[number] => meta !== null);
     res.json(visible);
   } catch (err) {
     next(err);
@@ -711,11 +724,24 @@ export default app;
 
 // Only start the HTTP server when running locally (not in a Vercel deployment or test environment)
 if (!isVercel && NODE_ENV !== 'test') {
-  app.listen(PORT, () => {
-    console.log(`Questionnaire web server running at http://localhost:${PORT}${BASE_PATH || '/'}`);
+  // Bind to 127.0.0.1 in production so the service is only reachable via the
+  // nginx reverse proxy. In development, bind to all interfaces for convenience.
+  const HOST = NODE_ENV === 'production' ? '127.0.0.1' : '0.0.0.0';
+  app.listen(PORT, HOST, () => {
+    console.log(`Questionnaire web server running at http://${HOST}:${PORT}${BASE_PATH || '/'}`);
     console.log(`Data directory: ${DATA_DIR}`);
     if (BASE_PATH) {
       console.log(`Sub-path: ${BASE_PATH}`);
+    }
+    if (NODE_ENV === 'production') {
+      console.log('[auth] Production mode: requests without proxy headers are processed as the guest identity');
+    } else {
+      const stub = process.env['DEV_STUB_USER'];
+      if (stub) {
+        console.log(`[auth] DEV_STUB_USER is set — stub identity active (${stub.split(':')[0] ?? 'unknown'})`);
+      } else {
+        console.log('[auth] Development mode: no DEV_STUB_USER set; unauthenticated requests use the guest identity');
+      }
     }
   });
 }

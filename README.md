@@ -2,6 +2,23 @@
 
 A TypeScript-based Terminal User Interface (TUI) application for running interactive questionnaires with persistent session storage.
 
+## Authentication Model
+
+> **This service does not handle credentials.** Authentication is delegated entirely to an nginx reverse proxy running Authelia forward-auth. The service is auth-agnostic: it trusts the identity headers (`Remote-User`, `Remote-Name`, `Remote-Groups`) injected by the proxy and uses them for ownership and permission checks only.
+
+**Threat assumptions:**
+- Clients can only reach the service via nginx; the service binds to `127.0.0.1` in production.
+- nginx strips `Remote-*` headers from untrusted clients before forwarding.
+- Identity is derived exclusively from proxy-injected headers — no passwords or sessions are managed in-app.
+
+**Running locally without the auth stack:**
+```bash
+export DEV_STUB_USER="dev@example.com:Developer:admins"
+npm run dev
+```
+
+See [docs/auth.md](docs/auth.md) for the full deployment topology, nginx configuration snippet, Authelia access-control rules, OIDC notes, and the production checklist.
+
 ## Features
 
 - ✅ **Interactive TUI Runner**: Prompt-driven questionnaire execution in the terminal
