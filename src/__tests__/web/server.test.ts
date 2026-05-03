@@ -878,3 +878,22 @@ describe('Guest identity when no auth headers are provided', () => {
   });
 });
 
+
+// ── GET /config.js ────────────────────────────────────────────────────────────
+
+describe('GET /config.js', () => {
+  it('returns a JavaScript snippet setting window.APP_BASE', async () => {
+    const res = await request(app).get('/config.js');
+
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/application\/javascript/);
+    expect(res.text).toContain('window.APP_BASE');
+  });
+
+  it('sets window.APP_BASE to an empty string when BASE_PATH is not set', async () => {
+    const res = await request(app).get('/config.js');
+
+    expect(res.status).toBe(200);
+    expect(res.text).toBe('window.APP_BASE = "";');
+  });
+});
