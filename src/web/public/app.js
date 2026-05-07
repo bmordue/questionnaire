@@ -15,9 +15,14 @@
 async function apiFetch(url, options = {}) {
   const base = (window.APP_BASE || '').replace(/\/+$/, '');
   const fullUrl = url.startsWith('/') ? base + url : url;
+  // Ensure cookies/credentials are sent for same-origin requests by default
+  const { headers: callerHeaders, ...restOptions } = options || {};
+  const headers = { 'Content-Type': 'application/json', ...(callerHeaders ?? {}) };
+
   const resp = await fetch(fullUrl, {
-    headers: { 'Content-Type': 'application/json', ...(options.headers ?? {}) },
-    ...options
+    credentials: 'same-origin',
+    ...restOptions,
+    headers
   });
   if (resp.status === 204) return null;
   const data = await resp.json();
