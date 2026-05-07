@@ -16,14 +16,14 @@ async function apiFetch(url, options = {}) {
   const base = (window.APP_BASE || '').replace(/\/+$/, '');
   const fullUrl = url.startsWith('/') ? base + url : url;
   // Ensure cookies/credentials are sent for same-origin requests by default
-  const mergedOptions = { credentials: 'same-origin', ...options };
+  const { headers: callerHeaders, ...restOptions } = options || {};
+  const headers = { 'Content-Type': 'application/json', ...(callerHeaders ?? {}) };
 
-  // Merge headers from callers with our default Content-Type. Do this after
-  // spreading `mergedOptions` to avoid the caller accidentally overwriting
-  // the merged headers object via the later spread.
-  const headers = { 'Content-Type': 'application/json', ...(mergedOptions.headers ?? {}) };
-
-  const resp = await fetch(fullUrl, { ...mergedOptions, headers });
+  const resp = await fetch(fullUrl, {
+    credentials: 'same-origin',
+    ...restOptions,
+    headers
+  });
   if (resp.status === 204) return null;
   const data = await resp.json();
   if (!resp.ok) {
