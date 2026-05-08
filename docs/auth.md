@@ -186,6 +186,42 @@ If neither proxy headers nor `DEV_STUB_USER` are present, the request is process
 
 ---
 
+## Running Locally With the Full Auth Stack (Nix)
+
+The `dev/` directory provides a complete local auth stack so you can test the real
+proxy-header flow without deploying to a server.  It uses:
+
+* **Dex** (port 5556) — OIDC identity provider with two static test accounts
+* **oauth2-proxy** (port 4180) — session/cookie broker that performs the OIDC code exchange
+* **nginx** (port 8080) — reverse proxy that uses `auth_request` to validate sessions and
+  inject `Remote-User`, `Remote-Name`, `Remote-Groups` headers before forwarding to the service
+
+```
+Browser → nginx (8080)
+            ├── auth_request → oauth2-proxy (4180) → Dex (5556)
+            └── proxy_pass  → questionnaire service (3000)
+```
+
+Enter the Nix devshell to get all required tools, then start the stack:
+
+```bash
+nix develop          # or: direnv allow  (requires nix-direnv)
+
+npm run build && npm run web &       # start the questionnaire service on port 3000
+./dev/scripts/start-auth.sh          # start Dex + oauth2-proxy + nginx
+
+# Visit http://localhost:8080 and log in with:
+#   admin@example.com / password
+#   user@example.com  / password
+
+./dev/scripts/stop-auth.sh           # stop the auth stack when done
+```
+
+See [../dev/README.md](../dev/README.md) for full details, log locations, and notes on
+testing admin-group flows.
+
+---
+
 ## Production Checklist
 
 - [ ] nginx strips `Remote-User`, `Remote-Name`, `Remote-Email`, `Remote-Groups` from client requests
