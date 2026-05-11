@@ -55,6 +55,40 @@ npm run web &
 #    Log in with one of the test credentials below
 ```
 
+## Important: access via proxy (don't use port 3000 directly)
+
+- The questionnaire service expects identity headers injected by the proxy (`nginx` + `oauth2-proxy`). If you open the app directly on port `3000` (for example `http://localhost:3000`) you will see authentication errors because those headers are missing.
+- Always access the app through the nginx proxy at `http://localhost:8080` so the authentication flow runs and `Remote-User`/`Remote-Groups` headers are provided.
+
+## Local debug / bypass options
+
+Use these options for local development when you want to run the app directly on port `3000` or quickly impersonate a user:
+
+- Inject a stub user (useful for local UI/debugging):
+
+```bash
+DEV_STUB_USER="admin@example.com:Admin User:admins" npm run web
+# then open http://localhost:3000 directly
+```
+
+- Make everyone an admin (quick admin testing):
+
+```bash
+ADMIN_GROUP="" npm run web
+```
+
+See the "Admin Group Testing" notes below for more context about test users and groups.
+
+## Logs & troubleshooting
+
+If you still see authentication errors, tail the auth stack logs to diagnose the issue:
+
+```bash
+tail -f /tmp/questionnaire-dev/logs/oauth2-proxy.log /tmp/questionnaire-dev/logs/dex.log /tmp/questionnaire-dev/nginx/error.log
+```
+
+Look for request/response errors, missing header injection, or failed OIDC logins.
+
 ## Test Users
 
 | Email                  | Password   | Notes                         |
