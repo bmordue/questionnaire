@@ -51,7 +51,7 @@ If you have [direnv](https://direnv.net/) and [nix-direnv](https://github.com/ni
 direnv allow
 ```
 
-#### Full local auth stack (Dex + nginx)
+#### Full local auth stack (Dex + oauth2-proxy + nginx)
 
 The `dev/` directory provides a complete authentication stack for local end-to-end testing:
 
