@@ -61,17 +61,14 @@ const qFilter      = document.getElementById('qFilter');
 const responseList = document.getElementById('responseList');
 
 document.getElementById('backBtn').addEventListener('click', showList);
-qFilter.addEventListener('change', () => renderList(qFilter.value));
+qFilter.addEventListener('change', () => {
+  refreshResponses(qFilter.value);
+});
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 (async () => {
   try {
-    const [responses, qList] = await Promise.all([
-      apiFetch('/api/responses'),
-      apiFetch('/api/questionnaires')
-    ]);
-
-    allResponses = responses;
+    const qList = await apiFetch('/api/questionnaires');
     for (const q of qList) {
       questionnaires[q.id] = q.title;
       const opt = document.createElement('option');
@@ -82,7 +79,7 @@ qFilter.addEventListener('change', () => renderList(qFilter.value));
 
     if (initQId) qFilter.value = initQId;
 
-    renderList(qFilter.value);
+    await refreshResponses(qFilter.value);
 
     // If a specific response was requested (after running), show it
     if (initResponseId) {
@@ -93,6 +90,47 @@ qFilter.addEventListener('change', () => renderList(qFilter.value));
     showAlert(alertEl, 'Failed to load data: ' + err.message);
   }
 })();
+
+async function fetchResponses(questionnaireId) {
+  const params = new URLSearchParams({ questionnaireId });
+  return apiFetch('/api/responses?' + params.toString());
+}
+
+async function refreshResponses(filterId) {
+  try {
+    hideAlert(alertEl);
+
+    if (filterId) {
+      allResponses = await fetchResponses(filterId);
+    } else {
+      const questionnaireIds = Object.keys(questionnaires);
+      if (questionnaireIds.length === 0) {
+        allResponses = [];
+      } else {
+        const responseResults = await Promise.allSettled(questionnaireIds.map(fetchResponses));
+        const successfulResponses = responseResults
+          .filter(result => result.status === 'fulfilled')
+          .map(result => result.value);
+        const failedCount = responseResults.length - successfulResponses.length;
+
+        allResponses = successfulResponses.flat();
+
+        if (failedCount > 0) {
+          showAlert(
+            alertEl,
+            `Loaded responses with warnings: ${failedCount} questionnaire response request${failedCount === 1 ? '' : 's'} failed.`
+          );
+        }
+      }
+    }
+
+    renderList(filterId);
+  } catch (err) {
+    allResponses = [];
+    renderList(filterId);
+    showAlert(alertEl, 'Failed to load data: ' + err.message);
+  }
+}
 
 // ── List ──────────────────────────────────────────────────────────────────────
 function renderList(filterId) {
