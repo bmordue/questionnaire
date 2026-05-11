@@ -92,25 +92,32 @@ qFilter.addEventListener('change', () => {
 })();
 
 async function fetchResponses(questionnaireId) {
-  return apiFetch('/api/responses?questionnaireId=' + encodeURIComponent(questionnaireId));
+  const params = new URLSearchParams({ questionnaireId });
+  return apiFetch('/api/responses?' + params.toString());
 }
 
 async function refreshResponses(filterId) {
-  hideAlert(alertEl);
+  try {
+    hideAlert(alertEl);
 
-  if (filterId) {
-    allResponses = await fetchResponses(filterId);
-  } else {
-    const questionnaireIds = Object.keys(questionnaires);
-    if (questionnaireIds.length === 0) {
-      allResponses = [];
+    if (filterId) {
+      allResponses = await fetchResponses(filterId);
     } else {
-      const responseLists = await Promise.all(questionnaireIds.map(fetchResponses));
-      allResponses = responseLists.flat();
+      const questionnaireIds = Object.keys(questionnaires);
+      if (questionnaireIds.length === 0) {
+        allResponses = [];
+      } else {
+        const responseLists = await Promise.all(questionnaireIds.map(fetchResponses));
+        allResponses = responseLists.flat();
+      }
     }
-  }
 
-  renderList(filterId);
+    renderList(filterId);
+  } catch (err) {
+    allResponses = [];
+    renderList(filterId);
+    showAlert(alertEl, 'Failed to load data: ' + err.message);
+  }
 }
 
 // ── List ──────────────────────────────────────────────────────────────────────
