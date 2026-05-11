@@ -107,8 +107,20 @@ async function refreshResponses(filterId) {
       if (questionnaireIds.length === 0) {
         allResponses = [];
       } else {
-        const responseLists = await Promise.all(questionnaireIds.map(fetchResponses));
-        allResponses = responseLists.flat();
+        const responseResults = await Promise.allSettled(questionnaireIds.map(fetchResponses));
+        const successfulResponses = responseResults
+          .filter(result => result.status === 'fulfilled')
+          .map(result => result.value);
+        const failedCount = responseResults.length - successfulResponses.length;
+
+        allResponses = successfulResponses.flat();
+
+        if (failedCount > 0) {
+          showAlert(
+            alertEl,
+            `Loaded responses with warnings: ${failedCount} questionnaire response request${failedCount === 1 ? '' : 's'} failed.`
+          );
+        }
       }
     }
 
