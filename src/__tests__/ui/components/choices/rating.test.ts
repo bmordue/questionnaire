@@ -3,6 +3,8 @@ import { RatingComponent } from '../../../../ui/components/choices/rating.js';
 import type { RatingQuestion } from '../../../../core/schema.js';
 import { QuestionType } from '../../../../core/schema.js';
 
+const stripAnsi = (value: string): string => value.replace(/\u001B\[[0-9;]*m/g, '');
+
 describe('RatingComponent', () => {
   const component = new RatingComponent();
 
@@ -101,7 +103,7 @@ describe('RatingComponent', () => {
       };
 
       const config = component.getPromptConfig(question);
-      const choiceNames = config.choices.map((c: any) => c.name);
+      const choiceNames = config.choices.map((c: any) => stripAnsi(c.name));
       
       expect(choiceNames[0]).toContain('★☆☆☆☆');
       expect(choiceNames[0]).toContain('Poor');

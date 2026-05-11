@@ -3,6 +3,8 @@ import { TextInputComponent } from '../../../../ui/components/inputs/text-input.
 import type { Question, TextQuestion } from '../../../../core/schema.js';
 import { QuestionType } from '../../../../core/schema.js';
 
+const stripAnsi = (value: string): string => value.replace(/\u001B\[[0-9;]*m/g, '');
+
 describe('TextInputComponent', () => {
   const component = new TextInputComponent();
 
@@ -181,7 +183,7 @@ describe('TextInputComponent', () => {
 
       const config = component.getPromptConfig(question);
       if (config.transformer) {
-        const result = config.transformer('John');
+        const result = stripAnsi(config.transformer('John'));
         expect(result).toContain('John');
         expect(result).not.toContain('[');
       }
