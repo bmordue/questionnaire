@@ -135,7 +135,6 @@ oauth2-proxy \
     --upstream=static://202 \
     --email-domain='*' \
     --cookie-name=_questionnaire_dev \
-    # exactly 16 ASCII bytes — valid for oauth2-proxy
     --cookie-secret=devlockcookiekey \
     --cookie-secure=false \
     --http-address=127.0.0.1:4180 \
