@@ -2,6 +2,7 @@ import { describe, it, expect } from '@jest/globals';
 import { TextInputComponent } from '../../../../ui/components/inputs/text-input.js';
 import type { Question, TextQuestion } from '../../../../core/schema.js';
 import { QuestionType } from '../../../../core/schema.js';
+import { stripAnsi } from '../../../utils/test-helpers.js';
 
 describe('TextInputComponent', () => {
   const component = new TextInputComponent();
@@ -181,7 +182,7 @@ describe('TextInputComponent', () => {
 
       const config = component.getPromptConfig(question);
       if (config.transformer) {
-        const result = config.transformer('John');
+        const result = stripAnsi(config.transformer('John'));
         expect(result).toContain('John');
         expect(result).not.toContain('[');
       }

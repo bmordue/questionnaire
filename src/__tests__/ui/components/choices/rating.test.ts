@@ -2,6 +2,7 @@ import { describe, it, expect } from '@jest/globals';
 import { RatingComponent } from '../../../../ui/components/choices/rating.js';
 import type { RatingQuestion } from '../../../../core/schema.js';
 import { QuestionType } from '../../../../core/schema.js';
+import { stripAnsi } from '../../../utils/test-helpers.js';
 
 describe('RatingComponent', () => {
   const component = new RatingComponent();
@@ -101,7 +102,7 @@ describe('RatingComponent', () => {
       };
 
       const config = component.getPromptConfig(question);
-      const choiceNames = config.choices.map((c: any) => c.name);
+      const choiceNames = config.choices.map((c: any) => stripAnsi(c.name));
       
       expect(choiceNames[0]).toContain('★☆☆☆☆');
       expect(choiceNames[0]).toContain('Poor');
