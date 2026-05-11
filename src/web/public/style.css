@@ -59,6 +59,19 @@ nav a:hover, nav a.active {
   border-bottom-color: var(--primary);
 }
 
+/* Auth area on the right side of the nav */
+.nav-auth {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.nav-auth .user-name { font-weight:600; color:var(--text); }
+.nav-auth .btn-logout { padding:0.25rem 0.6rem; font-size:0.85rem; }
+
 /* ── Layout ───────────────────────────────────────────────────────────────── */
 .container {
   max-width: 900px;

@@ -51,3 +51,34 @@ function fmtDate(iso) {
   if (!iso) return '—';
   return new Date(iso).toLocaleString();
 }
+
+// ── Auth widget: show current user and logout action ─────────────────────────
+(async function initAuthWidget() {
+  const el = document.getElementById('auth');
+  if (!el) return;
+
+  try {
+    const data = await apiFetch('/api/auth/me');
+    const user = data.user;
+    const name = user.name || user.email || 'User';
+    el.innerHTML = `
+      <span class="user-name">${esc(user.email)}</span>
+      <button id="logoutBtn" class="btn btn-ghost btn-logout">Sign out</button>
+    `;
+
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', () => {
+        const base = (window.APP_BASE || '').replace(/\/+$|^$/g, '');
+        const target = (window.APP_BASE || '') + '/logout';
+        // Redirect the browser to the server logout handler which may in turn
+        // redirect to the external identity provider logout URL when configured.
+        window.location.href = target;
+      });
+    }
+  } catch (err) {
+    // Unauthenticated or error — show a simple sign-in link (handled by proxy)
+    const base = (window.APP_BASE || '').replace(/\/+$|^$/g, '');
+    el.innerHTML = `<a href="${(window.APP_BASE || '') || '/'}" class="btn btn-ghost">Sign in</a>`;
+  }
+})();

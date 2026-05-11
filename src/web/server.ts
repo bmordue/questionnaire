@@ -646,6 +646,23 @@ router.get('/api/auth/me', (_req, res) => {
   res.json({ user });
 });
 
+/**
+ * Logout endpoint.
+ * If `AUTH_LOGOUT_URL` is configured, redirect the user to that URL (external
+ * identity provider / proxy logout). Otherwise, redirect to the app root.
+ */
+router.get('/logout', (_req, res) => {
+  const logoutUrl = process.env['AUTH_LOGOUT_URL'];
+  if (logoutUrl && logoutUrl.trim() !== '') {
+    res.redirect(logoutUrl);
+    return;
+  }
+
+  // Fallback: navigate back to the application root (this will leave the
+  // user unauthenticated only if the upstream proxy clears its session).
+  res.redirect(BASE_PATH || '/');
+});
+
 // ── User Directory ────────────────────────────────────────────────────────────
 
 /** List all provisioned users — used by the sharing UI */
