@@ -2,8 +2,7 @@ import { describe, it, expect } from '@jest/globals';
 import { TextInputComponent } from '../../../../ui/components/inputs/text-input.js';
 import type { Question, TextQuestion } from '../../../../core/schema.js';
 import { QuestionType } from '../../../../core/schema.js';
-
-const stripAnsi = (value: string): string => value.replace(/\u001B\[[0-9;]*m/g, '');
+import { stripAnsi } from '../../../utils/test-helpers.js';
 
 describe('TextInputComponent', () => {
   const component = new TextInputComponent();
