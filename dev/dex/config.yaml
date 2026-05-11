@@ -1,0 +1,50 @@
+# Dex OIDC Identity Provider — local development configuration
+#
+# Dex acts as the OIDC identity provider for the local auth stack.
+# It is fronted by oauth2-proxy which handles the OAuth2 flow and
+# injects identity headers consumed by the questionnaire service.
+#
+# Start with: ./dev/scripts/start-auth.sh
+
+issuer: http://localhost:5556/dex
+
+storage:
+  type: sqlite3
+  config:
+    file: /tmp/questionnaire-dev/dex/dex.db
+
+web:
+  http: 127.0.0.1:5556
+
+logger:
+  level: info
+  format: text
+
+# Skip the consent screen for a smoother dev experience
+oauth2:
+  skipApprovalScreen: true
+
+# The oauth2-proxy client — redirect URI points to nginx (port 8080),
+# not oauth2-proxy directly, because the browser only talks to nginx.
+staticClients:
+  - id: questionnaire-dev
+    name: Questionnaire Dev
+    secret: questionnaire-dev-secret
+    redirectURIs:
+      - http://localhost:8080/oauth2/callback
+
+# Enable the built-in username/password database for static test users
+enablePasswordDB: true
+
+staticPasswords:
+  # Password for both users is: password
+  # Hash generated with: htpasswd -bnBC 10 "" password | tr -d ':\n'
+  - email: admin@example.com
+    hash: "$2a$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W"
+    username: admin
+    userID: "08a8684b-db88-4b73-90a9-3cd1661f5466"
+
+  - email: user@example.com
+    hash: "$2a$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W"
+    username: user
+    userID: "67ebed08-5484-46c8-97e5-f862c91c6ab0"

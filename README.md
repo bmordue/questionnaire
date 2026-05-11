@@ -38,18 +38,31 @@ See [docs/auth.md](docs/auth.md) for the full deployment topology, nginx configu
 If you use [Nix](https://nixos.org/), you can get a fully-reproducible development environment with all required tools:
 
 ```bash
-nix-shell
+nix develop
 ```
 
-This drops you into a shell with Node.js 22 and TypeScript pre-installed. If your Nixpkgs configuration has `allowUnfree = true`, the shell also includes `gemini-cli` and `claude-code`.
+This drops you into a shell with Node.js 22, nginx, Dex, and oauth2-proxy pre-installed. If your Nixpkgs configuration has `allowUnfree = true`, the shell also includes `gemini-cli` and `claude-code`.
 
 #### direnv integration
 
-If you have [direnv](https://direnv.net/) installed, allow the provided `.envrc` to activate the Nix shell automatically whenever you enter the project directory:
+If you have [direnv](https://direnv.net/) and [nix-direnv](https://github.com/nix-community/nix-direnv) installed, allow the provided `.envrc` to activate the Nix shell automatically whenever you enter the project directory:
 
 ```bash
 direnv allow
 ```
+
+#### Full local auth stack (Dex + oauth2-proxy + nginx)
+
+The `dev/` directory provides a complete authentication stack for local end-to-end testing:
+
+```bash
+npm run build && npm run web &       # start the questionnaire service on port 3000
+./dev/scripts/start-auth.sh          # start Dex + oauth2-proxy + nginx on port 8080
+# Open http://localhost:8080 and log in with admin@example.com / password
+./dev/scripts/stop-auth.sh           # stop when done
+```
+
+See [dev/README.md](dev/README.md) for the full topology and configuration details.
 
 ### Installation
 
