@@ -154,6 +154,32 @@ const accessToken = req.headers['x-forwarded-access-token'];
 
 > **Important**: Never log the access token. The audit logging in this service logs only the principal email (`Remote-User`), never tokens or credentials.
 
+### Logout with oauth2-proxy
+
+When oauth2-proxy manages sessions, the application's `/logout` route alone is not sufficient to sign users out — it only redirects the browser, it does not clear the oauth2-proxy session cookie. To fully sign users out:
+
+**Option 1 — Handle at the nginx level (recommended for the dev stack)**
+
+Add a dedicated `location` block in nginx that intercepts `/logout` and forwards the browser to oauth2-proxy's sign-out endpoint before the request reaches the application:
+
+```nginx
+location = /logout {
+    return 302 /oauth2/sign_out?rd=/;
+}
+```
+
+This is what `dev/nginx/nginx.conf` does. After the session cookie is cleared, the next request to `/` is unauthenticated, triggering a redirect to the Dex login form.
+
+**Option 2 — Set `AUTH_LOGOUT_URL` on the questionnaire service**
+
+Start the questionnaire service with:
+
+```bash
+AUTH_LOGOUT_URL=/oauth2/sign_out npm run web
+```
+
+The application's `/logout` handler will then redirect the browser to oauth2-proxy's sign-out endpoint, which clears the session cookie and sends the user back to the login form.
+
 ---
 
 ## Environment Variables
