@@ -81,6 +81,10 @@ nav a:hover, nav a.active {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 1.25rem 1.5rem;
+  /* Ensure interactive controls remain visually contained inside the card
+     and don't overflow into neighbouring cards */
+  position: relative;
+  overflow: hidden;
   margin-bottom: 0.75rem;
 }
 
@@ -106,6 +110,10 @@ nav a:hover, nav a.active {
   display: flex;
   gap: 0.5rem;
   margin-top: 1rem;
+  align-items: center;
+  /* Allow buttons to wrap onto a new line so they stay inside the card
+     instead of overflowing when space is constrained. */
+  flex-wrap: wrap;
 }
 
 /* ── Buttons ──────────────────────────────────────────────────────────────── */
