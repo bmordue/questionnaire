@@ -60,6 +60,16 @@ npm run web &
 - The questionnaire service expects identity headers injected by the proxy (`nginx` + `oauth2-proxy`). If you open the app directly on port `3000` (for example `http://localhost:3000`) you will see authentication errors because those headers are missing.
 - Always access the app through the nginx proxy at `http://localhost:8080` so the authentication flow runs and `Remote-User`/`Remote-Groups` headers are provided.
 
+## Sign-out flow
+
+Clicking "Sign out" in the UI redirects the browser to `/logout`.  In this dev stack, nginx intercepts that path and redirects to `/oauth2/sign_out?rd=/`, which:
+
+1. Clears the oauth2-proxy session cookie.
+2. Sends the browser back to `/`.
+3. nginx's `auth_request` now returns 401 (session gone), triggering a redirect to the Dex login form.
+
+This behaviour is configured in `dev/nginx/nginx.conf`.  If you run the questionnaire service **without** nginx (for example directly on port 3000 with a stub user), logout simply redirects to the app root since there is no proxy session to clear.
+
 ## Local debug / bypass options
 
 Use these options for local development when you want to run the app directly on port `3000` or quickly impersonate a user:
