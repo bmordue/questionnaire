@@ -61,6 +61,32 @@ const BASE_PATH = (() => {
   return normalised === '/' ? '' : normalised;
 })();
 
+/**
+ * Validate AUTH_LOGOUT_URL before using it as a redirect target.
+ * Allowed forms:
+ *  - Absolute http/https URL
+ *  - Same-origin relative path beginning with a single slash (e.g. /signout)
+ */
+function validatedLogoutRedirect(rawUrl: string | undefined): string | null {
+  const value = (rawUrl ?? '').trim();
+  if (!value) return null;
+
+  if (value.startsWith('/')) {
+    return value.startsWith('//') ? null : value;
+  }
+
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+      return value;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
 // On Vercel, process.cwd() points to /var/task which is read-only.
 // Fall back to os.tmpdir() (writable, but ephemeral) when DATA_DIR is not explicitly set.
 const DATA_DIR =
@@ -652,8 +678,8 @@ router.get('/api/auth/me', (_req, res) => {
  * identity provider / proxy logout). Otherwise, redirect to the app root.
  */
 router.get('/logout', (_req, res) => {
-  const logoutUrl = process.env['AUTH_LOGOUT_URL'];
-  if (logoutUrl && logoutUrl.trim() !== '') {
+  const logoutUrl = validatedLogoutRedirect(process.env['AUTH_LOGOUT_URL']);
+  if (logoutUrl) {
     res.redirect(logoutUrl);
     return;
   }

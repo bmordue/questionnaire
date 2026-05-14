@@ -52,6 +52,12 @@ function fmtDate(iso) {
   return new Date(iso).toLocaleString();
 }
 
+/** Build an app-relative URL honoring window.APP_BASE */
+function appUrl(path) {
+  const base = (window.APP_BASE || '').replace(/\/+$/, '');
+  return base + path;
+}
+
 // ── Auth widget: show current user and logout action ─────────────────────────
 (async function initAuthWidget() {
   const el = document.getElementById('auth');
@@ -60,25 +66,29 @@ function fmtDate(iso) {
   try {
     const data = await apiFetch('/api/auth/me');
     const user = data.user;
-    const name = user.name || user.email || 'User';
-    el.innerHTML = `
-      <span class="user-name">${esc(user.email)}</span>
-      <button id="logoutBtn" class="btn btn-ghost btn-logout">Sign out</button>
-    `;
+    if (!user || user.id === 'guest') throw new Error('Guest user');
 
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-      logoutBtn.addEventListener('click', () => {
-        const base = (window.APP_BASE || '').replace(/\/+$|^$/g, '');
-        const target = (window.APP_BASE || '') + '/logout';
-        // Redirect the browser to the server logout handler which may in turn
-        // redirect to the external identity provider logout URL when configured.
-        window.location.href = target;
-      });
-    }
+    const userName = document.createElement('span');
+    userName.className = 'user-name';
+    userName.textContent = user.name || user.email || 'User';
+
+    const logoutBtn = document.createElement('button');
+    logoutBtn.id = 'logoutBtn';
+    logoutBtn.className = 'btn btn-ghost btn-logout';
+    logoutBtn.textContent = 'Sign out';
+    logoutBtn.addEventListener('click', () => {
+      // Redirect the browser to the server logout handler which may in turn
+      // redirect to the external identity provider logout URL when configured.
+      window.location.href = appUrl('/logout');
+    });
+
+    el.replaceChildren(userName, logoutBtn);
   } catch (err) {
     // Unauthenticated or error — show a simple sign-in link (handled by proxy)
-    const base = (window.APP_BASE || '').replace(/\/+$|^$/g, '');
-    el.innerHTML = `<a href="${(window.APP_BASE || '') || '/'}" class="btn btn-ghost">Sign in</a>`;
+    const signIn = document.createElement('a');
+    signIn.className = 'btn btn-ghost';
+    signIn.href = appUrl('') || '/';
+    signIn.textContent = 'Sign in';
+    el.replaceChildren(signIn);
   }
 })();
