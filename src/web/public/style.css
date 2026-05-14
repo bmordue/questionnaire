@@ -81,10 +81,8 @@ nav a:hover, nav a.active {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 1.25rem 1.5rem;
-  /* Ensure interactive controls remain visually contained inside the card
-     and don't overflow into neighbouring cards */
+  /* Ensure interactive controls remain visually contained inside the card */
   position: relative;
-  overflow: hidden;
   margin-bottom: 0.75rem;
 }
 
