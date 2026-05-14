@@ -81,8 +81,9 @@ nav a:hover, nav a.active {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 1.25rem 1.5rem;
+  /* Keep card content positioned normally without clipping descendant focus
+     indicators such as outlines and box-shadows near the card edge */
   margin-bottom: 0.75rem;
-}
 
 .card-grid {
   display: grid;
@@ -106,6 +107,10 @@ nav a:hover, nav a.active {
   display: flex;
   gap: 0.5rem;
   margin-top: 1rem;
+  align-items: center;
+  /* Allow buttons to wrap onto a new line so they stay inside the card
+     instead of overflowing when space is constrained. */
+  flex-wrap: wrap;
 }
 
 /* ── Buttons ──────────────────────────────────────────────────────────────── */
