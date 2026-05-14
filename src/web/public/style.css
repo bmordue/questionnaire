@@ -81,10 +81,9 @@ nav a:hover, nav a.active {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 1.25rem 1.5rem;
-  /* Ensure interactive controls remain visually contained inside the card */
-  position: relative;
+  /* Keep card content positioned normally without clipping descendant focus
+     indicators such as outlines and box-shadows near the card edge */
   margin-bottom: 0.75rem;
-}
 
 .card-grid {
   display: grid;
