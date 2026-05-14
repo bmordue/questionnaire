@@ -80,9 +80,9 @@ function renderSignIn(el) {
       return;
     }
 
-    const userName = document.createElement('span');
-    userName.className = 'user-name';
-    userName.textContent = user.name || user.email || 'User';
+    const userNameSpan = document.createElement('span');
+    userNameSpan.className = 'user-name';
+    userNameSpan.textContent = user.name || user.email || 'User';
 
     const logoutBtn = document.createElement('button');
     logoutBtn.id = 'logoutBtn';
@@ -94,7 +94,7 @@ function renderSignIn(el) {
       window.location.href = appUrl('/logout');
     });
 
-    el.replaceChildren(userName, logoutBtn);
+    el.replaceChildren(userNameSpan, logoutBtn);
   } catch (err) {
     // Unauthenticated or error — show a simple sign-in link (handled by proxy)
     renderSignIn(el);
