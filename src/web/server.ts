@@ -61,6 +61,34 @@ const BASE_PATH = (() => {
   return normalised === '/' ? '' : normalised;
 })();
 
+/**
+ * Validate AUTH_LOGOUT_URL before using it as a redirect target.
+ * Allowed forms:
+ *  - Absolute http/https URL
+ *  - Same-origin relative path beginning with a single slash (e.g. /signout)
+ */
+function validatedLogoutRedirect(rawUrl: string | undefined): string | null {
+  const value = (rawUrl ?? '').trim();
+  if (!value) return null;
+
+  if (value.startsWith('/')) {
+    const pathOnly = value.split(/[?#]/, 1)[0] ?? '';
+    if (pathOnly.split('/').includes('..')) return null;
+    return value.startsWith('//') ? null : value;
+  }
+
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+      return value;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
 // On Vercel, process.cwd() points to /var/task which is read-only.
 // Fall back to os.tmpdir() (writable, but ephemeral) when DATA_DIR is not explicitly set.
 const DATA_DIR =
@@ -644,6 +672,23 @@ router.get('/api/auth/me', (_req, res) => {
     return;
   }
   res.json({ user });
+});
+
+/**
+ * Logout endpoint.
+ * If `AUTH_LOGOUT_URL` is configured, redirect the user to that URL (external
+ * identity provider / proxy logout). Otherwise, redirect to the app root.
+ */
+router.get('/logout', (_req, res) => {
+  const logoutUrl = validatedLogoutRedirect(process.env['AUTH_LOGOUT_URL']);
+  if (logoutUrl) {
+    res.redirect(logoutUrl);
+    return;
+  }
+
+  // Fallback: navigate back to the application root (this will leave the
+  // user unauthenticated only if the upstream proxy clears its session).
+  res.redirect(BASE_PATH || '/');
 });
 
 // ── User Directory ────────────────────────────────────────────────────────────

@@ -51,3 +51,52 @@ function fmtDate(iso) {
   if (!iso) return '—';
   return new Date(iso).toLocaleString();
 }
+
+/** Build an app-relative URL honoring window.APP_BASE */
+function appUrl(path) {
+  const base = (window.APP_BASE || '').replace(/\/+$/, '');
+  return base + path;
+}
+
+/** Render the sign-in action in the auth widget */
+function renderSignIn(el) {
+  const signIn = document.createElement('a');
+  signIn.className = 'btn btn-ghost';
+  signIn.href = appUrl('') || '/';
+  signIn.textContent = 'Sign in';
+  el.replaceChildren(signIn);
+}
+
+// ── Auth widget: show current user and logout action ─────────────────────────
+(async function initAuthWidget() {
+  const el = document.getElementById('auth');
+  if (!el) return;
+
+  try {
+    const data = await apiFetch('/api/auth/me');
+    const user = data.user;
+    if (!user || user.id === 'guest') {
+      renderSignIn(el);
+      return;
+    }
+
+    const userNameSpan = document.createElement('span');
+    userNameSpan.className = 'user-name';
+    userNameSpan.textContent = user.email || user.name || 'User';
+
+    const logoutBtn = document.createElement('button');
+    logoutBtn.id = 'logoutBtn';
+    logoutBtn.className = 'btn btn-ghost btn-logout';
+    logoutBtn.textContent = 'Sign out';
+    logoutBtn.addEventListener('click', () => {
+      // Redirect the browser to the server logout handler which may in turn
+      // redirect to the external identity provider logout URL when configured.
+      window.location.href = appUrl('/logout');
+    });
+
+    el.replaceChildren(userNameSpan, logoutBtn);
+  } catch (err) {
+    // Unauthenticated or error — show a simple sign-in link (handled by proxy)
+    renderSignIn(el);
+  }
+})();

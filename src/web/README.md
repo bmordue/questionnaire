@@ -58,6 +58,8 @@ The web server reads the following environment variables at startup:
 | `NODE_ENV` | `development`  | Set to `production` to enforce stricter CORS and disable development-only behaviour.                    |
 | `CORS_ORIGINS` | *(empty)*  | Comma-separated list of allowed origins for CORS in non-development environments.                       |
 
+| `AUTH_LOGOUT_URL` | *(unset)* | Optional URL to redirect users to when they sign out. If provided, the server's `/logout` route will redirect the browser to this URL. This is useful when using an external identity provider or proxy that exposes a logout endpoint. |
+
 See the repository root README for the full list of storage-related variables (`S3_BUCKET`, etc.).
 
 ### Hosting under a sub-path (`BASE_PATH`)

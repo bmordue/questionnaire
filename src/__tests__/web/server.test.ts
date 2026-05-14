@@ -897,3 +897,80 @@ describe('GET /config.js', () => {
     expect(res.text).toBe('window.APP_BASE = "";');
   });
 });
+
+// ── GET /logout ────────────────────────────────────────────────────────────────
+
+describe('GET /logout', () => {
+  it('redirects to AUTH_LOGOUT_URL when configured with a safe absolute URL', async () => {
+    const original = process.env['AUTH_LOGOUT_URL'];
+    process.env['AUTH_LOGOUT_URL'] = 'https://auth.example.com/logout';
+    try {
+      const res = await request(app).get('/logout');
+      expect(res.status).toBe(302);
+      expect(res.headers['location']).toBe('https://auth.example.com/logout');
+    } finally {
+      if (original === undefined) {
+        delete process.env['AUTH_LOGOUT_URL'];
+      } else {
+        process.env['AUTH_LOGOUT_URL'] = original;
+      }
+    }
+  });
+
+  it('falls back to app root when AUTH_LOGOUT_URL is not configured', async () => {
+    const original = process.env['AUTH_LOGOUT_URL'];
+    delete process.env['AUTH_LOGOUT_URL'];
+    try {
+      const res = await request(app).get('/logout');
+      expect(res.status).toBe(302);
+      expect(res.headers['location']).toBe('/');
+    } finally {
+      if (original === undefined) {
+        delete process.env['AUTH_LOGOUT_URL'];
+      } else {
+        process.env['AUTH_LOGOUT_URL'] = original;
+      }
+    }
+  });
+
+  it('falls back to app root for unsafe AUTH_LOGOUT_URL values', async () => {
+    const original = process.env['AUTH_LOGOUT_URL'];
+    process.env['AUTH_LOGOUT_URL'] = 'javascript:alert(1)';
+    try {
+      const res = await request(app).get('/logout');
+      expect(res.status).toBe(302);
+      expect(res.headers['location']).toBe('/');
+    } finally {
+      if (original === undefined) {
+        delete process.env['AUTH_LOGOUT_URL'];
+      } else {
+        process.env['AUTH_LOGOUT_URL'] = original;
+      }
+    }
+  });
+
+  it('falls back to BASE_PATH root when BASE_PATH is configured', async () => {
+    const originalBasePath = process.env['BASE_PATH'];
+    const originalLogoutUrl = process.env['AUTH_LOGOUT_URL'];
+    process.env['BASE_PATH'] = '/test-base';
+    delete process.env['AUTH_LOGOUT_URL'];
+
+    try {
+      const { app: basePathApp } = await import(`../../web/server.js?logout-base-path=${Date.now()}`);
+      const res = await request(basePathApp).get('/test-base/logout');
+      expect(res.status).toBe(302);
+      expect(res.headers['location']).toBe('/test-base');
+    } finally {
+      if (originalBasePath === undefined) {
+        delete process.env['BASE_PATH'];
+      } else {
+        process.env['BASE_PATH'] = originalBasePath;
+      }
+      if (originalLogoutUrl === undefined) {
+        delete process.env['AUTH_LOGOUT_URL'];
+      } else {
+        process.env['AUTH_LOGOUT_URL'] = originalLogoutUrl;
+      }
+    }
+  });
+});
