@@ -72,6 +72,8 @@ function validatedLogoutRedirect(rawUrl: string | undefined): string | null {
   if (!value) return null;
 
   if (value.startsWith('/')) {
+    const pathOnly = value.split(/[?#]/, 1)[0] ?? '';
+    if (pathOnly.split('/').includes('..')) return null;
     return value.startsWith('//') ? null : value;
   }
 

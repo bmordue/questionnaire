@@ -58,6 +58,15 @@ function appUrl(path) {
   return base + path;
 }
 
+/** Render the sign-in action in the auth widget */
+function renderSignIn(el) {
+  const signIn = document.createElement('a');
+  signIn.className = 'btn btn-ghost';
+  signIn.href = appUrl('') || '/';
+  signIn.textContent = 'Sign in';
+  el.replaceChildren(signIn);
+}
+
 // ── Auth widget: show current user and logout action ─────────────────────────
 (async function initAuthWidget() {
   const el = document.getElementById('auth');
@@ -66,7 +75,10 @@ function appUrl(path) {
   try {
     const data = await apiFetch('/api/auth/me');
     const user = data.user;
-    if (!user || user.id === 'guest') throw new Error('Guest user');
+    if (!user || user.id === 'guest') {
+      renderSignIn(el);
+      return;
+    }
 
     const userName = document.createElement('span');
     userName.className = 'user-name';
@@ -85,10 +97,6 @@ function appUrl(path) {
     el.replaceChildren(userName, logoutBtn);
   } catch (err) {
     // Unauthenticated or error — show a simple sign-in link (handled by proxy)
-    const signIn = document.createElement('a');
-    signIn.className = 'btn btn-ghost';
-    signIn.href = appUrl('') || '/';
-    signIn.textContent = 'Sign in';
-    el.replaceChildren(signIn);
+    renderSignIn(el);
   }
 })();
