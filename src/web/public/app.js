@@ -82,7 +82,7 @@ function renderSignIn(el) {
 
     const userNameSpan = document.createElement('span');
     userNameSpan.className = 'user-name';
-    userNameSpan.textContent = user.name || user.email || 'User';
+    userNameSpan.textContent = user.email || user.name || 'User';
 
     const logoutBtn = document.createElement('button');
     logoutBtn.id = 'logoutBtn';
