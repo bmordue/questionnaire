@@ -78,27 +78,9 @@ http {
             proxy_set_header Remote-Groups $groups;
         }
 
-        # Questionnaire API
-        location /api/ {
-            auth_request /oauth2/auth;
-            error_page 401 =302 /oauth2/start?rd=$request_uri;
-
-            proxy_pass http://questionnaire_backend/api/;
-
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
-
-            # Map oauth2-proxy auth-request headers to Remote-* headers
-            auth_request_set $user $upstream_http_x_auth_request_user;
-            auth_request_set $email $upstream_http_x_auth_request_email;
-            auth_request_set $groups $upstream_http_x_auth_request_groups;
-
-            proxy_set_header Remote-User $user;
-            proxy_set_header Remote-Email $email;
-            proxy_set_header Remote-Name $user;
-            proxy_set_header Remote-Groups $groups;
-        }
+        # Questionnaire API — served under /qqq/api/ via the /qqq/ location above.
+        # A request for /qqq/api/... is matched by the /qqq/ location, which
+        # strips the /qqq/ prefix and proxies /api/... to the backend.
+        # No separate location block is needed here.
     }
 }
