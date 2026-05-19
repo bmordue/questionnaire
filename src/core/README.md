@@ -97,7 +97,8 @@ const response = createResponse(
   'survey-001',  // questionnaireId
   '1.0.0',       // version
   'session-123', // sessionId
-  5              // totalQuestions
+  5,             // totalQuestions
+  'user-abc',    // userId (optional — authenticated user who submitted the response)
 );
 
 // Add an answer

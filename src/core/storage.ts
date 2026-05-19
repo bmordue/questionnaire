@@ -124,7 +124,7 @@ export class FileStorageService implements StorageService {
 
   // Session operations
 
-  async createSession(questionnaireId: string): Promise<string> {
+  async createSession(questionnaireId: string, userId?: string): Promise<string> {
     await this.ensureInitialized();
 
     // Verify questionnaire exists
@@ -138,7 +138,8 @@ export class FileStorageService implements StorageService {
       questionnaire.id,
       questionnaire.version,
       sessionId,
-      questionnaire.questions.length
+      questionnaire.questions.length,
+      userId,
     );
 
     // Save response first

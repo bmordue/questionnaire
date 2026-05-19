@@ -170,7 +170,7 @@ export class BackendStorageService implements StorageService {
 
   // ── Session operations ────────────────────────────────────────────────────
 
-  async createSession(questionnaireId: string): Promise<string> {
+  async createSession(questionnaireId: string, userId?: string): Promise<string> {
     // Verify questionnaire exists (will throw if missing)
     const questionnaire = await this.loadQuestionnaire(questionnaireId);
 
@@ -181,7 +181,8 @@ export class BackendStorageService implements StorageService {
       questionnaire.id,
       questionnaire.version,
       sessionId,
-      questionnaire.questions.length
+      questionnaire.questions.length,
+      userId,
     );
 
     await this.saveResponse(response);

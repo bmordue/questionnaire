@@ -194,6 +194,45 @@ The application's `/logout` handler will then redirect the browser to oauth2-pro
 
 ---
 
+## Permission Model
+
+Each questionnaire has an `ownerId` (the user who created it) and an optional `permissions` array granting other users access. Admins (members of the `ADMIN_GROUP`) bypass all per-questionnaire checks.
+
+### Permission Levels
+
+| Level            | Can do                                                          |
+|------------------|-----------------------------------------------------------------|
+| `manage`         | Edit/delete the questionnaire, view all responses, grant/revoke other users' access |
+| `view_responses` | View and export all collected responses (read-only analytics)   |
+| `respond`        | Fill in and submit the questionnaire; view their own past responses |
+
+Levels are hierarchical: `manage` ⊇ `view_responses` ⊇ `respond`.
+
+### Effective Permission
+
+`GET /api/questionnaires` returns an `effectivePermission` field per item, computed server-side from the questionnaire's owner, its `permissions[]` array, and the current user's group memberships. The UI uses this field to decide which actions to show (edit, share, delete buttons) without exposing the full ACL to non-managers.
+
+### Response Visibility
+
+Response visibility follows the permission level of the requesting user on the parent questionnaire:
+
+- `manage` or `view_responses` — see **all** responses for the questionnaire
+- `respond` only — see **only their own** responses (`response.userId === user.id`)
+
+This applies to both `GET /api/responses?questionnaireId=X` (list) and `GET /api/responses/:id` (single).
+
+### Permission API
+
+| Method   | Path                                                  | Required level |
+|----------|-------------------------------------------------------|----------------|
+| `GET`    | `/api/questionnaires/:id/permissions`                 | `manage`       |
+| `PUT`    | `/api/questionnaires/:id/permissions/:userId`         | `manage`       |
+| `DELETE` | `/api/questionnaires/:id/permissions/:userId`         | `manage`       |
+
+Grant body: `{ "level": "respond" | "view_responses" | "manage" }`.
+
+---
+
 ## Running Locally Without the Full Auth Stack
 
 Set the `DEV_STUB_USER` environment variable to inject a fake identity:

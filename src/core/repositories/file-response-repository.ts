@@ -54,6 +54,7 @@ export class FileResponseRepository implements IResponseRepository {
         data.questionnaireVersion,
         data.sessionId,
         data.totalQuestions,
+        data.userId,
       );
 
       const responseWithVersion = {
