@@ -117,6 +117,14 @@ There is a `src/core/storage.ts` (singular) alongside the `src/core/storage/` di
 
 Storage operations accept `questionnaireId` and `sessionId` as path components. The presence of `src/__tests__/storage/path-traversal.test.ts` indicates this has been considered, but the mitigations should be audited end-to-end from HTTP parameter to file path.
 
+### 3.9 Questionnaire listing does O(N) full loads
+
+`GET /api/questionnaires` calls `storage.listQuestionnaires()` and then, for non-admin users, loads each questionnaire in full to evaluate permissions. This scales as O(N) storage reads and can become a bottleneck as questionnaire count grows, especially with an S3 backend where each load is a network call.
+
+### 3.10 CORS wildcard configuration mismatch
+
+In non-development environments, CORS allowlisting uses a literal `allowedOrigins.includes(origin)` check. If `CORS_ORIGINS=*`, requests still fail because `*` is treated as a literal entry rather than a wildcard policy.
+
 ---
 
 ## 4. Architectural observations
@@ -127,7 +135,7 @@ Running both a TUI runner and a web server from the same codebase creates tensio
 
 ### 4.2 Permission model optionality risk
 
-`ownerId` is optional for backwards compatibility. This means any questionnaire without an owner is effectively ownerless. If a questionnaire is created by a guest request (due to the silent guest fallback described in §3.3), it will have no owner and only users listed in `permissions[]` will have access.
+`ownerId` is optional for backwards compatibility. Any legacy questionnaire without an owner is effectively ownerless and access is controlled only by `permissions[]`. In the current API, create requests are gated by `requireAuth` and creation injects `ownerId: user.id`, so the §3.3 guest fallback causes authenticated requests to be denied rather than creating new ownerless questionnaires.
 
 ### 4.3 No request body size limit visible
 
@@ -149,11 +157,13 @@ The project has strong documentation in some areas (`docs/auth.md`, `src/core/RE
 | 2 | Log (not swallow) errors in `loadUser` before falling back to guest | Low |
 | 3 | Fix logout URL path-traversal check to decode before splitting | Low |
 | 4 | Add `express.json({ limit: '1mb' })` or similar to the web server | Low |
-| 5 | Remove or clearly mark unimplemented `StorageConfig` fields | Low |
-| 6 | Consolidate `src/core/storage.ts` and `src/core/storage/` into one canonical path | Medium |
-| 7 | Audit path-traversal mitigations end-to-end from HTTP parameter to file path | Medium |
-| 8 | Replace `AnswerSchema.value: z.any()` with discriminated per-type answer schemas | High |
-| 9 | Update or archive stale phase planning documents | Low |
+| 5 | Reduce O(N) questionnaire listing loads by moving permission filtering to metadata/index level | Medium |
+| 6 | Support `CORS_ORIGINS=*` as wildcard (or document explicit non-support) | Low |
+| 7 | Remove or clearly mark unimplemented `StorageConfig` fields | Low |
+| 8 | Consolidate `src/core/storage.ts` and `src/core/storage/` into one canonical path | Medium |
+| 9 | Audit path-traversal mitigations end-to-end from HTTP parameter to file path | Medium |
+| 10 | Replace `AnswerSchema.value: z.any()` with discriminated per-type answer schemas | High |
+| 11 | Update or archive stale phase planning documents | Low |
 
 ---
 
