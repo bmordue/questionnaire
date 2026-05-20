@@ -254,11 +254,26 @@ async function revokePermission(userId) {
   }
 }
 
-document.getElementById('shareModalCloseBtn').addEventListener('click', closeShareModal);
-document.getElementById('shareModalCloseFooterBtn').addEventListener('click', closeShareModal);
-document.getElementById('shareGrantBtn').addEventListener('click', grantPermission);
-document.getElementById('shareModal').addEventListener('click', (e) => {
-  if (e.target === e.currentTarget) closeShareModal();
+document.addEventListener('DOMContentLoaded', () => {
+  const shareModalCloseBtn = document.getElementById('shareModalCloseBtn');
+  const shareModalCloseFooterBtn = document.getElementById('shareModalCloseFooterBtn');
+  const shareGrantBtn = document.getElementById('shareGrantBtn');
+  const shareModal = document.getElementById('shareModal');
+
+  if (shareModalCloseBtn) {
+    shareModalCloseBtn.addEventListener('click', closeShareModal);
+  }
+  if (shareModalCloseFooterBtn) {
+    shareModalCloseFooterBtn.addEventListener('click', closeShareModal);
+  }
+  if (shareGrantBtn) {
+    shareGrantBtn.addEventListener('click', grantPermission);
+  }
+  if (shareModal) {
+    shareModal.addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) closeShareModal();
+    });
+  }
 });
 </script>
 
