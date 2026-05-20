@@ -138,12 +138,13 @@ describe('QuestionnaireFlowEngine', () => {
       await engine.start(questionnaire.id);
 
       // Answer q1 with false, so q2 should be skipped
-      await engine.recordResponse('q1', false);
+      const responses = new Map([['q1', false]]);
 
-      const result = await engine.next();
+      const result = await engine.next(responses);
       expect(result.type).toBe('question');
       if (result.type === 'question') {
         expect(result.question.id).toBe('q3'); // Should skip q2
+        expect(result.skippedQuestionIds).toContain('q2');
       }
     });
 
@@ -242,41 +243,6 @@ describe('QuestionnaireFlowEngine', () => {
     });
   });
 
-  describe('recordResponse', () => {
-    it('should record a response', async () => {
-      const questionnaire = TestDataFactory.createValidQuestionnaire({
-        questions: [
-          TestDataFactory.createValidTextQuestion({ id: 'q1' })
-        ]
-      });
-
-      await storage.saveQuestionnaire(questionnaire);
-      await engine.start(questionnaire.id);
-
-      await engine.recordResponse('q1', 'test answer');
-
-      const progress = engine.getProgress();
-      expect(progress.answeredQuestions).toBe(1);
-    });
-
-    it('should update progress percentage', async () => {
-      const questionnaire = TestDataFactory.createValidQuestionnaire({
-        questions: [
-          TestDataFactory.createValidTextQuestion({ id: 'q1' }),
-          TestDataFactory.createValidTextQuestion({ id: 'q2' })
-        ]
-      });
-
-      await storage.saveQuestionnaire(questionnaire);
-      await engine.start(questionnaire.id);
-
-      await engine.recordResponse('q1', 'answer1');
-
-      const progress = engine.getProgress();
-      expect(progress.percentComplete).toBe(50);
-    });
-  });
-
   describe('getProgress', () => {
     it('should return accurate progress information', async () => {
       const questionnaire = TestDataFactory.createValidQuestionnaire({
@@ -291,11 +257,7 @@ describe('QuestionnaireFlowEngine', () => {
       await storage.saveQuestionnaire(questionnaire);
       await engine.start(questionnaire.id);
 
-      await engine.recordResponse('q1', 'answer1');
-      await engine.next();
-      await engine.recordResponse('q2', 'answer2');
-
-      const progress = engine.getProgress();
+      const progress = engine.getProgress(2);
       expect(progress.totalQuestions).toBe(4);
       expect(progress.answeredQuestions).toBe(2);
       expect(progress.percentComplete).toBe(50);
@@ -315,8 +277,8 @@ describe('QuestionnaireFlowEngine', () => {
       await storage.saveQuestionnaire(questionnaire);
       await engine.start(questionnaire.id);
 
-      await engine.recordResponse('q1', 'answer1');
-      await engine.next();
+      const responses = new Map([['q1', 'answer1']]);
+      await engine.next(responses);
 
       const sessions = await storage.listActiveSessions();
       expect(sessions.length).toBeGreaterThan(0);
@@ -329,33 +291,8 @@ describe('QuestionnaireFlowEngine', () => {
       const current = newEngine.getCurrentQuestion();
       expect(current?.id).toBe('q2');
 
-      const progress = newEngine.getProgress();
+      const progress = newEngine.getProgress(1);
       expect(progress.answeredQuestions).toBe(1);
-    });
-
-    it('should preserve responses across save/load', async () => {
-      const questionnaire = TestDataFactory.createValidQuestionnaire({
-        questions: [
-          TestDataFactory.createValidTextQuestion({ id: 'q1' }),
-          TestDataFactory.createValidTextQuestion({ id: 'q2' })
-        ]
-      });
-
-      await storage.saveQuestionnaire(questionnaire);
-      await engine.start(questionnaire.id);
-
-      await engine.recordResponse('q1', 'test answer');
-      const sessions = await storage.listActiveSessions();
-      expect(sessions.length).toBeGreaterThan(0);
-      const sessionId = sessions[0]!.sessionId;
-
-      // Load in new engine
-      const newEngine = new QuestionnaireFlowEngine(storage);
-      await newEngine.loadState(sessionId);
-
-      const response = await storage.loadResponse(sessionId);
-      expect(response.answers.length).toBe(1);
-      expect(response.answers[0]?.value).toBe('test answer');
     });
   });
 
@@ -404,8 +341,8 @@ describe('QuestionnaireFlowEngine', () => {
       await engine.start(questionnaire.id);
 
       // Answer no to pets
-      await engine.recordResponse('q1', 'no');
-      const result = await engine.next();
+      const responses = new Map([['q1', 'no']]);
+      const result = await engine.next(responses);
 
       expect(result.type).toBe('question');
       if (result.type === 'question') {
@@ -443,10 +380,11 @@ describe('QuestionnaireFlowEngine', () => {
       await engine.start(questionnaire.id);
 
       // Answer true and provide answer for q2
-      await engine.recordResponse('q1', true);
-      await engine.next();
-      await engine.recordResponse('q2', 'answer');
-      const result = await engine.next();
+      const responses = new Map<string, any>([['q1', true]]);
+      await engine.next(responses);
+
+      responses.set('q2', 'answer');
+      const result = await engine.next(responses);
 
       expect(result.type).toBe('question');
       if (result.type === 'question') {

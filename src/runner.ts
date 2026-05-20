@@ -38,18 +38,6 @@ export class QuestionnaireInterruptedError extends Error {
 
 type SignalHandler = (() => void) | null;
 
-function buildResponseMap(response: QuestionnaireResponse): Map<string, any> {
-  const map = new Map<string, any>();
-
-  for (const answer of response.answers) {
-    if (!answer.skipped) {
-      map.set(answer.questionId, answer.value);
-    }
-  }
-
-  return map;
-}
-
 function buildPersistedSkipped(response: QuestionnaireResponse): Set<string> {
   const skipped = new Set<string>();
 
@@ -195,7 +183,6 @@ export async function runQuestionnaire(options: RunnerOptions): Promise<RunnerRe
 
   const persistenceManager = new PersistenceManager(storage);
   const engine = new QuestionnaireFlowEngine(storage);
-  const navManager = new NavigationManager(engine);
 
   let session: Awaited<ReturnType<PersistenceManager['startSession']>> | null = null;
   let usedResume = false;
@@ -222,8 +209,10 @@ export async function runQuestionnaire(options: RunnerOptions): Promise<RunnerRe
     throw new Error('Unable to start questionnaire session');
   }
 
+  const navManager = new NavigationManager(engine, session.responseBuilder);
+
   const responseSnapshot = session.responseBuilder.getResponse();
-  const responsesMap = buildResponseMap(responseSnapshot);
+  const responsesMap = session.responseBuilder.getAnswersMap();
   const persistedSkipped = buildPersistedSkipped(responseSnapshot);
   const pending = findFirstPendingQuestion(questionnaire, responsesMap, persistedSkipped);
   const startQuestionId = pending.question?.id ?? questionnaire.questions[0]!.id;
@@ -282,7 +271,6 @@ export async function runQuestionnaire(options: RunnerOptions): Promise<RunnerRe
 
   const handleInterrupt = async (): Promise<never> => {
     await navManager.handleNavigation({ type: 'exit' });
-    await session.responseBuilder.refreshFromStorage();
     await persistenceManager.endSession();
     console.log(
       MessageFormatter.formatMuted(
@@ -311,12 +299,11 @@ export async function runQuestionnaire(options: RunnerOptions): Promise<RunnerRe
         break;
       }
 
-      const progress = engine.getProgress();
+      const currentResponse = session.responseBuilder.getResponse();
+      const progress = engine.getProgress(currentResponse.progress.answeredCount);
       displayProgressHeader(progress);
 
-      const priorAnswer = session.responseBuilder
-        .getResponse()
-        .answers.find(a => a.questionId === question.id);
+      const priorAnswer = currentResponse.answers.find(a => a.questionId === question.id);
 
       const component = ComponentFactory.create(question);
       const answer = await component.render(question, priorAnswer?.value);
@@ -327,14 +314,10 @@ export async function runQuestionnaire(options: RunnerOptions): Promise<RunnerRe
         throw new Error(navResult.error || 'Navigation failed');
       }
 
-      await session.responseBuilder.refreshFromStorage();
-
       if (navResult.result?.type === 'complete') {
         break;
       }
     }
-
-    await session.responseBuilder.refreshFromStorage();
     const completedResponse = await session.responseBuilder.complete();
     const cleanupResult = await persistenceManager.endSession();
     console.log(formatCompletionSummary(completedResponse, dataDirectory));

@@ -5,6 +5,7 @@
  */
 
 import type { QuestionnaireFlowEngine } from './flow-engine.js';
+import type { ResponseBuilder } from '../persistence/response-builder.js';
 import type {
   NavigationAction,
   NavigationResult
@@ -15,9 +16,11 @@ import type {
  */
 export class NavigationManager {
   private flowEngine: QuestionnaireFlowEngine;
+  private responseBuilder: ResponseBuilder | undefined;
 
-  constructor(flowEngine: QuestionnaireFlowEngine) {
+  constructor(flowEngine: QuestionnaireFlowEngine, responseBuilder?: ResponseBuilder) {
     this.flowEngine = flowEngine;
+    this.responseBuilder = responseBuilder;
   }
 
   /**
@@ -70,12 +73,19 @@ export class NavigationManager {
     }
 
     // Record answer if provided
-    if (answer !== undefined) {
-      await this.flowEngine.recordResponse(currentQuestion.id, answer);
+    if (answer !== undefined && this.responseBuilder) {
+      await this.responseBuilder.recordAnswer(currentQuestion.id, answer);
     }
 
+    const responses = this.responseBuilder?.getAnswersMap() || new Map();
+
     // Move to next question
-    const result = await this.flowEngine.next();
+    const result = await this.flowEngine.next(responses);
+
+    // Sync skipped questions back to response builder
+    if (result.skippedQuestionIds && result.skippedQuestionIds.length > 0 && this.responseBuilder) {
+      await this.responseBuilder.skipQuestions(result.skippedQuestionIds);
+    }
     
     return {
       success: true,
@@ -106,8 +116,21 @@ export class NavigationManager {
    * Handle skip navigation
    */
   private async handleSkip(): Promise<NavigationResult> {
+    const currentQuestion = this.flowEngine.getCurrentQuestion();
+
+    if (currentQuestion && this.responseBuilder) {
+      await this.responseBuilder.skipQuestion(currentQuestion.id);
+    }
+
+    const responses = this.responseBuilder?.getAnswersMap() || new Map();
+
     // Skip current question and move to next
-    const result = await this.flowEngine.next();
+    const result = await this.flowEngine.next(responses);
+
+    // Sync skipped questions back to response builder
+    if (result.skippedQuestionIds && result.skippedQuestionIds.length > 0 && this.responseBuilder) {
+      await this.responseBuilder.skipQuestions(result.skippedQuestionIds);
+    }
     
     return {
       success: true,

@@ -106,7 +106,6 @@ export class QuestionnaireFlowEngine implements FlowEngine {
       sessionId: sessionIdentifier,
       currentQuestionIndex,
       currentQuestionId: firstQuestion.id,
-      responses,
       visitedQuestions: visited,
       skippedQuestions: skipped,
       questionHistory,
@@ -121,7 +120,7 @@ export class QuestionnaireFlowEngine implements FlowEngine {
   /**
    * Move to the next question
    */
-  async next(): Promise<FlowResult> {
+  async next(responses: Map<string, any> = new Map()): Promise<FlowResult> {
     this.ensureLoaded();
 
     const currentQuestion = this.getCurrentQuestion();
@@ -136,7 +135,7 @@ export class QuestionnaireFlowEngine implements FlowEngine {
     this.state!.visitedQuestions.add(currentQuestion.id);
 
     // Find next visible question
-    const nextQuestion = await this.findNextVisibleQuestion();
+    const { nextQuestion, skippedQuestionIds } = await this.findNextVisibleQuestion(responses);
     
     if (!nextQuestion) {
       // Questionnaire complete
@@ -144,7 +143,8 @@ export class QuestionnaireFlowEngine implements FlowEngine {
       await this.saveState();
       return { 
         type: 'complete', 
-        responses: new Map(this.state!.responses)
+        responses: new Map(responses),
+        skippedQuestionIds
       };
     }
 
@@ -158,13 +158,13 @@ export class QuestionnaireFlowEngine implements FlowEngine {
     this.state!.lastUpdateTime = new Date();
     
     await this.saveState();
-    return { type: 'question', question: nextQuestion };
+    return { type: 'question', question: nextQuestion, skippedQuestionIds };
   }
 
   /**
    * Go back to the previous question
    */
-  async previous(): Promise<Question | null> {
+  async previous(_responses?: Map<string, any>): Promise<Question | null> {
     this.ensureLoaded();
 
     if (this.state!.questionHistory.length <= 1) {
@@ -195,7 +195,7 @@ export class QuestionnaireFlowEngine implements FlowEngine {
   /**
    * Jump to a specific question
    */
-  async jumpTo(questionId: string): Promise<Question> {
+  async jumpTo(questionId: string, _responses?: Map<string, any>): Promise<Question> {
     this.ensureLoaded();
 
     const question = this.findQuestionById(questionId);
@@ -230,11 +230,11 @@ export class QuestionnaireFlowEngine implements FlowEngine {
   /**
    * Get progress information
    */
-  getProgress(): ProgressInfo {
+  getProgress(answeredCount?: number): ProgressInfo {
     this.ensureLoaded();
 
     const totalQuestions = this.questionnaire!.questions.length;
-    const answeredQuestions = this.state!.responses.size;
+    const answeredQuestions = answeredCount ?? 0;
     const currentIndex = this.state!.currentQuestionIndex;
 
     return ProgressTracker.calculateProgress(
@@ -243,54 +243,6 @@ export class QuestionnaireFlowEngine implements FlowEngine {
       answeredQuestions,
       this.state!.isCompleted
     );
-  }
-
-  /**
-   * Record a response to a question
-   */
-  async recordResponse(questionId: string, answer: any): Promise<void> {
-    this.ensureLoaded();
-
-    this.state!.responses.set(questionId, answer);
-    this.state!.visitedQuestions.add(questionId);
-    this.state!.skippedQuestions.delete(questionId);
-    this.state!.lastUpdateTime = new Date();
-    
-    // Update the response in storage
-    const response = await this.storage.loadResponse(this.state!.sessionId);
-    const existingIndex = response.answers.findIndex(a => a.questionId === questionId);
-    const attempts = existingIndex >= 0 ? (response.answers[existingIndex]!.attempts || 0) + 1 : 1;
-    const updatedAnswer = {
-      questionId,
-      value: answer,
-      answeredAt: new Date().toISOString(),
-      duration:
-        existingIndex >= 0
-          ? response.answers[existingIndex]!.duration
-          : 0,
-      attempts,
-      skipped: false
-    };
-
-    if (existingIndex >= 0) {
-      response.answers[existingIndex] = {
-        ...response.answers[existingIndex],
-        ...updatedAnswer
-      };
-    } else {
-      response.answers.push(updatedAnswer);
-    }
-
-    response.progress.answeredCount = this.state!.responses.size;
-    response.progress.skippedCount = this.state!.skippedQuestions.size;
-    response.progress.percentComplete = Math.round(
-      (response.progress.answeredCount / response.progress.totalQuestions) * 100
-    );
-    response.lastSavedAt = new Date().toISOString();
-
-    await this.storage.saveResponse(response);
-    
-    await this.saveState();
   }
 
   /**
@@ -303,7 +255,6 @@ export class QuestionnaireFlowEngine implements FlowEngine {
     const sessionData = {
       currentQuestionIndex: this.state.currentQuestionIndex,
       currentQuestionId: this.state.currentQuestionId,
-      responses: Array.from(this.state.responses.entries()),
       visitedQuestions: Array.from(this.state.visitedQuestions),
       skippedQuestions: Array.from(this.state.skippedQuestions),
       questionHistory: this.state.questionHistory,
@@ -341,7 +292,6 @@ export class QuestionnaireFlowEngine implements FlowEngine {
       sessionId,
       currentQuestionIndex: sessionData.currentQuestionIndex,
       currentQuestionId: sessionData.currentQuestionId,
-      responses: new Map(sessionData.responses),
       visitedQuestions: new Set(sessionData.visitedQuestions),
       skippedQuestions: new Set(sessionData.skippedQuestions),
       questionHistory: sessionData.questionHistory,
@@ -351,9 +301,15 @@ export class QuestionnaireFlowEngine implements FlowEngine {
     };
 
     if (!this.state.questionHistory || this.state.questionHistory.length === 0) {
+      const response = await this.storage.loadResponse(sessionId);
+      const responsesMap = new Map();
+      for (const answer of response.answers) {
+        if (!answer.skipped) responsesMap.set(answer.questionId, answer.value);
+      }
+
       this.state.questionHistory = this.buildInitialHistory(
         this.state.currentQuestionId,
-        this.state.responses
+        responsesMap
       );
     }
   }
@@ -361,40 +317,42 @@ export class QuestionnaireFlowEngine implements FlowEngine {
   /**
    * Find the next visible question based on conditional logic
    */
-  private async findNextVisibleQuestion(): Promise<Question | null> {
+  private async findNextVisibleQuestion(responses: Map<string, any>): Promise<{ nextQuestion: Question | null, skippedQuestionIds: string[] }> {
     this.ensureLoaded();
 
     const currentIndex = this.state!.currentQuestionIndex;
+    const skippedQuestionIds: string[] = [];
     
     for (let i = currentIndex + 1; i < this.questionnaire!.questions.length; i++) {
       const question = this.questionnaire!.questions[i];
       
       if (!question) continue;
       
-      if (await this.isQuestionVisible(question)) {
-        return question;
+      if (await this.isQuestionVisible(question, responses)) {
+        return { nextQuestion: question, skippedQuestionIds };
       } else {
         // Mark as skipped
         this.state!.skippedQuestions.add(question.id);
+        skippedQuestionIds.push(question.id);
       }
     }
     
-    return null; // No more questions
+    return { nextQuestion: null, skippedQuestionIds }; // No more questions
   }
 
   /**
    * Check if a question should be visible
    */
-  private async isQuestionVisible(question: Question): Promise<boolean> {
+  private async isQuestionVisible(question: Question, responses: Map<string, any>): Promise<boolean> {
     this.ensureLoaded();
 
     // Skip if conditional logic says to skip
-    if (this.conditionalEngine.shouldSkipQuestion(question, this.state!.responses)) {
+    if (this.conditionalEngine.shouldSkipQuestion(question, responses)) {
       return false;
     }
 
     // Show if conditional logic allows
-    return this.conditionalEngine.shouldShowQuestion(question, this.state!.responses);
+    return this.conditionalEngine.shouldShowQuestion(question, responses);
   }
 
   /**

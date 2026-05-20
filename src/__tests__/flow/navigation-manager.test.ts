@@ -7,6 +7,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { QuestionnaireFlowEngine } from '../../core/flow/flow-engine.js';
 import { NavigationManager } from '../../core/flow/navigation-manager.js';
+import { PersistenceManager } from '../../core/persistence/persistence-manager.js';
 import { createStorageService } from '../../core/storage.js';
 import { TestDataFactory } from '../helpers/test-data-factory.js';
 import type { StorageService } from '../../core/storage/types.js';
@@ -17,6 +18,7 @@ describe('NavigationManager', () => {
   let storage: StorageService;
   let engine: QuestionnaireFlowEngine;
   let navManager: NavigationManager;
+  let persistence: PersistenceManager;
 
   beforeEach(async () => {
     // Clean up test directory
@@ -33,6 +35,7 @@ describe('NavigationManager', () => {
     });
 
     engine = new QuestionnaireFlowEngine(storage);
+    persistence = new PersistenceManager(storage);
     navManager = new NavigationManager(engine);
   });
 
@@ -75,7 +78,9 @@ describe('NavigationManager', () => {
       });
 
       await storage.saveQuestionnaire(questionnaire);
-      await engine.start(questionnaire.id);
+      const session = await persistence.startSession(questionnaire);
+      navManager = new NavigationManager(engine, session.responseBuilder);
+      await engine.start(questionnaire.id, { sessionId: session.sessionId });
 
       const result = await navManager.handleNavigation({
         type: 'next',
@@ -84,8 +89,12 @@ describe('NavigationManager', () => {
 
       expect(result.success).toBe(true);
 
-      const progress = engine.getProgress();
+      const progress = engine.getProgress(1);
       expect(progress.answeredQuestions).toBe(1);
+
+      const response = session.responseBuilder.getResponse();
+      expect(response.answers.length).toBe(1);
+      expect(response.answers[0]?.value).toBe('test answer');
     });
 
     it('should handle completion', async () => {
@@ -180,12 +189,18 @@ describe('NavigationManager', () => {
       });
 
       await storage.saveQuestionnaire(questionnaire);
-      await engine.start(questionnaire.id);
+      const session = await persistence.startSession(questionnaire);
+      navManager = new NavigationManager(engine, session.responseBuilder);
+      await engine.start(questionnaire.id, { sessionId: session.sessionId });
 
       await navManager.handleNavigation({ type: 'skip' });
 
-      const progress = engine.getProgress();
+      const progress = engine.getProgress(0);
       expect(progress.answeredQuestions).toBe(0);
+
+      const response = session.responseBuilder.getResponse();
+      expect(response.answers.length).toBe(1);
+      expect(response.answers[0]?.skipped).toBe(true);
     });
   });
 
@@ -260,9 +275,11 @@ describe('NavigationManager', () => {
       });
 
       await storage.saveQuestionnaire(questionnaire);
-      await engine.start(questionnaire.id);
+      const session = await persistence.startSession(questionnaire);
+      navManager = new NavigationManager(engine, session.responseBuilder);
+      await engine.start(questionnaire.id, { sessionId: session.sessionId });
 
-      await engine.recordResponse('q1', 'answer');
+      await session.responseBuilder.recordAnswer('q1', 'answer');
 
       const result = await navManager.handleNavigation({ type: 'exit' });
 

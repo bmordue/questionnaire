@@ -137,7 +137,8 @@ async function demonstrateFlowEngine() {
     progress = engine.getProgress();
     console.log(`Final progress: ${progress.percentComplete}% (${progress.answeredQuestions}/${progress.totalQuestions} questions)`);
     console.log('\n=== Responses ===');
-    result.result.responses.forEach((value, questionId) => {
+    const responses = result.result.responses || new Map();
+    responses.forEach((value, questionId) => {
       console.log(`${questionId}: ${value}`);
     });
   }
