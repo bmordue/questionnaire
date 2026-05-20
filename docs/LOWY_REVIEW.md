@@ -153,7 +153,7 @@ The project has strong documentation in some areas (`docs/auth.md`, `src/core/RE
 
 | # | Recommendation | Effort |
 |---|---|---|
-| 1 | Replace `Math.random()` IDs with `crypto.randomUUID()` | Low |
+| 1 | ~~Replace `Math.random()` IDs with `crypto.randomUUID()`~~ (Fixed) | Low |
 | 2 | Log (not swallow) errors in `loadUser` before falling back to guest | Low |
 | 3 | Fix logout URL path-traversal check to decode before splitting | Low |
 | 4 | Add `express.json({ limit: '1mb' })` or similar to the web server | Low |
