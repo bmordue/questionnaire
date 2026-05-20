@@ -14,7 +14,6 @@ export interface FlowState {
   sessionId: string;
   currentQuestionIndex: number;
   currentQuestionId: string;
-  responses: Map<string, any>;
   visitedQuestions: Set<string>;
   skippedQuestions: Set<string>;
   questionHistory: string[];
@@ -40,6 +39,7 @@ export interface ProgressInfo {
 export type QuestionResult = {
   type: 'question';
   question: Question;
+  skippedQuestionIds?: string[];
 };
 
 /**
@@ -47,7 +47,8 @@ export type QuestionResult = {
  */
 export type FlowComplete = {
   type: 'complete';
-  responses: Map<string, any>;
+  responses?: Map<string, any>;
+  skippedQuestionIds?: string[];
 };
 
 /**
@@ -60,12 +61,11 @@ export type FlowResult = QuestionResult | FlowComplete;
  */
 export interface FlowEngine {
   start(questionnaireId: string, options?: FlowStartOptions): Promise<void>;
-  next(): Promise<FlowResult>;
-  previous(): Promise<Question | null>;
-  jumpTo(questionId: string): Promise<Question>;
+  next(responses?: Map<string, any>): Promise<FlowResult>;
+  previous(responses?: Map<string, any>): Promise<Question | null>;
+  jumpTo(questionId: string, responses?: Map<string, any>): Promise<Question>;
   getCurrentQuestion(): Question | null;
-  getProgress(): ProgressInfo;
-  recordResponse(questionId: string, answer: any): Promise<void>;
+  getProgress(answeredCount?: number): ProgressInfo;
   saveState(): Promise<void>;
   loadState(sessionId: string): Promise<void>;
 }

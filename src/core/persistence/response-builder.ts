@@ -185,6 +185,58 @@ export class ResponseBuilder {
   }
 
   /**
+   * Get answers as a Map for conditional logic evaluation
+   */
+  getAnswersMap(): Map<string, any> {
+    const map = new Map<string, any>();
+    for (const answer of this.response.answers) {
+      if (!answer.skipped) {
+        map.set(answer.questionId, answer.value);
+      }
+    }
+    return map;
+  }
+
+  /**
+   * Mark multiple questions as skipped
+   */
+  async skipQuestions(questionIds: string[]): Promise<void> {
+    const now = new Date().toISOString();
+    let modified = false;
+
+    for (const questionId of questionIds) {
+      const existingIndex = this.response.answers.findIndex(a => a.questionId === questionId);
+
+      if (existingIndex >= 0) {
+        const existing = this.response.answers[existingIndex]!;
+        if (!existing.skipped) {
+          this.response.answers[existingIndex] = {
+            ...existing,
+            answeredAt: now,
+            skipped: true
+          };
+          modified = true;
+        }
+      } else {
+        this.response.answers.push({
+          questionId,
+          value: null,
+          answeredAt: now,
+          duration: 0,
+          attempts: 0,
+          skipped: true
+        });
+        modified = true;
+      }
+    }
+
+    if (modified) {
+      this.updateProgress();
+      await this.saveIncremental();
+    }
+  }
+
+  /**
    * Refresh in-memory response from storage
    */
   async refreshFromStorage(): Promise<void> {
