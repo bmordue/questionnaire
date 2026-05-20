@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 
 /**
@@ -94,7 +95,7 @@ export function createResponse(
   const now = new Date().toISOString();
   
   return QuestionnaireResponseSchema.parse({
-    id: `response-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+    id: `response-${randomUUID()}`,
     questionnaireId,
     questionnaireVersion,
     sessionId,
