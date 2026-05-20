@@ -197,8 +197,11 @@ async function refreshPermissions() {
       <tr>
         <td>${esc(p.email ?? p.userId)}</td>
         <td>${p.isOwner ? '<span class="badge badge-owner">Owner</span>' : esc(p.level)}</td>
-        <td>${p.isOwner ? '' : `<button class="btn btn-danger" style="padding:.2rem .55rem;font-size:.8rem" onclick="revokePermission('${esc(p.userId)}')">Revoke</button>`}</td>
+        <td>${p.isOwner ? '' : `<button class="btn btn-danger revoke-permission-btn" style="padding:.2rem .55rem;font-size:.8rem" data-user-id="${esc(p.userId)}">Revoke</button>`}</td>
       </tr>`).join('');
+    tbody.querySelectorAll('.revoke-permission-btn').forEach(btn => {
+      btn.addEventListener('click', () => revokePermission(btn.dataset.userId));
+    });
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="3" style="color:var(--danger)">${esc(err.message)}</td></tr>`;
   }
