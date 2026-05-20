@@ -188,7 +188,11 @@ async function refreshPermissions() {
   const tbody = document.getElementById('permTableBody');
   tbody.innerHTML = '<tr><td colspan="3" style="color:var(--muted);font-size:.85rem">Loading…</td></tr>';
   try {
-    const perms = await apiFetch('/api/questionnaires/' + encodeURIComponent(shareModalQId) + '/permissions');
+    const { ownerId, permissions } = await apiFetch('/api/questionnaires/' + encodeURIComponent(shareModalQId) + '/permissions');
+    const perms = [
+      ...(ownerId ? [{ userId: ownerId, level: 'manage', isOwner: true }] : []),
+      ...permissions.map(p => ({ ...p, isOwner: false })),
+    ];
     if (!perms.length) {
       tbody.innerHTML = '<tr><td colspan="3" style="color:var(--muted);font-size:.85rem">No additional users.</td></tr>';
       return;
@@ -211,12 +215,15 @@ async function populateUserPicker() {
   const select = document.getElementById('shareUserSelect');
   select.innerHTML = '<option value="">Loading users…</option>';
   try {
-    const [users, perms] = await Promise.all([
+    const [users, permissionsResponse] = await Promise.all([
       apiFetch('/api/users'),
       apiFetch('/api/questionnaires/' + encodeURIComponent(shareModalQId) + '/permissions'),
     ]);
-    const grantedIds = new Set(perms.filter(p => p.isOwner).map(p => p.userId)
-      .concat(perms.filter(p => !p.isOwner).map(p => p.userId)));
+    const perms = [
+      ...(permissionsResponse.ownerId ? [{ userId: permissionsResponse.ownerId, isOwner: true }] : []),
+      ...permissionsResponse.permissions.map(p => ({ ...p, isOwner: false })),
+    ];
+    const grantedIds = new Set(perms.map(p => p.userId));
     const available = users.filter(u => !grantedIds.has(u.id));
     if (!available.length) {
       select.innerHTML = '<option value="">All users already have access</option>';

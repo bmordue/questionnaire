@@ -426,14 +426,6 @@ textarea { resize: vertical; min-height: 80px; }
 .perm-list th { text-align: left; padding: 0.4rem 0.5rem; color: var(--muted); font-weight: 500; border-bottom: 1px solid var(--border); }
 .perm-list td { padding: 0.5rem 0.5rem; border-bottom: 1px solid var(--border); }
 .perm-list tr:last-child td { border-bottom: none; }
-.badge {
-  display: inline-block;
-  padding: 0.15rem 0.55rem;
-  border-radius: 999px;
-  font-size: 0.78rem;
-  font-weight: 500;
-  background: #eff6ff; color: var(--primary);
-}
 .badge-owner  { background: #fef9c3; color: #854d0e; }
 .badge-shared { background: #f0fdf4; color: var(--success); }
 .share-form { display: flex; flex-direction: column; gap: 0.75rem; }

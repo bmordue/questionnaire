@@ -421,7 +421,7 @@ router.delete(
 
 // ── Response Routes ───────────────────────────────────────────────────────────
 
-/** List responses for a questionnaire — requires 'view_responses' */
+/** List responses for a questionnaire — respond-only users see their own; view_responses/manage see all */
 router.get('/api/responses', requireAuth, async (req, res, next) => {
   try {
     const questionnaireId =

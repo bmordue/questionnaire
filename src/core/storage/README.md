@@ -67,13 +67,6 @@ const sessionId = await storage.createSession('questionnaire-id', userId);
 
 // userId is optional — omit it for anonymous or unauthenticated sessions.
 const anonSessionId = await storage.createSession('questionnaire-id');
-```
-
-### Session Operations
-
-```typescript
-// Create a new session
-const sessionId = await storage.createSession('questionnaire-id');
 
 // Update session status
 await storage.updateSession(sessionId, { status: 'completed' });
