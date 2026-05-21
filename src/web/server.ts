@@ -241,10 +241,12 @@ async function enforceOpenFgaPermission(
     }
     return true;
   } catch (err) {
-    console.error(
-      `[openfga] Permission check failed for user="${user.id}" relation="${relation}" object="${object}"`,
-      err,
-    );
+    console.error('[openfga] Permission check failed', {
+      userId: user.id,
+      relation,
+      object,
+      error: err,
+    });
     res.status(503).json({ error: 'Authorization service unavailable' });
     return false;
   }
