@@ -84,7 +84,7 @@ export interface StorageService {
   deleteResponse(sessionId: string): Promise<void>;
   
   // Session operations
-  createSession(questionnaireId: string): Promise<string>;
+  createSession(questionnaireId: string, userId?: string): Promise<string>;
   updateSession(sessionId: string, data: Partial<SessionData>): Promise<void>;
   loadSession(sessionId: string): Promise<SessionData>;
   deleteSession(sessionId: string): Promise<void>;

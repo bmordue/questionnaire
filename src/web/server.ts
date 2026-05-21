@@ -252,7 +252,8 @@ router.get('/api/questionnaires', requireAuth, async (_req, res, next) => {
     const isAdmin = user.groups.includes(adminGroup);
     const list = await storage.listQuestionnaires();
     if (isAdmin) {
-      res.json(list);
+      const enriched = list.map(meta => ({ ...meta, effectivePermission: 'manage' as const }));
+      res.json(enriched);
       return;
     }
     const visible = (
@@ -260,7 +261,8 @@ router.get('/api/questionnaires', requireAuth, async (_req, res, next) => {
         list.map(async meta => {
           try {
             const questionnaire = await storage.loadQuestionnaire(meta.id);
-            return resolvePermission(questionnaire, user.id, user.groups) !== null ? meta : null;
+            const effectivePermission = resolvePermission(questionnaire, user.id, user.groups);
+            return effectivePermission !== null ? { ...meta, effectivePermission } : null;
           } catch (err) {
             if (!isNotFoundError(err)) {
               console.error(`[questionnaires] Failed to load questionnaire ${meta.id} for permission check:`, err);
@@ -269,7 +271,7 @@ router.get('/api/questionnaires', requireAuth, async (_req, res, next) => {
           }
         })
       )
-    ).filter((meta): meta is (typeof list)[number] => meta !== null);
+    ).filter((meta): meta is NonNullable<typeof meta> => meta !== null);
     res.json(visible);
   } catch (err) {
     next(err);
@@ -419,7 +421,7 @@ router.delete(
 
 // ── Response Routes ───────────────────────────────────────────────────────────
 
-/** List responses for a questionnaire — requires 'view_responses' */
+/** List responses for a questionnaire — respond-only users see their own; view_responses/manage see all */
 router.get('/api/responses', requireAuth, async (req, res, next) => {
   try {
     const questionnaireId =
@@ -438,13 +440,17 @@ router.get('/api/responses', requireAuth, async (req, res, next) => {
       res.status(404).json({ error: 'Questionnaire not found' });
       return;
     }
-    if (
-      !permissionSatisfies(resolvePermission(questionnaire, user.id, user.groups), 'view_responses')
-    ) {
+    const effectivePermission = resolvePermission(questionnaire, user.id, user.groups);
+    if (!permissionSatisfies(effectivePermission, 'respond')) {
       res.status(403).json({ error: 'Insufficient permissions' });
       return;
     }
-    res.json(await storage.listResponses(questionnaireId));
+    const allResponses = await storage.listResponses(questionnaireId);
+    // view_responses and manage users see all responses; respond-only users see only their own
+    const responses = permissionSatisfies(effectivePermission, 'view_responses')
+      ? allResponses
+      : allResponses.filter(r => r.userId === user.id);
+    res.json(responses);
   } catch (err) {
     next(err);
   }
@@ -467,8 +473,12 @@ router.get('/api/responses/:id', requireAuth, async (req, res, next) => {
     if (
       !permissionSatisfies(resolvePermission(questionnaire, user.id, user.groups), 'view_responses')
     ) {
-      res.status(403).json({ error: 'Insufficient permissions' });
-      return;
+      // respond-only users may fetch their own response; others are denied
+      const effective = resolvePermission(questionnaire, user.id, user.groups);
+      if (!permissionSatisfies(effective, 'respond') || response.userId !== user.id) {
+        res.status(403).json({ error: 'Insufficient permissions' });
+        return;
+      }
     }
     res.json(response);
   } catch {
@@ -500,7 +510,7 @@ router.post('/api/sessions', requireAuth, async (req, res, next) => {
       res.status(403).json({ error: 'Insufficient permissions' });
       return;
     }
-    const sessionId = await storage.createSession(body.questionnaireId);
+    const sessionId = await storage.createSession(body.questionnaireId, user.id);
     await storage.updateSession(sessionId, { userId: user.id });
     res.status(201).json({ sessionId });
   } catch (err) {

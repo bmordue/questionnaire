@@ -42,6 +42,7 @@ export const QuestionnaireResponseSchema = z.object({
   questionnaireId: z.string(),
   questionnaireVersion: z.string(),
   sessionId: z.string(),
+  userId: z.string().optional(), // Authenticated user who submitted the response
   startedAt: z.string().datetime(),
   completedAt: z.string().datetime().optional(),
   lastSavedAt: z.string().datetime().optional(),
@@ -90,7 +91,8 @@ export function createResponse(
   questionnaireId: string,
   questionnaireVersion: string,
   sessionId: string,
-  totalQuestions: number
+  totalQuestions: number,
+  userId?: string,
 ): QuestionnaireResponse {
   const now = new Date().toISOString();
   
@@ -99,6 +101,7 @@ export function createResponse(
     questionnaireId,
     questionnaireVersion,
     sessionId,
+    userId,
     startedAt: now,
     lastSavedAt: now,
     status: ResponseStatus.IN_PROGRESS,

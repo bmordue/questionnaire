@@ -110,20 +110,27 @@ document.getElementById('uploadInput').addEventListener('change', async (event) 
     return;
   }
 
-  listEl.innerHTML = questionnaires.map(q => `
+  listEl.innerHTML = questionnaires.map(q => {
+    const canManage = q.effectivePermission === 'manage';
+    const isSharedWith = q.effectivePermission && q.effectivePermission !== 'manage';
+    const badgeHtml = isSharedWith
+      ? `<span class="badge badge-shared" title="Shared with you (${q.effectivePermission})">Shared</span> `
+      : canManage ? `<span class="badge badge-owner">Owner</span> ` : '';
+    return `
     <div class="card">
-      <div class="card-title">${esc(q.title)}</div>
+      <div class="card-title">${esc(q.title)} ${badgeHtml}</div>
       ${q.description ? `<div class="card-sub">${esc(q.description)}</div>` : ''}
       <div class="card-sub mt-1">Updated: ${fmtDate(q.updatedAt)}</div>
       ${q.tags && q.tags.length ? `<div class="card-tags">${q.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>` : ''}
       <div class="card-actions">
         <a href="runner.html?id=${encodeURIComponent(q.id)}" class="btn btn-primary">▶ Run</a>
-        <a href="builder.html?id=${encodeURIComponent(q.id)}" class="btn btn-outline">✏ Edit</a>
+        ${canManage ? `<a href="builder.html?id=${encodeURIComponent(q.id)}" class="btn btn-outline">✏ Edit</a>` : ''}
         <a href="responses.html?questionnaireId=${encodeURIComponent(q.id)}" class="btn btn-ghost">📄 Responses</a>
-        <button class="btn btn-danger btn-delete" data-id="${esc(q.id)}" aria-label="Delete questionnaire">🗑</button>
+        ${canManage ? `<button class="btn btn-outline btn-share" data-id="${esc(q.id)}" data-title="${esc(q.title)}" aria-label="Share questionnaire">🔗 Share</button>` : ''}
+        ${canManage ? `<button class="btn btn-danger btn-delete" data-id="${esc(q.id)}" aria-label="Delete questionnaire">🗑</button>` : ''}
       </div>
     </div>
-  `).join('');
+  `}).join('');
 
   const deleteButtons = listEl.querySelectorAll('.btn-delete');
   deleteButtons.forEach(btn => {
@@ -132,6 +139,15 @@ document.getElementById('uploadInput').addEventListener('change', async (event) 
       if (!(target instanceof HTMLButtonElement)) return;
       const id = target.dataset.id ?? '';
       deleteQ(id, target);
+    });
+  });
+
+  const shareButtons = listEl.querySelectorAll('.btn-share');
+  shareButtons.forEach(btn => {
+    btn.addEventListener('click', (event) => {
+      const target = event.currentTarget;
+      if (!(target instanceof HTMLButtonElement)) return;
+      openShareModal(target.dataset.id ?? '', target.dataset.title ?? '');
     });
   });
 })();
@@ -151,6 +167,161 @@ async function deleteQ(id, btn) {
     btn.disabled = false;
   }
 }
+
+// ── Share Modal ───────────────────────────────────────────────────────────────
+let shareModalQId = '';
+
+async function openShareModal(questionnaireId, title) {
+  shareModalQId = questionnaireId;
+  document.getElementById('shareModalTitle').textContent = 'Share: ' + title;
+  document.getElementById('shareModal').classList.remove('hidden');
+  await refreshPermissions();
+  await populateUserPicker();
+}
+
+function closeShareModal() {
+  document.getElementById('shareModal').classList.add('hidden');
+  shareModalQId = '';
+}
+
+async function refreshPermissions() {
+  const tbody = document.getElementById('permTableBody');
+  tbody.innerHTML = '<tr><td colspan="3" style="color:var(--muted);font-size:.85rem">Loading…</td></tr>';
+  try {
+    const { ownerId, permissions } = await apiFetch('/api/questionnaires/' + encodeURIComponent(shareModalQId) + '/permissions');
+    const perms = [
+      ...(ownerId ? [{ userId: ownerId, level: 'manage', isOwner: true }] : []),
+      ...permissions.map(p => ({ ...p, isOwner: false })),
+    ];
+    if (!perms.length) {
+      tbody.innerHTML = '<tr><td colspan="3" style="color:var(--muted);font-size:.85rem">No additional users.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = perms.map(p => `
+      <tr>
+        <td>${esc(p.email ?? p.userId)}</td>
+        <td>${p.isOwner ? '<span class="badge badge-owner">Owner</span>' : esc(p.level)}</td>
+        <td>${p.isOwner ? '' : `<button class="btn btn-danger revoke-permission-btn" style="padding:.2rem .55rem;font-size:.8rem" data-user-id="${esc(p.userId)}">Revoke</button>`}</td>
+      </tr>`).join('');
+    tbody.querySelectorAll('.revoke-permission-btn').forEach(btn => {
+      btn.addEventListener('click', () => revokePermission(btn.dataset.userId));
+    });
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="3" style="color:var(--danger)">${esc(err.message)}</td></tr>`;
+  }
+}
+
+async function populateUserPicker() {
+  const select = document.getElementById('shareUserSelect');
+  select.innerHTML = '<option value="">Loading users…</option>';
+  try {
+    const [users, permissionsResponse] = await Promise.all([
+      apiFetch('/api/users'),
+      apiFetch('/api/questionnaires/' + encodeURIComponent(shareModalQId) + '/permissions'),
+    ]);
+    const perms = [
+      ...(permissionsResponse.ownerId ? [{ userId: permissionsResponse.ownerId, isOwner: true }] : []),
+      ...permissionsResponse.permissions.map(p => ({ ...p, isOwner: false })),
+    ];
+    const grantedIds = new Set(perms.map(p => p.userId));
+    const available = users.filter(u => !grantedIds.has(u.id));
+    if (!available.length) {
+      select.innerHTML = '<option value="">All users already have access</option>';
+      return;
+    }
+    select.innerHTML = '<option value="">— select a user —</option>' +
+      available.map(u => `<option value="${esc(u.id)}">${esc(u.email)}${u.name ? ' (' + esc(u.name) + ')' : ''}</option>`).join('');
+  } catch (err) {
+    select.innerHTML = `<option value="">Error loading users</option>`;
+  }
+}
+
+async function grantPermission() {
+  const userId = document.getElementById('shareUserSelect').value;
+  const level  = document.getElementById('shareLevelSelect').value;
+  if (!userId) { alert('Please select a user.'); return; }
+  const btn = document.getElementById('shareGrantBtn');
+  btn.disabled = true;
+  try {
+    await apiFetch('/api/questionnaires/' + encodeURIComponent(shareModalQId) + '/permissions/' + encodeURIComponent(userId),
+      { method: 'PUT', body: JSON.stringify({ level }) });
+    await Promise.all([refreshPermissions(), populateUserPicker()]);
+  } catch (err) {
+    alert('Failed to grant: ' + err.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function revokePermission(userId) {
+  if (!confirm('Revoke access for this user?')) return;
+  try {
+    await apiFetch('/api/questionnaires/' + encodeURIComponent(shareModalQId) + '/permissions/' + encodeURIComponent(userId),
+      { method: 'DELETE' });
+    await Promise.all([refreshPermissions(), populateUserPicker()]);
+  } catch (err) {
+    alert('Failed to revoke: ' + err.message);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const shareModalCloseBtn = document.getElementById('shareModalCloseBtn');
+  const shareModalCloseFooterBtn = document.getElementById('shareModalCloseFooterBtn');
+  const shareGrantBtn = document.getElementById('shareGrantBtn');
+  const shareModal = document.getElementById('shareModal');
+
+  if (shareModalCloseBtn) {
+    shareModalCloseBtn.addEventListener('click', closeShareModal);
+  }
+  if (shareModalCloseFooterBtn) {
+    shareModalCloseFooterBtn.addEventListener('click', closeShareModal);
+  }
+  if (shareGrantBtn) {
+    shareGrantBtn.addEventListener('click', grantPermission);
+  }
+  if (shareModal) {
+    shareModal.addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) closeShareModal();
+    });
+  }
+});
 </script>
+
+<!-- ── Share Modal ──────────────────────────────────────────────────────────── -->
+<div id="shareModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="shareModalTitle">
+  <div class="modal">
+    <div class="modal-header">
+      <span id="shareModalTitle">Share Questionnaire</span>
+      <button class="modal-close" id="shareModalCloseBtn" aria-label="Close">×</button>
+    </div>
+    <div class="modal-body">
+      <h3 style="font-size:.9rem;font-weight:600;margin-bottom:.6rem">Current access</h3>
+      <table class="perm-list">
+        <thead><tr><th>User</th><th>Permission</th><th></th></tr></thead>
+        <tbody id="permTableBody"><tr><td colspan="3"></td></tr></tbody>
+      </table>
+      <h3 style="font-size:.9rem;font-weight:600;margin-bottom:.6rem">Grant access</h3>
+      <div class="share-form">
+        <div>
+          <label for="shareUserSelect">User</label>
+          <select id="shareUserSelect"><option value="">— select a user —</option></select>
+        </div>
+        <div>
+          <label for="shareLevelSelect">Permission level</label>
+          <select id="shareLevelSelect">
+            <option value="respond">Respond — can fill in and submit the questionnaire</option>
+            <option value="view_responses">View responses — can see all collected responses</option>
+            <option value="manage">Manage — full control (edit, delete, share)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="shareModalCloseFooterBtn">Close</button>
+      <button class="btn btn-primary" id="shareGrantBtn">Grant access</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

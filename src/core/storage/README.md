@@ -61,8 +61,12 @@ await storage.deleteQuestionnaire('questionnaire-id');
 ### Session Operations
 
 ```typescript
-// Create a new session
-const sessionId = await storage.createSession('questionnaire-id');
+// Create a new session (and its initial response) for a questionnaire.
+// Pass the authenticated user's ID so the response is attributed to them.
+const sessionId = await storage.createSession('questionnaire-id', userId);
+
+// userId is optional — omit it for anonymous or unauthenticated sessions.
+const anonSessionId = await storage.createSession('questionnaire-id');
 
 // Update session status
 await storage.updateSession(sessionId, { status: 'completed' });

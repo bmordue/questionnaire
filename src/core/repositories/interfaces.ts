@@ -166,6 +166,7 @@ export interface ResponseCreateInput {
   questionnaireVersion: string;
   sessionId: string;
   totalQuestions: number;
+  userId?: string;
 }
 
 /**
