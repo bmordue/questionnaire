@@ -215,7 +215,13 @@ export async function runQuestionnaire(options: RunnerOptions): Promise<RunnerRe
   const responsesMap = session.responseBuilder.getAnswersMap();
   const persistedSkipped = buildPersistedSkipped(responseSnapshot);
   const pending = findFirstPendingQuestion(questionnaire, responsesMap, persistedSkipped);
-  const startQuestionId = pending.question?.id ?? questionnaire.questions[0]!.id;
+
+  const firstQuestion = questionnaire.questions[0];
+  if (!firstQuestion) {
+    throw new Error('Questionnaire contains no questions');
+  }
+
+  const startQuestionId = pending.question?.id ?? firstQuestion.id;
   const skippedQuestions = new Set<string>([...pending.skipped, ...persistedSkipped]);
 
   if (usedResume) {
