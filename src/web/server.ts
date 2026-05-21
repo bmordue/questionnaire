@@ -73,6 +73,7 @@ const OPENFGA_STORE_ID = (process.env['OPENFGA_STORE_ID'] ?? '').trim();
 const OPENFGA_AUTHORIZATION_MODEL_ID = (process.env['OPENFGA_AUTHORIZATION_MODEL_ID'] ?? '').trim();
 const OPENFGA_API_TOKEN = (process.env['OPENFGA_API_TOKEN'] ?? '').trim();
 const OPENFGA_APP_OBJECT = 'app:questionnaire';
+const OPENFGA_REQUEST_TIMEOUT_MS = 3000;
 
 function isOpenFgaEnabled(): boolean {
   return OPENFGA_API_URL !== '' && OPENFGA_STORE_ID !== '';
@@ -196,6 +197,8 @@ async function openFgaCheck(
   object: string,
 ): Promise<boolean> {
   if (!isOpenFgaEnabled()) return true;
+  const abortController = new AbortController();
+  const timeoutId = setTimeout(() => abortController.abort(), OPENFGA_REQUEST_TIMEOUT_MS);
   const body: {
     tuple_key: { user: string; relation: OpenFgaPermission; object: string };
     authorization_model_id?: string;
@@ -209,17 +212,28 @@ async function openFgaCheck(
   if (OPENFGA_AUTHORIZATION_MODEL_ID !== '') {
     body.authorization_model_id = OPENFGA_AUTHORIZATION_MODEL_ID;
   }
-  const response = await fetch(
-    `${OPENFGA_API_URL}/stores/${encodeURIComponent(OPENFGA_STORE_ID)}/check`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(OPENFGA_API_TOKEN !== '' ? { Authorization: `Bearer ${OPENFGA_API_TOKEN}` } : {}),
+  let response: globalThis.Response;
+  try {
+    response = await fetch(
+      `${OPENFGA_API_URL}/stores/${encodeURIComponent(OPENFGA_STORE_ID)}/check`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(OPENFGA_API_TOKEN !== '' ? { Authorization: `Bearer ${OPENFGA_API_TOKEN}` } : {}),
+        },
+        body: JSON.stringify(body),
+        signal: abortController.signal,
       },
-      body: JSON.stringify(body),
-    },
-  );
+    );
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error(`OpenFGA check timed out after ${OPENFGA_REQUEST_TIMEOUT_MS}ms`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
   if (!response.ok) {
     throw new Error(`OpenFGA check failed with status ${response.status}`);
   }
@@ -410,14 +424,14 @@ router.post('/api/questionnaires', requireAuth, async (req, res, next) => {
 /** Get a single questionnaire — requires at least 'respond' access */
 router.get(
   '/api/questionnaires/:id',
+  requireQuestionnairePermission(storage, 'respond'),
   async (req, res, next) => {
-    const id = Array.isArray(req.params['id']) ? (req.params['id'][0] ?? '') : (req.params['id'] ?? '');
-    if (!(await enforceOpenFgaPermission(res, 'view_questionnaire', questionnaireObject(id)))) {
+    const questionnaire = res.locals['questionnaire'] as Questionnaire;
+    if (!(await enforceOpenFgaPermission(res, 'view_questionnaire', questionnaireObject(questionnaire.id)))) {
       return;
     }
     next();
   },
-  requireQuestionnairePermission(storage, 'respond'),
   (_req, res) => {
     res.json(res.locals['questionnaire']);
   },
@@ -552,15 +566,15 @@ router.get('/api/responses', requireAuth, async (req, res, next) => {
       res.status(400).json({ error: 'questionnaireId query parameter is required' });
       return;
     }
-    if (!(await enforceOpenFgaPermission(res, 'view_response', questionnaireObject(questionnaireId)))) {
-      return;
-    }
     const user = currentUser(res);
     let questionnaire: Questionnaire;
     try {
       questionnaire = await storage.loadQuestionnaire(questionnaireId);
     } catch {
       res.status(404).json({ error: 'Questionnaire not found' });
+      return;
+    }
+    if (!(await enforceOpenFgaPermission(res, 'view_response', questionnaireObject(questionnaire.id)))) {
       return;
     }
     const effectivePermission = resolvePermission(questionnaire, user.id, user.groups);
@@ -584,10 +598,10 @@ router.get('/api/responses/:id', requireAuth, async (req, res, next) => {
   try {
     const responseIdParam = req.params['id'];
     const responseId = Array.isArray(responseIdParam) ? (responseIdParam[0] ?? '') : (responseIdParam ?? '');
-    if (!(await enforceOpenFgaPermission(res, 'view_response', responseObject(responseId)))) {
+    const response = await storage.loadResponse(responseId);
+    if (!(await enforceOpenFgaPermission(res, 'view_response', responseObject(response.id)))) {
       return;
     }
-    const response = await storage.loadResponse(responseId);
     const user = currentUser(res);
     let questionnaire: Questionnaire;
     try {
@@ -622,15 +636,15 @@ router.post('/api/sessions', requireAuth, async (req, res, next) => {
       res.status(400).json({ error: 'questionnaireId is required' });
       return;
     }
-    if (!(await enforceOpenFgaPermission(res, 'create_response', questionnaireObject(body.questionnaireId)))) {
-      return;
-    }
     const user = currentUser(res);
     let questionnaire: Questionnaire;
     try {
       questionnaire = await storage.loadQuestionnaire(body.questionnaireId);
     } catch {
       res.status(404).json({ error: 'Questionnaire not found' });
+      return;
+    }
+    if (!(await enforceOpenFgaPermission(res, 'create_response', questionnaireObject(questionnaire.id)))) {
       return;
     }
     if (

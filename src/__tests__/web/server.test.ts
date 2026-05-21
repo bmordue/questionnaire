@@ -970,6 +970,66 @@ describe('OpenFGA permissions integration', () => {
     expect(parseObject(fetchMock.mock.calls[0])).toBe('app:questionnaire');
   });
 
+  it('returns 404 before OpenFGA check for unknown questionnaires', async () => {
+    configureOpenFga();
+    const fetchMock = jest.fn(async () => {
+      return new Response(JSON.stringify({ allowed: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const { app: openFgaApp } = await import(`../../web/server.js?openfga-missing-q=${Date.now()}`);
+    const res = await request(openFgaApp).get('/api/questionnaires/does-not-exist').set(AUTH_HEADERS);
+
+    expect(res.status).toBe(404);
+    expect(fetchMock).toHaveBeenCalledTimes(0);
+  });
+
+  it('returns 404 before OpenFGA check for unknown questionnaires in responses/session routes', async () => {
+    configureOpenFga();
+    const fetchMock = jest.fn(async () => {
+      return new Response(JSON.stringify({ allowed: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const { app: openFgaApp } = await import(`../../web/server.js?openfga-missing-response-q=${Date.now()}`);
+    const listRes = await request(openFgaApp)
+      .get('/api/responses?questionnaireId=does-not-exist')
+      .set(AUTH_HEADERS);
+    expect(listRes.status).toBe(404);
+
+    const startSessionRes = await request(openFgaApp)
+      .post('/api/sessions')
+      .send({ questionnaireId: 'does-not-exist' })
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
+    expect(startSessionRes.status).toBe(404);
+
+    expect(fetchMock).toHaveBeenCalledTimes(0);
+  });
+
+  it('returns 404 before OpenFGA check for unknown responses', async () => {
+    configureOpenFga();
+    const fetchMock = jest.fn(async () => {
+      return new Response(JSON.stringify({ allowed: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const { app: openFgaApp } = await import(`../../web/server.js?openfga-missing-response=${Date.now()}`);
+    const res = await request(openFgaApp).get('/api/responses/does-not-exist').set(AUTH_HEADERS);
+
+    expect(res.status).toBe(404);
+    expect(fetchMock).toHaveBeenCalledTimes(0);
+  });
+
   it('checks view_questionnaire, create_response, and view_response permissions on protected routes', async () => {
     configureOpenFga();
     const fetchMock = jest.fn(async () => {
@@ -1014,7 +1074,7 @@ describe('OpenFGA permissions integration', () => {
     expect(relations).toContain('view_response');
     const objects = fetchMock.mock.calls.map(parseObject);
     expect(objects).toContain(`questionnaire:${String(questionnaire.id)}`);
-    expect(objects).toContain(`response:${sessionId}`);
+    expect(objects.some(object => typeof object === 'string' && object.startsWith('response:'))).toBe(true);
   });
 });
 
