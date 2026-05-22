@@ -71,8 +71,6 @@ export class BackendStorageService implements StorageService {
       dataDirectory: '(backend-managed)',
       backupEnabled: opts.backupEnabled ?? false,
       maxBackups: 0,
-      compressionEnabled: false,
-      encryptionEnabled: false,
       deleteBackupsOnCompletion: false
     };
   }

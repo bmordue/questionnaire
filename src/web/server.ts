@@ -73,7 +73,8 @@ function validatedLogoutRedirect(rawUrl: string | undefined): string | null {
 
   if (value.startsWith('/')) {
     const pathOnly = value.split(/[?#]/, 1)[0] ?? '';
-    if (pathOnly.split('/').includes('..')) return null;
+    const decoded = decodeURIComponent(pathOnly);
+    if (decoded.split('/').includes('..')) return null;
     return value.startsWith('//') ? null : value;
   }
 
@@ -186,22 +187,26 @@ if (NODE_ENV === 'development') {
     .map(origin => origin.trim())
     .filter(origin => origin.length > 0);
 
-  app.use(
-    cors({
-      origin(origin, callback) {
-        // Allow requests with no Origin header (e.g., server-to-server or same-origin)
-        if (!origin) {
-          return callback(null, true);
-        }
+  if (allowedOrigins.includes('*')) {
+    app.use(cors());
+  } else {
+    app.use(
+      cors({
+        origin(origin, callback) {
+          // Allow requests with no Origin header (e.g., server-to-server or same-origin)
+          if (!origin) {
+            return callback(null, true);
+          }
 
-        if (allowedOrigins.includes(origin)) {
-          return callback(null, true);
-        }
+          if (allowedOrigins.includes(origin)) {
+            return callback(null, true);
+          }
 
-        return callback(new Error('Not allowed by CORS'));
-      },
-    }),
-  );
+          return callback(new Error('Not allowed by CORS'));
+        },
+      }),
+    );
+  }
 }
 
 app.use(express.json());

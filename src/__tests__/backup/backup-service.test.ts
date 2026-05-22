@@ -39,8 +39,6 @@ describe('Backup System', () => {
       dataDirectory: dirs.dataDir,
       backupEnabled: false,
       maxBackups: 3,
-      compressionEnabled: false,
-      encryptionEnabled: false,
     });
 
     config = {

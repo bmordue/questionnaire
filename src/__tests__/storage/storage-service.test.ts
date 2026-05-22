@@ -28,8 +28,6 @@ describe('StorageService', () => {
       dataDirectory: TEST_DATA_DIR,
       backupEnabled: true,
       maxBackups: 3,
-      compressionEnabled: false,
-      encryptionEnabled: false
     });
   });
 

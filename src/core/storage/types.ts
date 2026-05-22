@@ -16,10 +16,6 @@ export interface StorageConfig {
   backupEnabled: boolean;
   /** Maximum number of backup files to keep */
   maxBackups: number;
-  /** Enable compression (not implemented) */
-  compressionEnabled: boolean;
-  /** Enable encryption (not implemented) */
-  encryptionEnabled: boolean;
   /** Delete backup files when session completes */
   deleteBackupsOnCompletion: boolean;
 }
