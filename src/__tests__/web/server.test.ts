@@ -878,6 +878,60 @@ describe('Guest identity when no auth headers are provided', () => {
   });
 });
 
+// ── CORS Wildcard ────────────────────────────────────────────────────────────
+
+describe('CORS Wildcard handling', () => {
+  it('allows any origin when CORS_ORIGINS=* is set', async () => {
+    const originalNodeEnv = process.env['NODE_ENV'];
+    const originalCorsOrigins = process.env['CORS_ORIGINS'];
+
+    process.env['NODE_ENV'] = 'production'; // so it doesn't use the simple dev cors()
+    process.env['CORS_ORIGINS'] = '*';
+
+    try {
+      const { app: wildcardApp } = await import(`../../web/server.js?cors-wildcard=${Date.now()}`);
+      const res = await request(wildcardApp)
+        .get('/api/auth/me')
+        .set('Origin', 'https://random-site.com');
+
+      expect(res.status).toBe(200);
+      expect(res.header['access-control-allow-origin']).toBe('https://random-site.com');
+    } finally {
+      process.env['NODE_ENV'] = originalNodeEnv;
+      if (originalCorsOrigins === undefined) {
+        delete process.env['CORS_ORIGINS'];
+      } else {
+        process.env['CORS_ORIGINS'] = originalCorsOrigins;
+      }
+    }
+  });
+
+  it('allows any origin when * is in a comma-separated list', async () => {
+    const originalNodeEnv = process.env['NODE_ENV'];
+    const originalCorsOrigins = process.env['CORS_ORIGINS'];
+
+    process.env['NODE_ENV'] = 'production';
+    process.env['CORS_ORIGINS'] = 'https://trusted.com, *';
+
+    try {
+      const { app: wildcardApp } = await import(`../../web/server.js?cors-list-wildcard=${Date.now()}`);
+      const res = await request(wildcardApp)
+        .get('/api/auth/me')
+        .set('Origin', 'https://another-site.com');
+
+      expect(res.status).toBe(200);
+      expect(res.header['access-control-allow-origin']).toBe('https://another-site.com');
+    } finally {
+      process.env['NODE_ENV'] = originalNodeEnv;
+      if (originalCorsOrigins === undefined) {
+        delete process.env['CORS_ORIGINS'];
+      } else {
+        process.env['CORS_ORIGINS'] = originalCorsOrigins;
+      }
+    }
+  });
+});
+
 
 // ── GET /config.js ────────────────────────────────────────────────────────────
 

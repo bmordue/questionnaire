@@ -185,6 +185,7 @@ if (NODE_ENV === 'development') {
   const allowedOrigins = CORS_ORIGINS.split(',')
     .map(origin => origin.trim())
     .filter(origin => origin.length > 0);
+  const isWildcard = allowedOrigins.includes('*');
 
   app.use(
     cors({
@@ -194,7 +195,7 @@ if (NODE_ENV === 'development') {
           return callback(null, true);
         }
 
-        if (allowedOrigins.includes(origin)) {
+        if (isWildcard || allowedOrigins.includes(origin)) {
           return callback(null, true);
         }
 
