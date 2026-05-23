@@ -898,6 +898,41 @@ describe('GET /config.js', () => {
   });
 });
 
+describe('CORS configuration', () => {
+  it('allows arbitrary origins when CORS_ORIGINS=* in non-development mode', async () => {
+    const originalNodeEnv = process.env['NODE_ENV'];
+    const originalCorsOrigins = process.env['CORS_ORIGINS'];
+    const originalVercel = process.env['VERCEL'];
+    process.env['NODE_ENV'] = 'production';
+    process.env['CORS_ORIGINS'] = '*';
+    process.env['VERCEL'] = 'true';
+
+    try {
+      const { app: wildcardCorsApp } = await import(`../../web/server.js?cors-wildcard=${Date.now()}`);
+      const res = await request(wildcardCorsApp).get('/config.js').set('Origin', 'https://arbitrary.example');
+      expect(res.status).toBe(200);
+      expect(res.headers['access-control-allow-origin']).toBe('*');
+    } finally {
+      if (originalNodeEnv === undefined) {
+        delete process.env['NODE_ENV'];
+      } else {
+        process.env['NODE_ENV'] = originalNodeEnv;
+      }
+      if (originalCorsOrigins === undefined) {
+        delete process.env['CORS_ORIGINS'];
+      } else {
+        process.env['CORS_ORIGINS'] = originalCorsOrigins;
+      }
+      if (originalVercel === undefined) {
+        delete process.env['VERCEL'];
+      } else {
+        process.env['VERCEL'] = originalVercel;
+      }
+    }
+  });
+});
+
+
 // ── GET /logout ────────────────────────────────────────────────────────────────
 
 describe('GET /logout', () => {
@@ -936,6 +971,22 @@ describe('GET /logout', () => {
   it('falls back to app root for unsafe AUTH_LOGOUT_URL values', async () => {
     const original = process.env['AUTH_LOGOUT_URL'];
     process.env['AUTH_LOGOUT_URL'] = 'javascript:alert(1)';
+    try {
+      const res = await request(app).get('/logout');
+      expect(res.status).toBe(302);
+      expect(res.headers['location']).toBe('/');
+    } finally {
+      if (original === undefined) {
+        delete process.env['AUTH_LOGOUT_URL'];
+      } else {
+        process.env['AUTH_LOGOUT_URL'] = original;
+      }
+    }
+  });
+
+  it('falls back to app root for encoded traversal AUTH_LOGOUT_URL values', async () => {
+    const original = process.env['AUTH_LOGOUT_URL'];
+    process.env['AUTH_LOGOUT_URL'] = '/%2e%2e/admin';
     try {
       const res = await request(app).get('/logout');
       expect(res.status).toBe(302);
