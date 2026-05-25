@@ -291,27 +291,24 @@ if (NODE_ENV === 'development') {
   const allowedOrigins = CORS_ORIGINS.split(',')
     .map(origin => origin.trim())
     .filter(origin => origin.length > 0);
+  const isWildcard = allowedOrigins.includes('*');
 
-  if (allowedOrigins.includes('*')) {
-    app.use(cors());
-  } else {
-    app.use(
-      cors({
-        origin(origin, callback) {
-          // Allow requests with no Origin header (e.g., server-to-server or same-origin)
-          if (!origin) {
-            return callback(null, true);
-          }
+  app.use(
+    cors({
+      origin(origin, callback) {
+        // Allow requests with no Origin header (e.g., server-to-server or same-origin)
+        if (!origin) {
+          return callback(null, true);
+        }
 
-          if (allowedOrigins.includes(origin)) {
-            return callback(null, true);
-          }
+        if (isWildcard || allowedOrigins.includes(origin)) {
+          return callback(null, true);
+        }
 
-          return callback(new Error('Not allowed by CORS'));
-        },
-      }),
-    );
-  }
+        return callback(new Error('Not allowed by CORS'));
+      },
+    }),
+  );
 }
 
 app.use(express.json());
