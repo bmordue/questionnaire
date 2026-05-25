@@ -36,9 +36,7 @@ import { createStorageService } from './core/storage.js';
 const storage = await createStorageService({
   dataDirectory: './data',
   backupEnabled: true,
-  maxBackups: 5,
-  compressionEnabled: false,
-  encryptionEnabled: false
+  maxBackups: 5
 });
 ```
 
@@ -122,8 +120,6 @@ const config = storage.getConfig();
 | `dataDirectory` | `string` | `'./data'` | Base directory for data storage |
 | `backupEnabled` | `boolean` | `true` | Enable automatic backups on overwrites |
 | `maxBackups` | `number` | `5` | Maximum backup files to keep per document |
-| `compressionEnabled` | `boolean` | `false` | Enable compression (not implemented) |
-| `encryptionEnabled` | `boolean` | `false` | Enable encryption (not implemented) |
 
 ## Data Integrity
 
