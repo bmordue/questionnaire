@@ -190,11 +190,25 @@ The application's `/logout` handler will then redirect the browser to oauth2-pro
 | `REQUIRE_PROXY_AUTH` | (unset)          | When `true`, disables `DEV_STUB_USER` and enables strict proxy-auth behavior for the optional `requireProxyAuth` middleware when that middleware is registered |
 | `DEV_STUB_USER`      | (unset)          | Development-only stub identity (ignored in production; see below)        |
 | `ADMIN_GROUP`        | `admins`         | Name of the group whose members have admin privileges                    |
+| `OPENFGA_API_URL`    | (unset)          | OpenFGA API base URL (for example `http://localhost:8080`)               |
+| `OPENFGA_STORE_ID`   | (unset)          | OpenFGA store ID used for permission checks                              |
+| `OPENFGA_AUTHORIZATION_MODEL_ID` | (unset) | Optional OpenFGA authorization model ID for `check` requests            |
+| `OPENFGA_API_TOKEN`  | (unset)          | Optional bearer token for OpenFGA API authentication                     |
 | `PORT`               | `3000`           | TCP port the server listens on                                           |
 
 ---
 
 ## Permission Model
+
+When `OPENFGA_API_URL` and `OPENFGA_STORE_ID` are configured, the web server performs OpenFGA `check` calls for:
+
+- `view_app`
+- `create_questionnaire`
+- `create_response`
+- `view_questionnaire`
+- `view_response`
+
+These checks are enforced in addition to the built-in questionnaire ACL model documented below.
 
 Each questionnaire has an `ownerId` (the user who created it) and an optional `permissions` array granting other users access. Admins (members of the `ADMIN_GROUP`) bypass all per-questionnaire checks.
 

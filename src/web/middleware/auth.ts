@@ -188,8 +188,9 @@ export function loadUser(userRepository: FileUserRepository) {
           console.log(`[auth] principal=guest method=${req.method} path=${req.originalUrl}`);
         }
       }
-    } catch {
+    } catch (err) {
       // Non-fatal: proceed as guest
+      console.error('[auth] User provisioning failure, falling back to guest:', err);
       res.locals['user'] = GUEST_USER;
     }
     next();
