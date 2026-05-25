@@ -31,7 +31,7 @@ data/
 ### Creating a Storage Service
 
 ```typescript
-import { createStorageService } from './core/storage.js';
+import { createStorageService } from './core/storage/index.js';
 
 const storage = await createStorageService({
   dataDirectory: './data',

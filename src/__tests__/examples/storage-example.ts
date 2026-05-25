@@ -4,7 +4,7 @@
  * Demonstrates how to use the storage service
  */
 
-import { createStorageService } from '../../core/storage.js';
+import { createStorageService } from '../../core/storage/index.js';
 import { QuestionType, ResponseStatus } from '../../core/schema.js';
 import type { Questionnaire } from '../../core/schema.js';
 

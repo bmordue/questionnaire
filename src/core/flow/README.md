@@ -14,7 +14,7 @@ Complete flow engine for executing questionnaires with conditional logic, state 
 
 ```typescript
 import { QuestionnaireFlowEngine, NavigationManager } from './core/flow/index.js';
-import { createStorageService } from './core/storage.js';
+import { createStorageService } from './core/storage/index.js';
 
 // Create storage and engine
 const storage = await createStorageService();

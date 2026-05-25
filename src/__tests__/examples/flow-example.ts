@@ -6,7 +6,7 @@
 
 import { QuestionnaireFlowEngine } from '../../core/flow/flow-engine.js';
 import { NavigationManager } from '../../core/flow/navigation-manager.js';
-import { createStorageService } from '../../core/storage.js';
+import { createStorageService } from '../../core/storage/index.js';
 import { QuestionType } from '../../core/schema.js';
 import type { Questionnaire } from '../../core/schema.js';
 
