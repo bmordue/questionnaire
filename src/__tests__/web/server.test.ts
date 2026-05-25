@@ -1115,8 +1115,7 @@ describe('CORS Wildcard handling', () => {
         .set('Origin', 'https://random-site.com');
 
       expect(res.status).toBe(200);
-      // The cors package returns the actual origin when matched against a wildcard
-      expect(res.header['access-control-allow-origin']).toBe('https://random-site.com');
+      expect(res.header['access-control-allow-origin']).toBe('*');
     } finally {
       process.env['NODE_ENV'] = originalNodeEnv;
       if (originalCorsOrigins === undefined) {
@@ -1141,13 +1140,47 @@ describe('CORS Wildcard handling', () => {
         .set('Origin', 'https://another-site.com');
 
       expect(res.status).toBe(200);
-      expect(res.header['access-control-allow-origin']).toBe('https://another-site.com');
+      expect(res.header['access-control-allow-origin']).toBe('*');
     } finally {
       process.env['NODE_ENV'] = originalNodeEnv;
       if (originalCorsOrigins === undefined) {
         delete process.env['CORS_ORIGINS'];
       } else {
         process.env['CORS_ORIGINS'] = originalCorsOrigins;
+      }
+    }
+  });
+});
+
+describe('CORS configuration', () => {
+  it('allows arbitrary origins when CORS_ORIGINS=* in non-development mode', async () => {
+    const originalNodeEnv = process.env['NODE_ENV'];
+    const originalCorsOrigins = process.env['CORS_ORIGINS'];
+    const originalVercel = process.env['VERCEL'];
+    process.env['NODE_ENV'] = 'production';
+    process.env['CORS_ORIGINS'] = '*';
+    process.env['VERCEL'] = 'true';
+
+    try {
+      const { app: wildcardCorsApp } = await import(`../../web/server.js?cors-wildcard=${Date.now()}`);
+      const res = await request(wildcardCorsApp).get('/config.js').set('Origin', 'https://arbitrary.example');
+      expect(res.status).toBe(200);
+      expect(res.headers['access-control-allow-origin']).toBe('*');
+    } finally {
+      if (originalNodeEnv === undefined) {
+        delete process.env['NODE_ENV'];
+      } else {
+        process.env['NODE_ENV'] = originalNodeEnv;
+      }
+      if (originalCorsOrigins === undefined) {
+        delete process.env['CORS_ORIGINS'];
+      } else {
+        process.env['CORS_ORIGINS'] = originalCorsOrigins;
+      }
+      if (originalVercel === undefined) {
+        delete process.env['VERCEL'];
+      } else {
+        process.env['VERCEL'] = originalVercel;
       }
     }
   });
