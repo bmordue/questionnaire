@@ -878,6 +878,60 @@ describe('Guest identity when no auth headers are provided', () => {
   });
 });
 
+// ── CORS Wildcard ────────────────────────────────────────────────────────────
+
+describe('CORS Wildcard handling', () => {
+  it('allows any origin when CORS_ORIGINS=* is set', async () => {
+    const originalNodeEnv = process.env['NODE_ENV'];
+    const originalCorsOrigins = process.env['CORS_ORIGINS'];
+
+    process.env['NODE_ENV'] = 'production'; // so it doesn't use the simple dev cors()
+    process.env['CORS_ORIGINS'] = '*';
+
+    try {
+      const { app: wildcardApp } = await import(`../../web/server.js?cors-wildcard=${Date.now()}`);
+      const res = await request(wildcardApp)
+        .get('/api/auth/me')
+        .set('Origin', 'https://random-site.com');
+
+      expect(res.status).toBe(200);
+      expect(res.header['access-control-allow-origin']).toBe('*');
+    } finally {
+      process.env['NODE_ENV'] = originalNodeEnv;
+      if (originalCorsOrigins === undefined) {
+        delete process.env['CORS_ORIGINS'];
+      } else {
+        process.env['CORS_ORIGINS'] = originalCorsOrigins;
+      }
+    }
+  });
+
+  it('allows any origin when * is in a comma-separated list', async () => {
+    const originalNodeEnv = process.env['NODE_ENV'];
+    const originalCorsOrigins = process.env['CORS_ORIGINS'];
+
+    process.env['NODE_ENV'] = 'production';
+    process.env['CORS_ORIGINS'] = 'https://trusted.com, *';
+
+    try {
+      const { app: wildcardApp } = await import(`../../web/server.js?cors-list-wildcard=${Date.now()}`);
+      const res = await request(wildcardApp)
+        .get('/api/auth/me')
+        .set('Origin', 'https://another-site.com');
+
+      expect(res.status).toBe(200);
+      expect(res.header['access-control-allow-origin']).toBe('*');
+    } finally {
+      process.env['NODE_ENV'] = originalNodeEnv;
+      if (originalCorsOrigins === undefined) {
+        delete process.env['CORS_ORIGINS'];
+      } else {
+        process.env['CORS_ORIGINS'] = originalCorsOrigins;
+      }
+    }
+  });
+});
+
 // ── OpenFGA integration ────────────────────────────────────────────────────────
 
 describe('OpenFGA permissions integration', () => {
@@ -1098,56 +1152,35 @@ describe('GET /config.js', () => {
   });
 });
 
-// ── CORS Wildcard ────────────────────────────────────────────────────────────
-
-describe('CORS Wildcard handling', () => {
-  it('allows any origin when CORS_ORIGINS=* is set', async () => {
+describe('CORS configuration', () => {
+  it('allows arbitrary origins when CORS_ORIGINS=* in non-development mode', async () => {
     const originalNodeEnv = process.env['NODE_ENV'];
     const originalCorsOrigins = process.env['CORS_ORIGINS'];
-
-    process.env['NODE_ENV'] = 'production'; // so it doesn't use the simple dev cors()
+    const originalVercel = process.env['VERCEL'];
+    process.env['NODE_ENV'] = 'production';
     process.env['CORS_ORIGINS'] = '*';
+    process.env['VERCEL'] = 'true';
 
     try {
-      const { app: wildcardApp } = await import(`../../web/server.js?cors-wildcard-check=${Date.now()}`);
-      const res = await request(wildcardApp)
-        .get('/api/auth/me')
-        .set('Origin', 'https://random-site.com');
-
+      const { app: wildcardCorsApp } = await import(`../../web/server.js?cors-wildcard=${Date.now()}`);
+      const res = await request(wildcardCorsApp).get('/config.js').set('Origin', 'https://arbitrary.example');
       expect(res.status).toBe(200);
-      // The cors package returns the actual origin when matched against a wildcard
-      expect(res.header['access-control-allow-origin']).toBe('https://random-site.com');
+      expect(res.headers['access-control-allow-origin']).toBe('*');
     } finally {
-      process.env['NODE_ENV'] = originalNodeEnv;
+      if (originalNodeEnv === undefined) {
+        delete process.env['NODE_ENV'];
+      } else {
+        process.env['NODE_ENV'] = originalNodeEnv;
+      }
       if (originalCorsOrigins === undefined) {
         delete process.env['CORS_ORIGINS'];
       } else {
         process.env['CORS_ORIGINS'] = originalCorsOrigins;
       }
-    }
-  });
-
-  it('allows any origin when * is in a comma-separated list', async () => {
-    const originalNodeEnv = process.env['NODE_ENV'];
-    const originalCorsOrigins = process.env['CORS_ORIGINS'];
-
-    process.env['NODE_ENV'] = 'production';
-    process.env['CORS_ORIGINS'] = 'https://trusted.com, *';
-
-    try {
-      const { app: wildcardApp } = await import(`../../web/server.js?cors-list-wildcard-check=${Date.now()}`);
-      const res = await request(wildcardApp)
-        .get('/api/auth/me')
-        .set('Origin', 'https://another-site.com');
-
-      expect(res.status).toBe(200);
-      expect(res.header['access-control-allow-origin']).toBe('https://another-site.com');
-    } finally {
-      process.env['NODE_ENV'] = originalNodeEnv;
-      if (originalCorsOrigins === undefined) {
-        delete process.env['CORS_ORIGINS'];
+      if (originalVercel === undefined) {
+        delete process.env['VERCEL'];
       } else {
-        process.env['CORS_ORIGINS'] = originalCorsOrigins;
+        process.env['VERCEL'] = originalVercel;
       }
     }
   });
