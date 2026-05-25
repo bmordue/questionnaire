@@ -343,7 +343,7 @@ router.use(async (req, res, next) => {
   }
   const user = currentUser(res);
   if (!user || user.id === GUEST_USER.id) {
-    res.status(401).json({ error: 'Authentication required' });
+    res.status(401).type('text/plain').send('Authentication required');
     return;
   }
   if (!(await enforceOpenFgaPermission(res, 'view_app', OPENFGA_APP_OBJECT))) {
@@ -574,7 +574,7 @@ router.get('/api/responses', requireAuth, async (req, res, next) => {
       res.status(404).json({ error: 'Questionnaire not found' });
       return;
     }
-    if (!(await enforceOpenFgaPermission(res, 'view_response', questionnaireObject(questionnaire.id)))) {
+    if (!(await enforceOpenFgaPermission(res, 'view_questionnaire', questionnaireObject(questionnaire.id)))) {
       return;
     }
     const effectivePermission = resolvePermission(questionnaire, user.id, user.groups);
