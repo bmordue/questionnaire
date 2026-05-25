@@ -5,7 +5,7 @@
  * Covers questionnaire CRUD operations to prevent regression of HTTP 500 errors.
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, jest } from '@jest/globals';
 import { promises as fs } from 'fs';
 import path from 'path';
 import request from 'supertest';
@@ -875,6 +875,206 @@ describe('Guest identity when no auth headers are provided', () => {
         process.env['REQUIRE_PROXY_AUTH'] = original;
       }
     }
+  });
+});
+
+// ── OpenFGA integration ────────────────────────────────────────────────────────
+
+describe('OpenFGA permissions integration', () => {
+  const originalApiUrl = process.env['OPENFGA_API_URL'];
+  const originalStoreId = process.env['OPENFGA_STORE_ID'];
+  const originalModelId = process.env['OPENFGA_AUTHORIZATION_MODEL_ID'];
+  const originalToken = process.env['OPENFGA_API_TOKEN'];
+  const originalFetch = globalThis.fetch;
+
+  const configureOpenFga = () => {
+    process.env['OPENFGA_API_URL'] = 'https://openfga.example.test';
+    process.env['OPENFGA_STORE_ID'] = 'store-123';
+    delete process.env['OPENFGA_AUTHORIZATION_MODEL_ID'];
+    delete process.env['OPENFGA_API_TOKEN'];
+  };
+
+  const restoreOpenFgaEnv = () => {
+    if (originalApiUrl === undefined) delete process.env['OPENFGA_API_URL'];
+    else process.env['OPENFGA_API_URL'] = originalApiUrl;
+    if (originalStoreId === undefined) delete process.env['OPENFGA_STORE_ID'];
+    else process.env['OPENFGA_STORE_ID'] = originalStoreId;
+    if (originalModelId === undefined) delete process.env['OPENFGA_AUTHORIZATION_MODEL_ID'];
+    else process.env['OPENFGA_AUTHORIZATION_MODEL_ID'] = originalModelId;
+    if (originalToken === undefined) delete process.env['OPENFGA_API_TOKEN'];
+    else process.env['OPENFGA_API_TOKEN'] = originalToken;
+  };
+
+  const parseRelation = (call: unknown[] | undefined): string | undefined => {
+    const init = call?.[1] as RequestInit | undefined;
+    const rawBody = init?.body;
+    if (typeof rawBody !== 'string') return undefined;
+    const parsed = JSON.parse(rawBody) as { tuple_key?: { relation?: string } };
+    return parsed.tuple_key?.relation;
+  };
+
+  const parseObject = (call: unknown[] | undefined): string | undefined => {
+    const init = call?.[1] as RequestInit | undefined;
+    const rawBody = init?.body;
+    if (typeof rawBody !== 'string') return undefined;
+    const parsed = JSON.parse(rawBody) as { tuple_key?: { object?: string } };
+    return parsed.tuple_key?.object;
+  };
+
+  afterAll(() => {
+    restoreOpenFgaEnv();
+    globalThis.fetch = originalFetch;
+  });
+
+  it('checks view_app permission before serving config.js when OpenFGA is enabled', async () => {
+    configureOpenFga();
+    const fetchMock = jest.fn(async () => {
+      return new Response(JSON.stringify({ allowed: false }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const { app: openFgaApp } = await import(`../../web/server.js?openfga-view-app=${Date.now()}`);
+    const res = await request(openFgaApp).get('/config.js').set(AUTH_HEADERS);
+
+    expect(res.status).toBe(403);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const call = fetchMock.mock.calls[0] as unknown[] | undefined;
+    expect(String(call?.[0])).toBe('https://openfga.example.test/stores/store-123/check');
+    expect(parseRelation(call)).toBe('view_app');
+    expect(parseObject(call)).toBe('app:questionnaire');
+  });
+
+  it('checks create_questionnaire permission on POST /api/questionnaires', async () => {
+    configureOpenFga();
+    const fetchMock = jest.fn(async () => {
+      return new Response(JSON.stringify({ allowed: false }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const { app: openFgaApp } = await import(`../../web/server.js?openfga-create-q=${Date.now()}`);
+    const res = await request(openFgaApp)
+      .post('/api/questionnaires')
+      .send(makeQuestionnaire())
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
+
+    expect(res.status).toBe(403);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(parseRelation(fetchMock.mock.calls[0])).toBe('create_questionnaire');
+    expect(parseObject(fetchMock.mock.calls[0])).toBe('app:questionnaire');
+  });
+
+  it('returns 404 before OpenFGA check for unknown questionnaires', async () => {
+    configureOpenFga();
+    const fetchMock = jest.fn(async () => {
+      return new Response(JSON.stringify({ allowed: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const { app: openFgaApp } = await import(`../../web/server.js?openfga-missing-q=${Date.now()}`);
+    const res = await request(openFgaApp).get('/api/questionnaires/does-not-exist').set(AUTH_HEADERS);
+
+    expect(res.status).toBe(404);
+    expect(fetchMock).toHaveBeenCalledTimes(0);
+  });
+
+  it('returns 404 before OpenFGA check for unknown questionnaires in responses/session routes', async () => {
+    configureOpenFga();
+    const fetchMock = jest.fn(async () => {
+      return new Response(JSON.stringify({ allowed: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const { app: openFgaApp } = await import(`../../web/server.js?openfga-missing-response-q=${Date.now()}`);
+    const listRes = await request(openFgaApp)
+      .get('/api/responses?questionnaireId=does-not-exist')
+      .set(AUTH_HEADERS);
+    expect(listRes.status).toBe(404);
+
+    const startSessionRes = await request(openFgaApp)
+      .post('/api/sessions')
+      .send({ questionnaireId: 'does-not-exist' })
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
+    expect(startSessionRes.status).toBe(404);
+
+    expect(fetchMock).toHaveBeenCalledTimes(0);
+  });
+
+  it('returns 404 before OpenFGA check for unknown responses', async () => {
+    configureOpenFga();
+    const fetchMock = jest.fn(async () => {
+      return new Response(JSON.stringify({ allowed: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const { app: openFgaApp } = await import(`../../web/server.js?openfga-missing-response=${Date.now()}`);
+    const res = await request(openFgaApp).get('/api/responses/does-not-exist').set(AUTH_HEADERS);
+
+    expect(res.status).toBe(404);
+    expect(fetchMock).toHaveBeenCalledTimes(0);
+  });
+
+  it('checks view_questionnaire, create_response, and view_response permissions on protected routes', async () => {
+    configureOpenFga();
+    const fetchMock = jest.fn(async () => {
+      return new Response(JSON.stringify({ allowed: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const { app: openFgaApp } = await import(`../../web/server.js?openfga-flow=${Date.now()}`);
+    const questionnaire = makeQuestionnaire();
+
+    const createRes = await request(openFgaApp)
+      .post('/api/questionnaires')
+      .send(questionnaire)
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
+    expect(createRes.status).toBe(201);
+
+    const viewQuestionnaireRes = await request(openFgaApp)
+      .get(`/api/questionnaires/${questionnaire.id as string}`)
+      .set(AUTH_HEADERS);
+    expect(viewQuestionnaireRes.status).toBe(200);
+
+    const createResponseRes = await request(openFgaApp)
+      .post('/api/sessions')
+      .send({ questionnaireId: questionnaire.id })
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
+    expect(createResponseRes.status).toBe(201);
+    const { sessionId } = createResponseRes.body as { sessionId: string };
+
+    const viewResponseRes = await request(openFgaApp)
+      .get(`/api/responses/${sessionId}`)
+      .set(AUTH_HEADERS);
+    expect(viewResponseRes.status).toBe(200);
+
+    const relations = fetchMock.mock.calls.map(parseRelation);
+    expect(relations).toContain('view_questionnaire');
+    expect(relations).toContain('create_response');
+    expect(relations).toContain('view_response');
+    const objects = fetchMock.mock.calls.map(parseObject);
+    expect(objects).toContain(`questionnaire:${String(questionnaire.id)}`);
+    expect(objects.some(object => typeof object === 'string' && object.startsWith('response:'))).toBe(true);
   });
 });
 
