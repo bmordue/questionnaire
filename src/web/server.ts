@@ -98,13 +98,19 @@ function validatedLogoutRedirect(rawUrl: string | undefined): string | null {
   if (!value) return null;
 
   if (value.startsWith('/')) {
+    const pathOnly = value.split(/[?#]/, 1)[0] ?? '';
+
+    // Decode percent-encoded segments (e.g. %2e%2e -> ..) before validation
+    let decodedPath: string;
     try {
-      const pathOnly = value.split(/[?#]/, 1)[0] ?? '';
-      const decoded = decodeURIComponent(pathOnly);
-      if (decoded.split('/').includes('..')) return null;
+      decodedPath = decodeURIComponent(pathOnly);
     } catch {
       return null;
     }
+
+    if (decodedPath.split('/').includes('..')) return null;
+    if (decodedPath.startsWith('//')) return null;
+
     return value.startsWith('//') ? null : value;
   }
 
@@ -838,7 +844,7 @@ router.get('/api/auth/me', (_req, res) => {
 
 /**
  * Logout endpoint.
- * If `AUTH_LOGOUT_URL` is configured, redirect the user to that URL (external
+ * If  is configured, redirect the user to that URL (external
  * identity provider / proxy logout). Otherwise, redirect to the app root.
  */
 router.get('/logout', (_req, res) => {

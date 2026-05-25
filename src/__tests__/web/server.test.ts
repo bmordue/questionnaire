@@ -1184,9 +1184,27 @@ describe('GET /logout', () => {
     }
   });
 
-  it('falls back to app root for encoded traversal AUTH_LOGOUT_URL values', async () => {
+  it('falls back for encoded path traversal in AUTH_LOGOUT_URL', async () => {
     const original = process.env['AUTH_LOGOUT_URL'];
-    process.env['AUTH_LOGOUT_URL'] = '/%2e%2e/admin';
+    // /%2e%2e/ is /../
+    process.env['AUTH_LOGOUT_URL'] = '/%2e%2e/secret';
+    try {
+      const res = await request(app).get('/logout');
+      expect(res.status).toBe(302);
+      expect(res.headers['location']).toBe('/');
+    } finally {
+      if (original === undefined) {
+        delete process.env['AUTH_LOGOUT_URL'];
+      } else {
+        process.env['AUTH_LOGOUT_URL'] = original;
+      }
+    }
+  });
+
+  it('falls back for encoded protocol-relative paths in AUTH_LOGOUT_URL', async () => {
+    const original = process.env['AUTH_LOGOUT_URL'];
+    // /%2f/evil.com is //evil.com
+    process.env['AUTH_LOGOUT_URL'] = '/%2f/evil.com';
     try {
       const res = await request(app).get('/logout');
       expect(res.status).toBe(302);
