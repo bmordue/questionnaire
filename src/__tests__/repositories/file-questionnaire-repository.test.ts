@@ -16,8 +16,6 @@ const config: StorageConfig = {
   dataDirectory: TEST_DIR,
   backupEnabled: false,
   maxBackups: 3,
-  compressionEnabled: false,
-  encryptionEnabled: false,
   deleteBackupsOnCompletion: false,
 };
 

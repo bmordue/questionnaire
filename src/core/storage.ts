@@ -25,8 +25,6 @@ const DEFAULT_CONFIG: StorageConfig = {
   dataDirectory: './data',
   backupEnabled: true,
   maxBackups: 5,
-  compressionEnabled: false,
-  encryptionEnabled: false,
   deleteBackupsOnCompletion: true
 };
 

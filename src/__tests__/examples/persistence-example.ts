@@ -25,8 +25,6 @@ async function main() {
     dataDirectory: './data',
     backupEnabled: true,
     maxBackups: 5,
-    compressionEnabled: false,
-    encryptionEnabled: false
   });
 
   // Create a sample questionnaire

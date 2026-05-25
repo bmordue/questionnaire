@@ -31,8 +31,6 @@ describe('ResponseAnalytics', () => {
       dataDirectory: TEST_DATA_DIR,
       backupEnabled: false,
       maxBackups: 3,
-      compressionEnabled: false,
-      encryptionEnabled: false
     });
 
     analytics = new ResponseAnalytics(storage);
