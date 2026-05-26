@@ -13,7 +13,7 @@ import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import { FileStorageService } from '../core/storage.js';
+import { FileStorageService } from '../core/storage/index.js';
 import { BackendStorageService } from '../core/storage/backend-storage-service.js';
 import { S3StorageBackend, RetryableStorageBackend } from '../core/storage/backend.js';
 import type { S3BackendConfig } from '../core/storage/backend.js';

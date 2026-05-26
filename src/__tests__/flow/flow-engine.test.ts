@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { QuestionnaireFlowEngine, FlowError, FlowErrorCode } from '../../core/flow/flow-engine.js';
-import { createStorageService } from '../../core/storage.js';
+import { createStorageService } from '../../core/storage/index.js';
 import { TestDataFactory } from '../helpers/test-data-factory.js';
 import type { StorageService } from '../../core/storage/types.js';
 

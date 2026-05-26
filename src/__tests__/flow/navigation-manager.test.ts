@@ -8,7 +8,7 @@ import path from 'path';
 import { QuestionnaireFlowEngine } from '../../core/flow/flow-engine.js';
 import { NavigationManager } from '../../core/flow/navigation-manager.js';
 import { PersistenceManager } from '../../core/persistence/persistence-manager.js';
-import { createStorageService } from '../../core/storage.js';
+import { createStorageService } from '../../core/storage/index.js';
 import { TestDataFactory } from '../helpers/test-data-factory.js';
 import type { StorageService } from '../../core/storage/types.js';
 

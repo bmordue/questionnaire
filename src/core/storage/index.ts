@@ -7,7 +7,7 @@
 export {
   FileStorageService,
   createStorageService
-} from '../storage.js';
+} from './file-storage-service.js';
 
 export {
   LocalStorageBackend,

@@ -10,13 +10,13 @@ import type {
   StorageConfig,
   SessionData,
   QuestionnaireMetadataListing
-} from './storage/types.js';
-import type { Questionnaire, QuestionnaireResponse } from './schema.js';
-import { createResponse } from './schemas/response.js';
-import { QuestionnaireStore } from './storage/questionnaire-store.js';
-import { ResponseStore } from './storage/response-store.js';
-import { SessionStore } from './storage/session-store.js';
-import { FileOperations } from './storage/file-operations.js';
+} from './types.js';
+import type { Questionnaire, QuestionnaireResponse } from '../schema.js';
+import { createResponse } from '../schemas/response.js';
+import { QuestionnaireStore } from './questionnaire-store.js';
+import { ResponseStore } from './response-store.js';
+import { SessionStore } from './session-store.js';
+import { FileOperations } from './file-operations.js';
 
 /**
  * Default storage configuration

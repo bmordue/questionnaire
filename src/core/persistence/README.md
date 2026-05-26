@@ -31,7 +31,7 @@ src/core/
 ### Basic Session Flow
 
 ```typescript
-import { createStorageService } from './core/storage.js';
+import { createStorageService } from './core/storage/index.js';
 import { PersistenceManager } from './core/persistence/persistence-manager.js';
 
 // Create storage and persistence manager

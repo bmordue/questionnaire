@@ -1,5 +1,5 @@
 import type { StorageService, StorageConfig } from '../storage/types.js';
-import { createStorageService } from '../storage.js';
+import { createStorageService } from './file-storage-service.js';
 
 /**
  * Create a storage backend based on environment variables.

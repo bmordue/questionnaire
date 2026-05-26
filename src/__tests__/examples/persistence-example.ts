@@ -11,7 +11,7 @@
  * - Export functionality
  */
 
-import { createStorageService } from '../../core/storage.js';
+import { createStorageService } from '../../core/storage/index.js';
 import { PersistenceManager } from '../../core/persistence/persistence-manager.js';
 import { ResponseAnalytics } from '../../core/analytics/response-analytics.js';
 import type { Questionnaire } from '../../core/schema.js';

@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { createStorageService } from '../../core/storage.js';
+import { createStorageService } from '../../core/storage/index.js';
 import { TestDataFactory } from '../helpers/test-data-factory.js';
 import { BackupService } from '../../core/backup/backup-service.js';
 import { verifyBackup } from '../../core/backup/backup-verification.js';
