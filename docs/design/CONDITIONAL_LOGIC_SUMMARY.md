@@ -231,19 +231,19 @@ registry.register('myFunction', {
 
 ```bash
 # Run all tests
-npm test
+ppnpm test
 
 # Run specific test suites
-npm test -- src/__tests__/flow/conditional-logic.test.ts
-npm test -- src/__tests__/flow/conditional-functions.test.ts
-npm test -- src/__tests__/flow/dependency-graph.test.ts
+ppnpm test -- src/__tests__/flow/conditional-logic.test.ts
+ppnpm test -- src/__tests__/flow/conditional-functions.test.ts
+ppnpm test -- src/__tests__/flow/dependency-graph.test.ts
 ```
 
 ### Example Demonstration
 
 ```bash
 # Run the comprehensive example
-npm run conditional-logic-example
+ppnpm run conditional-logic-example
 ```
 
 This demonstrates:

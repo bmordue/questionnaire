@@ -175,7 +175,7 @@ Fixtures demonstrate these conditional operators:
 To validate all fixtures:
 
 ```bash
-npm test
+ppnpm test
 ```
 
 This will:
@@ -192,7 +192,7 @@ To add a new fixture:
 1. Create a JSON file in the appropriate directory
 2. Follow the schema structure (see examples)
 3. Ensure unique questionnaire ID
-4. Run tests to validate: `npm test`
+4. Run tests to validate: `ppnpm test`
 5. Document the fixture's purpose and features
 
 ## Schema Validation

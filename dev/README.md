@@ -45,8 +45,8 @@ nix develop
 
 ```bash
 # 1. Build and start the questionnaire web server (port 3000)
-npm run build
-npm run web &
+ppnpm run build
+ppnpm run web &
 
 # 2. Start Dex + oauth2-proxy + nginx
 ./dev/scripts/start-auth.sh
@@ -77,14 +77,14 @@ Use these options for local development when you want to run the app directly on
 - Inject a stub user (useful for local UI/debugging):
 
 ```bash
-DEV_STUB_USER="admin@example.com:Admin User:admins" npm run web
+DEV_STUB_USER="admin@example.com:Admin User:admins" ppnpm run web
 # then open http://localhost:3000 directly
 ```
 
 - Make everyone an admin (quick admin testing):
 
 ```bash
-ADMIN_GROUP="" npm run web
+ADMIN_GROUP="" ppnpm run web
 ```
 
 See the "Admin Group Testing" notes below for more context about test users and groups.
@@ -119,14 +119,14 @@ users as ordinary (non-admin) authenticated users.
    as an admin if the admin group is set to an empty string.
 
    ```bash
-   ADMIN_GROUP="" npm run web
+   ADMIN_GROUP="" ppnpm run web
    ```
 
 2. **Use `DEV_STUB_USER`**: Bypass the full auth stack and inject a fake
    identity with specific groups directly.
 
    ```bash
-   DEV_STUB_USER="admin@example.com:Admin User:admins" npm run web
+   DEV_STUB_USER="admin@example.com:Admin User:admins" ppnpm run web
    # Then access the service directly on port 3000, not through nginx
    ```
 

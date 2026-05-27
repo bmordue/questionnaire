@@ -32,6 +32,7 @@ import { FileUserRepository } from '../core/repositories/file-user-repository.js
 import { ReviewService } from '../core/services/review-service.js';
 import { GUEST_USER, loadUser, requireAuth } from './middleware/auth.js';
 import { requireQuestionnairePermission, requireSessionOwner } from './middleware/acl.js';
+import { validateId } from './middleware/validation.js';
 import { errorHandler } from './middleware/error-handler.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -392,22 +393,17 @@ router.get('/api/questionnaires', requireAuth, async (_req, res, next) => {
       res.json(enriched);
       return;
     }
-    const visible = (
-      await Promise.all(
-        list.map(async meta => {
-          try {
-            const questionnaire = await storage.loadQuestionnaire(meta.id);
-            const effectivePermission = resolvePermission(questionnaire, user.id, user.groups);
-            return effectivePermission !== null ? { ...meta, effectivePermission } : null;
-          } catch (err) {
-            if (!isNotFoundError(err)) {
-              console.error(`[questionnaires] Failed to load questionnaire ${meta.id} for permission check:`, err);
-            }
-            return null;
-          }
-        })
-      )
-    ).filter((meta): meta is NonNullable<typeof meta> => meta !== null);
+    const visible = list
+      .map(meta => {
+        // We use the ownerId and permissions from the metadata to avoid loading the full questionnaire
+        const effectivePermission = resolvePermission(
+          meta,
+          user.id,
+          user.groups,
+        );
+        return effectivePermission !== null ? { ...meta, effectivePermission } : null;
+      })
+      .filter((meta): meta is NonNullable<typeof meta> => meta !== null);
     res.json(visible);
   } catch (err) {
     next(err);
@@ -436,6 +432,7 @@ router.post('/api/questionnaires', requireAuth, async (req, res, next) => {
 /** Get a single questionnaire — requires at least 'respond' access */
 router.get(
   '/api/questionnaires/:id',
+  validateId({ params: ['id'] }),
   requireQuestionnairePermission(storage, 'respond'),
   async (req, res, next) => {
     const questionnaire = res.locals['questionnaire'] as Questionnaire;
@@ -452,6 +449,7 @@ router.get(
 /** Update a questionnaire — requires 'manage' */
 router.put(
   '/api/questionnaires/:id',
+  validateId({ params: ['id'] }),
   requireQuestionnairePermission(storage, 'manage'),
   async (req, res, next) => {
     try {
@@ -486,6 +484,7 @@ router.put(
 /** Delete a questionnaire — requires 'manage' */
 router.delete(
   '/api/questionnaires/:id',
+  validateId({ params: ['id'] }),
   requireQuestionnairePermission(storage, 'manage'),
   async (req, res, next) => {
     try {
@@ -503,6 +502,7 @@ router.delete(
 /** List permissions on a questionnaire — requires 'manage' */
 router.get(
   '/api/questionnaires/:id/permissions',
+  validateId({ params: ['id'] }),
   requireQuestionnairePermission(storage, 'manage'),
   (_req, res) => {
     const q = res.locals['questionnaire'] as Questionnaire;
@@ -515,6 +515,7 @@ const GrantPermissionBodySchema = z.object({ level: PermissionLevelSchema });
 /** Grant or update a user's permission on a questionnaire */
 router.put(
   '/api/questionnaires/:id/permissions/:userId',
+  validateId({ params: ['id', 'userId'] }),
   requireQuestionnairePermission(storage, 'manage'),
   async (req, res, next) => {
     try {
@@ -548,6 +549,7 @@ router.put(
 /** Revoke a user's permission on a questionnaire */
 router.delete(
   '/api/questionnaires/:id/permissions/:userId',
+  validateId({ params: ['id', 'userId'] }),
   requireQuestionnairePermission(storage, 'manage'),
   async (req, res, next) => {
     try {
@@ -568,7 +570,7 @@ router.delete(
 // ── Response Routes ───────────────────────────────────────────────────────────
 
 /** List responses for a questionnaire — respond-only users see their own; view_responses/manage see all */
-router.get('/api/responses', requireAuth, async (req, res, next) => {
+router.get('/api/responses', requireAuth, validateId({ query: ['questionnaireId'] }), async (req, res, next) => {
   try {
     const questionnaireId =
       typeof req.query['questionnaireId'] === 'string'
@@ -606,7 +608,7 @@ router.get('/api/responses', requireAuth, async (req, res, next) => {
 });
 
 /** Get a single response — requires 'view_responses' on the parent questionnaire */
-router.get('/api/responses/:id', requireAuth, async (req, res, next) => {
+router.get('/api/responses/:id', requireAuth, validateId({ params: ['id'] }), async (req, res, next) => {
   try {
     const responseIdParam = req.params['id'];
     const responseId = Array.isArray(responseIdParam) ? (responseIdParam[0] ?? '') : (responseIdParam ?? '');
@@ -641,7 +643,7 @@ router.get('/api/responses/:id', requireAuth, async (req, res, next) => {
 // ── Session Routes ────────────────────────────────────────────────────────────
 
 /** Start a new session — requires 'respond' access on the questionnaire */
-router.post('/api/sessions', requireAuth, async (req, res, next) => {
+router.post('/api/sessions', requireAuth, validateId({ body: ['questionnaireId'] }), async (req, res, next) => {
   try {
     const body = req.body as { questionnaireId?: string };
     if (!body.questionnaireId) {
@@ -678,7 +680,7 @@ router.post('/api/sessions', requireAuth, async (req, res, next) => {
 });
 
 /** Get current session state including the current question */
-router.get('/api/sessions/:sessionId', requireSessionOwner(storage), async (_req, res, next) => {
+router.get('/api/sessions/:sessionId', validateId({ params: ['sessionId'] }), requireSessionOwner(storage), async (_req, res, next) => {
   try {
     const session = res.locals['session'];
     const questionnaire = await storage.loadQuestionnaire(session.questionnaireId);
@@ -706,7 +708,7 @@ router.get('/api/sessions/:sessionId', requireSessionOwner(storage), async (_req
 });
 
 /** Submit an answer and advance to the next question */
-router.post('/api/sessions/:sessionId/answer', requireSessionOwner(storage), async (req, res, next) => {
+router.post('/api/sessions/:sessionId/answer', validateId({ params: ['sessionId'] }), requireSessionOwner(storage), async (req, res, next) => {
   try {
     const session = res.locals['session'];
     const sessionId: string = session.sessionId;
@@ -804,7 +806,7 @@ router.post('/api/sessions/:sessionId/answer', requireSessionOwner(storage), asy
 });
 
 /** Mark a session as complete */
-router.post('/api/sessions/:sessionId/complete', requireSessionOwner(storage), async (_req, res, next) => {
+router.post('/api/sessions/:sessionId/complete', validateId({ params: ['sessionId'] }), requireSessionOwner(storage), async (_req, res, next) => {
   try {
     const session = res.locals['session'];
     const sessionId: string = session.sessionId;
@@ -875,6 +877,7 @@ const reviewService = new ReviewService(storage);
 /** Get completion stats for a questionnaire */
 router.get(
   '/api/questionnaires/:id/stats',
+  validateId({ params: ['id'] }),
   requireQuestionnairePermission(storage, 'view_responses'),
   async (req, res, next) => {
     try {
@@ -889,6 +892,7 @@ router.get(
 /** Get full analytics summary for a questionnaire */
 router.get(
   '/api/questionnaires/:id/summary',
+  validateId({ params: ['id'] }),
   requireQuestionnairePermission(storage, 'view_responses'),
   async (req, res, next) => {
     try {
@@ -903,6 +907,7 @@ router.get(
 /** Export responses for a questionnaire */
 router.get(
   '/api/questionnaires/:id/export',
+  validateId({ params: ['id'] }),
   requireQuestionnairePermission(storage, 'view_responses'),
   async (req, res, next) => {
     try {

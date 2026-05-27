@@ -3,7 +3,7 @@
  * Standalone CLI utility for converting questionnaire responses to markdown
  * 
  * Usage:
- *   npm run markdown-convert -- <response.json> <questionnaire.json> [output.md]
+ *   ppnpm run markdown-convert -- <response.json> <questionnaire.json> [output.md]
  *   node dist/markdown-convert.js <response.json> <questionnaire.json> [output.md]
  */
 
@@ -23,7 +23,7 @@ function parseArgs(): { responseFile: string; questionnaireFile: string; outputF
     console.error('Error: Missing required arguments');
     console.error('');
     console.error('Usage:');
-    console.error('  npm run markdown-convert -- <response.json> <questionnaire.json> [output.md]');
+    console.error('  ppnpm run markdown-convert -- <response.json> <questionnaire.json> [output.md]');
     console.error('  node dist/markdown-convert.js <response.json> <questionnaire.json> [output.md]');
     console.error('');
     console.error('Arguments:');
@@ -33,8 +33,8 @@ function parseArgs(): { responseFile: string; questionnaireFile: string; outputF
     console.error('                       If not provided, output is written to stdout');
     console.error('');
     console.error('Examples:');
-    console.error('  npm run markdown-convert -- response.json questionnaire.json');
-    console.error('  npm run markdown-convert -- response.json questionnaire.json output.md');
+    console.error('  ppnpm run markdown-convert -- response.json questionnaire.json');
+    console.error('  ppnpm run markdown-convert -- response.json questionnaire.json output.md');
     process.exit(1);
   }
 

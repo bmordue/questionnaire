@@ -289,7 +289,7 @@ See `src/persistence-example.ts` for a complete working example demonstrating:
 
 Run with:
 ```bash
-npm run persistence-example
+ppnpm run persistence-example
 ```
 
 ## Testing
@@ -303,7 +303,7 @@ Total: 39 tests covering all major functionality.
 
 Run tests with:
 ```bash
-npm test
+ppnpm test
 ```
 
 ## Integration

@@ -22,8 +22,8 @@ Connect the individually-implemented subsystems — `QuestionnaireFlowEngine`, `
 - Runner orchestration exists (`src/runner.ts`) and drives a full question loop
 - CLI entry point exists (`src/app.ts`) using `node:util.parseArgs`
 - `start` and `start:dev` scripts exist in `package.json`
-- Fixtures validate (`npm run validate`)
-- Build and tests pass (`npm run build`, `npm test`)
+- Fixtures validate (`ppnpm run validate`)
+- Build and tests pass (`ppnpm run build`, `ppnpm test`)
 
 **Still missing / not yet verified:**
 
@@ -167,11 +167,11 @@ const { values } = parseArgs({
 
 Invocation (PowerShell / bash):
 ```bash
-npm start -- --questionnaire fixtures/basic/simple-text-survey.json
-npm start -- -q fixtures/advanced/customer-feedback.json --resume <sessionId>
+ppnpm start -- --questionnaire fixtures/basic/simple-text-survey.json
+ppnpm start -- -q fixtures/advanced/customer-feedback.json --resume <sessionId>
 ```
 
-> **Note (Windows CMD)**: The `--` separator works correctly with npm in PowerShell and bash.
+> **Note (Windows CMD)**: The `--` separator works correctly with pnpm in PowerShell and bash.
 > On Windows CMD, prefer `node dist/app.js --questionnaire <path>` directly after building.
 
 ### 6. UX Decisions
@@ -213,7 +213,7 @@ src/__tests__/
 
 - [x] Load each file in `fixtures/basic/`, `fixtures/advanced/`, and `fixtures/edge-cases/` through `safeValidateQuestionnaire()`
 - [x] Check whether the `config` field is optional in `QuestionnaireSchema`
-- [x] Record any other divergences (none found; `npm run validate` reports all fixtures valid)
+- [x] Record any other divergences (none found; `ppnpm run validate` reports all fixtures valid)
 
 > This task runs in parallel with Task 1.2 — it is not a prerequisite gate.
 
@@ -257,7 +257,7 @@ src/__tests__/
 
 ### Task 1.5: Add Scripts to `package.json` (15 minutes)
 
-- [x] Add `"start": "npm run build && node dist/app.js"` — rebuilds then runs
+- [x] Add `"start": "ppnpm run build && node dist/app.js"` — rebuilds then runs
 - [x] Add `"start:dev": "node dist/app.js"` — runs last build directly
 - [x] Update the scripts README comment to show both invocation patterns
 
@@ -315,21 +315,21 @@ src/__tests__/
 
 ```bash
 # PowerShell / bash
-npm run build
-npm start -- --questionnaire fixtures/basic/simple-text-survey.json
+ppnpm run build
+ppnpm start -- --questionnaire fixtures/basic/simple-text-survey.json
 
 # Windows CMD (after build)
 node dist/app.js --questionnaire fixtures/basic/simple-text-survey.json
 
 # Resume
-npm start -- -q fixtures/basic/simple-text-survey.json --resume <sessionId printed on Ctrl+C>
+ppnpm start -- -q fixtures/basic/simple-text-survey.json --resume <sessionId printed on Ctrl+C>
 ```
 
 Expected: interactive prompts, progress display, completion summary, response file in `./data/responses/`.
 
 ## Acceptance Criteria
 
-- [ ] `npm start -- --questionnaire fixtures/basic/simple-text-survey.json` completes without error (manual interactive verification pending)
+- [ ] `ppnpm start -- --questionnaire fixtures/basic/simple-text-survey.json` completes without error (manual interactive verification pending)
 - [x] All 8 question types have component-level prompt coverage via unit tests (interactive manual verification pending)
 - [x] Progress header is displayed before each question (covered by runner test output)
 - [x] Response file is written under `./data/responses/` on completion (covered by runner integration test)
@@ -340,8 +340,8 @@ Expected: interactive prompts, progress display, completion summary, response fi
 - [ ] SIGTERM saves state identically to `Ctrl+C` (not covered by tests yet)
 - [ ] Running against a non-TTY stdin produces a clear error and exits `1` (not covered by tests yet)
 - [x] Invalid file path, invalid JSON, or schema validation failure produce clear errors (covered by runner tests)
-- [x] TypeScript build (`npm run build`) completes with no errors
-- [x] All tests pass (`npm test`)
+- [x] TypeScript build (`ppnpm run build`) completes with no errors
+- [x] All tests pass (`ppnpm test`)
 
 ## Dependencies
 

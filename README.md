@@ -14,7 +14,7 @@ A TypeScript-based Terminal User Interface (TUI) application for running interac
 **Running locally without the auth stack:**
 ```bash
 export DEV_STUB_USER="dev@example.com:Developer:admins"
-npm run dev
+ppnpm run dev
 ```
 
 See [docs/auth.md](docs/auth.md) for the full deployment topology, nginx configuration snippet, Authelia access-control rules, OIDC notes, and the production checklist.
@@ -56,7 +56,7 @@ direnv allow
 The `dev/` directory provides a complete authentication stack for local end-to-end testing:
 
 ```bash
-npm run build && npm run web &       # start the questionnaire service on port 3000
+ppnpm run build && ppnpm run web &       # start the questionnaire service on port 3000
 ./dev/scripts/start-auth.sh          # start Dex + oauth2-proxy + nginx on port 8080
 # Open http://localhost:8080 and log in with admin@example.com / password
 ./dev/scripts/stop-auth.sh           # stop when done
@@ -67,31 +67,31 @@ See [dev/README.md](dev/README.md) for the full topology and configuration detai
 ### Installation
 
 ```bash
-npm install
+ppnpm install
 ```
 
 ### Build
 
 ```bash
-npm run build
+ppnpm run build
 ```
 
 ### Run a Questionnaire
 
 ```bash
-npm start -- --questionnaire fixtures/basic/simple-text-survey.json
+ppnpm start -- --questionnaire fixtures/basic/simple-text-survey.json
 ```
 
 Resume a saved session:
 
 ```bash
-npm start -- --questionnaire fixtures/basic/simple-text-survey.json --resume <sessionId>
+ppnpm start -- --questionnaire fixtures/basic/simple-text-survey.json --resume <sessionId>
 ```
 
 For iterative runs without rebuilding:
 
 ```bash
-npm run start:dev -- --questionnaire fixtures/basic/simple-text-survey.json
+ppnpm run start:dev -- --questionnaire fixtures/basic/simple-text-survey.json
 ```
 
 Options:
@@ -106,13 +106,13 @@ Options:
 ### Run Tests
 
 ```bash
-npm test
+ppnpm test
 ```
 
 ### Validate Fixtures
 
 ```bash
-npm run validate
+ppnpm run validate
 ```
 
 This validates all 14 sample questionnaires against the schema, generates a coverage report, and tests questionnaire flows.
@@ -120,16 +120,16 @@ This validates all 14 sample questionnaires against the schema, generates a cove
 ### Convert Response to Markdown
 
 ```bash
-npm run markdown-convert -- <response.json> <questionnaire.json> [output.md]
+ppnpm run markdown-convert -- <response.json> <questionnaire.json> [output.md]
 ```
 
 Examples:
 ```bash
 # Output to stdout
-npm run markdown-convert -- examples/sample-response.json fixtures/basic/simple-text-survey.json
+ppnpm run markdown-convert -- examples/sample-response.json fixtures/basic/simple-text-survey.json
 
 # Output to file
-npm run markdown-convert -- examples/sample-response.json fixtures/basic/simple-text-survey.json output.md
+ppnpm run markdown-convert -- examples/sample-response.json fixtures/basic/simple-text-survey.json output.md
 ```
 
 The markdown format is structured for LLM consumption with formatted answers and complete metadata. See [examples/README.md](examples/README.md) for details.

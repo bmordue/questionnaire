@@ -200,14 +200,14 @@ See `src/flow-example.ts` for a complete working example.
 
 Run it with:
 ```bash
-npm run flow-example
+ppnpm run flow-example
 ```
 
 ## Testing
 
 Run the comprehensive test suite:
 ```bash
-npm test
+ppnpm test
 ```
 
 Test coverage:

@@ -57,19 +57,19 @@ For details of the questionnaire structure and all supported question types, see
 
 ```bash
 # Run core requirements questionnaire
-npm start -- --questionnaire fixtures/requirements/project-requirements-core.json
+ppnpm start -- --questionnaire fixtures/requirements/project-requirements-core.json
 
 # Run with custom data directory for stakeholder sessions
-npm start -- --questionnaire fixtures/requirements/project-requirements-core.json --data ./sessions/stakeholder-a
+ppnpm start -- --questionnaire fixtures/requirements/project-requirements-core.json --data ./sessions/stakeholder-a
 
 # Resume an interrupted session
-npm start -- --questionnaire fixtures/requirements/project-requirements-core.json --resume <sessionId>
+ppnpm start -- --questionnaire fixtures/requirements/project-requirements-core.json --resume <sessionId>
 ```
 
 ### Exporting to Markdown
 
 ```bash
-npm run markdown-convert -- \
+ppnpm run markdown-convert -- \
   data/responses/response-*.json \
   fixtures/requirements/project-requirements-core.json \
   requirements.md
@@ -79,12 +79,12 @@ npm run markdown-convert -- \
 
 ```bash
 # Collect from multiple stakeholders
-npm start -- -q fixtures/requirements/project-requirements-core.json -d ./sessions/tech-lead
-npm start -- -q fixtures/requirements/project-requirements-core.json -d ./sessions/product-owner
-npm start -- -q fixtures/requirements/project-requirements-core.json -d ./sessions/business-stakeholder
+ppnpm start -- -q fixtures/requirements/project-requirements-core.json -d ./sessions/tech-lead
+ppnpm start -- -q fixtures/requirements/project-requirements-core.json -d ./sessions/product-owner
+ppnpm start -- -q fixtures/requirements/project-requirements-core.json -d ./sessions/business-stakeholder
 
 # Consolidate all responses
-npm run markdown-convert -- \
+ppnpm run markdown-convert -- \
   ./sessions/*/responses/*.json \
   fixtures/requirements/project-requirements-core.json \
   consolidated-requirements.md
@@ -127,7 +127,7 @@ See `src/core/schemas/questionnaire.ts` and `src/core/schemas/question.ts` for s
 Validate all questionnaires against the schema:
 
 ```bash
-npm run validate
+ppnpm run validate
 ```
 
 ---

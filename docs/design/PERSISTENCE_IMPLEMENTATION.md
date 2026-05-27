@@ -128,7 +128,7 @@ Successfully completed the comprehensive persistence feature for the questionnai
 - Analytics generation
 - Export functionality
 
-**Run with:** `npm run persistence-example`
+**Run with:** `ppnpm run persistence-example`
 
 ## Key Features
 

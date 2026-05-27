@@ -175,7 +175,7 @@ This is what `dev/nginx/nginx.conf` does. After the session cookie is cleared, t
 Start the questionnaire service with:
 
 ```bash
-AUTH_LOGOUT_URL=/oauth2/sign_out npm run web
+AUTH_LOGOUT_URL=/oauth2/sign_out ppnpm run web
 ```
 
 The application's `/logout` handler will then redirect the browser to oauth2-proxy's sign-out endpoint, which clears the session cookie and sends the user back to the login form.
@@ -254,7 +254,7 @@ Set the `DEV_STUB_USER` environment variable to inject a fake identity:
 ```bash
 # Format: "email:Display Name:group1,group2"
 export DEV_STUB_USER="dev@example.com:Developer:admins"
-npm run dev
+ppnpm run dev
 ```
 
 The stub identity is used when `Remote-User` / `Remote-Email` headers are absent.
@@ -286,7 +286,7 @@ Enter the Nix devshell to get all required tools, then start the stack:
 ```bash
 nix develop          # or: direnv allow  (requires nix-direnv)
 
-npm run build && npm run web &       # start the questionnaire service on port 3000
+ppnpm run build && ppnpm run web &       # start the questionnaire service on port 3000
 ./dev/scripts/start-auth.sh          # start Dex + oauth2-proxy + nginx
 
 # Visit http://localhost:8080 and log in with:

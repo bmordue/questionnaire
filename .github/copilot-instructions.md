@@ -46,15 +46,15 @@
 ### Prerequisites
 
 - **Node.js**: v20.19.5 (or compatible)
-- **npm**: 10.8.2 (or compatible)
+- **pnpm**: 9.0.0 (or compatible)
 - **TypeScript**: 5.9.2 (installed as dev dependency)
 
 ### Installation
 
-**ALWAYS run npm install before building** if node_modules doesn't exist:
+**ALWAYS run ppnpm install before building** if node_modules doesn't exist:
 
 ```bash
-npm install
+ppnpm install
 ```
 
 This installs:
@@ -69,7 +69,7 @@ Installation completes in ~1 second with no vulnerabilities.
 **To build the project:**
 
 ```bash
-npm run build
+ppnpm run build
 ```
 
 This runs `tsc` which:
@@ -81,7 +81,7 @@ This runs `tsc` which:
 **To clean and rebuild:**
 
 ```bash
-rm -rf dist && npm run build
+rm -rf dist && ppnpm run build
 ```
 
 The dist/ directory is in .gitignore and should never be committed.
@@ -91,10 +91,10 @@ The dist/ directory is in .gitignore and should never be committed.
 **To build and run the example:**
 
 ```bash
-npm run example
+ppnpm run example
 ```
 
-This runs `npm run build && node dist/example.js` which:
+This runs `ppnpm run build && node dist/example.js` which:
 - Rebuilds the project
 - Executes the example demonstrating schema validation
 - Takes approximately 1.5-2 seconds total
@@ -108,15 +108,13 @@ Expected output includes:
 
 ### Testing
 
-**Current test status**: No test framework is configured yet.
+The repository uses Jest (with ts-jest in ESM mode) for automated tests.
 
 ```bash
-npm test
+ppnpm test
 ```
 
-This currently outputs: "Error: no test specified" and exits with code 1.
-
-**Do not add test infrastructure** unless specifically required by a task. (Historical plan: `docs/completed/implementation-phase1-tests.md`).
+This runs `node --experimental-vm-modules node_modules/jest/bin/jest.js` and executes tests in `src/__tests__/`.
 
 ### Linting
 
@@ -126,9 +124,10 @@ This currently outputs: "Error: no test specified" and exits with code 1.
 
 ### CI/CD
 
-**No GitHub Actions workflows exist**. There is no `.github/workflows/` directory.
+GitHub Actions workflows are configured in `.github/workflows/`.
 
-There are no automated checks to replicate before committing.
+- `test.yml` runs install/build/tests for pushes and pull requests
+- `deploy.yml` handles deployment to Vercel on pushes to `main`
 
 ## Architecture and Key Components
 
@@ -213,8 +212,8 @@ Extensive documentation exists in the `docs/` directory:
 ### Making Code Changes
 
 1. **Edit TypeScript files** in `src/`
-2. **Build immediately** to catch TypeScript errors: `npm run build`
-3. **If changing schemas**, run the example to verify: `npm run example`
+2. **Build immediately** to catch TypeScript errors: `ppnpm run build`
+3. **If changing schemas**, run the example to verify: `ppnpm run example`
 4. **Review build output** in `dist/` to ensure changes compiled correctly
 
 ### Adding New Question Types
@@ -289,9 +288,9 @@ See `docs/implementation-dependencies.md` for detailed task breakdown.
 ## Trust These Instructions
 
 These instructions have been validated by:
-- Running `npm install` from clean state
-- Running `npm run build` multiple times (clean and incremental)
-- Running `npm run example` to verify functionality
+- Running `ppnpm install` from clean state
+- Running `ppnpm run build` multiple times (clean and incremental)
+- Running `ppnpm run example` to verify functionality
 - Testing code changes and rebuilds
 - Verifying all file paths and directory structures
 
