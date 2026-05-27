@@ -80,11 +80,13 @@ export class FileStorageService implements StorageService {
 
   async saveQuestionnaire(questionnaire: Questionnaire): Promise<void> {
     await this.ensureInitialized();
+    FileOperations.validateId(questionnaire.id);
     await this.questionnaireStore.save(questionnaire);
   }
 
   async loadQuestionnaire(id: string): Promise<Questionnaire> {
     await this.ensureInitialized();
+    FileOperations.validateId(id);
     return this.questionnaireStore.load(id);
   }
 
@@ -95,6 +97,7 @@ export class FileStorageService implements StorageService {
 
   async deleteQuestionnaire(id: string): Promise<void> {
     await this.ensureInitialized();
+    FileOperations.validateId(id);
     await this.questionnaireStore.delete(id);
   }
 
@@ -102,11 +105,13 @@ export class FileStorageService implements StorageService {
 
   async saveResponse(response: QuestionnaireResponse): Promise<void> {
     await this.ensureInitialized();
+    FileOperations.validateId(response.sessionId);
     await this.responseStore.save(response);
   }
 
   async loadResponse(sessionId: string): Promise<QuestionnaireResponse> {
     await this.ensureInitialized();
+    FileOperations.validateId(sessionId);
     return this.responseStore.load(sessionId);
   }
 
@@ -117,6 +122,7 @@ export class FileStorageService implements StorageService {
 
   async deleteResponse(sessionId: string): Promise<void> {
     await this.ensureInitialized();
+    FileOperations.validateId(sessionId);
     await this.responseStore.delete(sessionId);
   }
 
@@ -124,6 +130,7 @@ export class FileStorageService implements StorageService {
 
   async createSession(questionnaireId: string, userId?: string): Promise<string> {
     await this.ensureInitialized();
+    FileOperations.validateId(questionnaireId);
 
     // Verify questionnaire exists
     const questionnaire = await this.questionnaireStore.load(questionnaireId);
@@ -151,16 +158,19 @@ export class FileStorageService implements StorageService {
 
   async updateSession(sessionId: string, data: Partial<SessionData>): Promise<void> {
     await this.ensureInitialized();
+    FileOperations.validateId(sessionId);
     await this.sessionStore.update(sessionId, data);
   }
 
   async loadSession(sessionId: string): Promise<SessionData> {
     await this.ensureInitialized();
+    FileOperations.validateId(sessionId);
     return this.sessionStore.load(sessionId);
   }
 
   async deleteSession(sessionId: string): Promise<void> {
     await this.ensureInitialized();
+    FileOperations.validateId(sessionId);
     await this.sessionStore.delete(sessionId);
   }
 
@@ -189,6 +199,9 @@ export class FileStorageService implements StorageService {
     sessionId: string,
     questionnaireId: string
   ): Promise<{ deletedCount: number; errors: string[] }> {
+    FileOperations.validateId(sessionId);
+    FileOperations.validateId(questionnaireId);
+
     if (!this.config.deleteBackupsOnCompletion) {
       return { deletedCount: 0, errors: [] };
     }

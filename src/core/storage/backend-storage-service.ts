@@ -20,6 +20,7 @@ import type {
 import type { Questionnaire, QuestionnaireResponse } from '../schema.js';
 import { validateQuestionnaire } from '../schemas/questionnaire.js';
 import { validateResponse, createResponse } from '../schemas/response.js';
+import { FileOperations } from './file-operations.js';
 
 // Key layout within the backend:
 //   questionnaires/{id}.json
@@ -79,6 +80,7 @@ export class BackendStorageService implements StorageService {
 
   async saveQuestionnaire(questionnaire: Questionnaire): Promise<void> {
     const validated = validateQuestionnaire(questionnaire);
+    FileOperations.validateId(validated.id);
     await this.backend.write(
       questionnaireKey(validated.id),
       JSON.stringify(validated, null, 2)
@@ -86,6 +88,7 @@ export class BackendStorageService implements StorageService {
   }
 
   async loadQuestionnaire(id: string): Promise<Questionnaire> {
+    FileOperations.validateId(id);
     const data = await this.backend.read(questionnaireKey(id));
     return validateQuestionnaire(JSON.parse(data));
   }
@@ -124,6 +127,7 @@ export class BackendStorageService implements StorageService {
   }
 
   async deleteQuestionnaire(id: string): Promise<void> {
+    FileOperations.validateId(id);
     await this.backend.delete(questionnaireKey(id));
   }
 
@@ -131,6 +135,7 @@ export class BackendStorageService implements StorageService {
 
   async saveResponse(response: QuestionnaireResponse): Promise<void> {
     const validated = validateResponse(response);
+    FileOperations.validateId(validated.sessionId);
     await this.backend.write(
       responseKey(validated.sessionId),
       JSON.stringify(validated, null, 2)
@@ -138,6 +143,7 @@ export class BackendStorageService implements StorageService {
   }
 
   async loadResponse(sessionId: string): Promise<QuestionnaireResponse> {
+    FileOperations.validateId(sessionId);
     const data = await this.backend.read(responseKey(sessionId));
     return validateResponse(JSON.parse(data));
   }
@@ -165,12 +171,14 @@ export class BackendStorageService implements StorageService {
   }
 
   async deleteResponse(sessionId: string): Promise<void> {
+    FileOperations.validateId(sessionId);
     await this.backend.delete(responseKey(sessionId));
   }
 
   // ── Session operations ────────────────────────────────────────────────────
 
   async createSession(questionnaireId: string, userId?: string): Promise<string> {
+    FileOperations.validateId(questionnaireId);
     // Verify questionnaire exists (will throw if missing)
     const questionnaire = await this.loadQuestionnaire(questionnaireId);
 
@@ -204,6 +212,7 @@ export class BackendStorageService implements StorageService {
   }
 
   async updateSession(sessionId: string, data: Partial<SessionData>): Promise<void> {
+    FileOperations.validateId(sessionId);
     const existing = await this.loadSession(sessionId);
     const updated: SessionData = {
       ...existing,
@@ -215,11 +224,13 @@ export class BackendStorageService implements StorageService {
   }
 
   async loadSession(sessionId: string): Promise<SessionData> {
+    FileOperations.validateId(sessionId);
     const data = await this.backend.read(sessionKey(sessionId));
     return JSON.parse(data) as SessionData;
   }
 
   async deleteSession(sessionId: string): Promise<void> {
+    FileOperations.validateId(sessionId);
     await this.backend.delete(sessionKey(sessionId));
   }
 
@@ -249,9 +260,11 @@ export class BackendStorageService implements StorageService {
   }
 
   async cleanupBackups(
-    _sessionId: string,
-    _questionnaireId: string
+    sessionId: string,
+    questionnaireId: string
   ): Promise<{ deletedCount: number; errors: string[] }> {
+    FileOperations.validateId(sessionId);
+    FileOperations.validateId(questionnaireId);
     // Backup management is not supported for generic backends
     return { deletedCount: 0, errors: [] };
   }
