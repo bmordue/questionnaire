@@ -44,13 +44,18 @@ export type {
 export {
   QuestionnaireSchema,
   validateQuestionnaire,
-  safeValidateQuestionnaire
+  safeValidateQuestionnaire,
+  PermissionLevelSchema,
+  QuestionnairePermissionSchema
 } from './schemas/questionnaire.js';
 
 export type {
   Questionnaire,
   QuestionnaireMetadata,
-  QuestionnaireConfig
+  QuestionnaireConfig,
+  PermissionLevel,
+  QuestionnairePermission,
+  Permissible
 } from './schemas/questionnaire.js';
 
 // Export all response-related schemas and types
