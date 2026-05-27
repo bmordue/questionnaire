@@ -8,6 +8,7 @@ import type { StorageService } from '../storage/types.js';
 import type { QuestionnaireResponse, Answer } from '../schemas/response.js';
 import { ResponseStatus } from '../schemas/response.js';
 import type { Questionnaire } from '../schemas/questionnaire.js';
+import { JsonValueSchema } from '../schemas/json-value.js';
 
 export class ResponseNotFoundError extends Error {
   constructor(public readonly sessionId: string) {
@@ -138,9 +139,14 @@ export class ResponseService {
       );
     }
 
+    const parsedValue = JsonValueSchema.safeParse(value !== undefined ? value : null);
+    if (!parsedValue.success) {
+      throw new InvalidAnswerError('Answer value must be JSON-compatible');
+    }
+
     const answer: Answer = {
       questionId,
-      value: value !== undefined ? value : null,
+      value: parsedValue.data,
       answeredAt: new Date().toISOString(),
       skipped,
     };

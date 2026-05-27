@@ -96,6 +96,15 @@ describe('Question Schema Validation', () => {
         };
         ValidationTestHelpers.expectValidationError(TextQuestionSchema, invalidQuestion);
       });
+
+      it('should reject text question metadata with non-JSON values', () => {
+        const invalidQuestion = TestDataFactory.createValidTextQuestion({
+          metadata: {
+            callback: (() => 'not-json') as any
+          }
+        });
+        ValidationTestHelpers.expectValidationError(TextQuestionSchema, invalidQuestion);
+      });
     });
   });
 
@@ -534,6 +543,19 @@ describe('Question Schema Validation', () => {
         }
       });
       ValidationTestHelpers.expectValidationSuccess(TextQuestionSchema, requiredIfQuestion);
+    });
+
+    it('should reject conditional values that are not JSON-compatible', () => {
+      const invalidConditionalQuestion = TestDataFactory.createValidTextQuestion({
+        conditional: {
+          showIf: {
+            questionId: 'q0',
+            operator: 'equals',
+            value: (() => 'not-json') as any
+          }
+        }
+      });
+      ValidationTestHelpers.expectValidationError(TextQuestionSchema, invalidConditionalQuestion);
     });
   });
 });

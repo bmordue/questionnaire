@@ -4,6 +4,7 @@
  * Core questionnaire flow engine managing question navigation and state
  */
 
+import { z } from 'zod';
 import type { Questionnaire, Question } from '../schema.js';
 import type { StorageService } from '../storage/types.js';
 import type {
@@ -15,6 +16,17 @@ import type {
 } from '../types/flow-types.js';
 import { ConditionalLogicEngine } from './conditional-logic.js';
 import { ProgressTracker } from './progress-tracker.js';
+
+const PersistedFlowStateSchema = z.object({
+  currentQuestionIndex: z.number().int().min(0),
+  currentQuestionId: z.string(),
+  visitedQuestions: z.array(z.string()),
+  skippedQuestions: z.array(z.string()),
+  questionHistory: z.array(z.string()),
+  isCompleted: z.boolean(),
+  startTime: z.string().datetime(),
+  lastUpdateTime: z.string().datetime()
+});
 
 /**
  * Error codes for flow engine errors
@@ -36,7 +48,7 @@ export class FlowError extends Error {
   constructor(
     message: string,
     public readonly code: FlowErrorCode,
-    public readonly context?: any
+    public readonly context?: unknown
   ) {
     super(message);
     this.name = 'FlowError';
@@ -264,7 +276,7 @@ export class QuestionnaireFlowEngine implements FlowEngine {
     };
 
     await this.storage.updateSession(this.state.sessionId, {
-      state: sessionData as any
+      state: sessionData
     });
   }
 
@@ -278,14 +290,25 @@ export class QuestionnaireFlowEngine implements FlowEngine {
     this.questionnaire = await this.storage.loadQuestionnaire(session.questionnaireId);
 
     // Reconstruct state from session data
-    const sessionData = session.state as any;
-    if (!sessionData) {
+    if (!session.state) {
       throw new FlowError(
         'Session has no state data',
         FlowErrorCode.STATE_CORRUPTION,
         { sessionId }
       );
     }
+    const parsedSessionData = PersistedFlowStateSchema.safeParse(session.state);
+    if (!parsedSessionData.success) {
+      throw new FlowError(
+        'Session has invalid state data',
+        FlowErrorCode.STATE_CORRUPTION,
+        {
+          sessionId,
+          issues: parsedSessionData.error.issues
+        }
+      );
+    }
+    const sessionData = parsedSessionData.data;
 
     this.state = {
       questionnaireId: session.questionnaireId,

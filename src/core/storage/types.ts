@@ -4,6 +4,8 @@
  * Core type definitions for the storage layer
  */
 
+
+import type { JsonObject } from '../schemas/json-value.js';
 import type { Questionnaire, QuestionnaireResponse, QuestionnairePermission } from '../schema.js';
 
 /**
@@ -45,9 +47,9 @@ export interface SessionData {
   /** Expiry timestamp for session-level timeout */
   expiresAt?: string;
   /** Flow state data */
-  state?: any;
+  state?: JsonObject;
   /** Additional metadata */
-  metadata?: Record<string, any>;
+  metadata?: JsonObject;
 }
 
 /**

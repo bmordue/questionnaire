@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { JsonObjectSchema, JsonValueSchema } from './json-value.js';
 
 /**
  * Question Types Enum
@@ -100,8 +101,8 @@ export const ConditionOperatorSchema = z.enum([
 export const ConditionSchema = z.object({
   questionId: z.string(),
   operator: ConditionOperatorSchema,
-  value: z.any().optional(),
-  values: z.array(z.any()).optional()
+  value: JsonValueSchema.optional(),
+  values: z.array(JsonValueSchema).optional()
 });
 
 /**
@@ -126,7 +127,7 @@ export const BaseQuestionSchema = z.object({
   description: z.string().optional(),
   required: z.boolean().default(false),
   conditional: ConditionalLogicSchema.optional(),
-  metadata: z.record(z.string(), z.any()).optional()
+  metadata: JsonObjectSchema.optional()
 });
 
 /**

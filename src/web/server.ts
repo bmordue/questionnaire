@@ -27,6 +27,7 @@ import {
 import type { Questionnaire } from '../core/schemas/questionnaire.js';
 import { ResponseStatus } from '../core/schemas/response.js';
 import type { Answer } from '../core/schemas/response.js';
+import { JsonValueSchema } from '../core/schemas/json-value.js';
 import type { RuntimeUser } from '../core/schemas/user.js';
 import { FileUserRepository } from '../core/repositories/file-user-repository.js';
 import { ReviewService } from '../core/services/review-service.js';
@@ -745,9 +746,15 @@ router.post('/api/sessions/:sessionId/answer', validateId({ params: ['sessionId'
       return;
     }
 
+    const parsedAnswerValue = JsonValueSchema.safeParse(body.value !== undefined ? body.value : null);
+    if (!parsedAnswerValue.success) {
+      res.status(400).json({ error: 'Answer value must be JSON-compatible' });
+      return;
+    }
+
     const answer: Answer = {
       questionId: body.questionId,
-      value: body.value !== undefined ? body.value : null,
+      value: parsedAnswerValue.data,
       answeredAt: new Date().toISOString(),
       skipped: body.skipped ?? false
     };
