@@ -228,6 +228,16 @@ describe('Response Schema Validation', () => {
         });
         ValidationTestHelpers.expectValidationError(QuestionnaireResponseSchema, invalidResponse);
       });
+
+      it('should reject answer with non-JSON value', () => {
+        const now = new Date().toISOString();
+        const invalidResponse = TestDataFactory.createValidResponse({
+          answers: [
+            { questionId: 'q1', value: (() => 'not-json') as any, answeredAt: now }
+          ]
+        });
+        ValidationTestHelpers.expectValidationError(QuestionnaireResponseSchema, invalidResponse);
+      });
     });
   });
 
@@ -452,6 +462,15 @@ describe('Response Schema Validation', () => {
         metadata: {}
       });
       ValidationTestHelpers.expectValidationSuccess(QuestionnaireResponseSchema, responseWithEmptyMetadata);
+    });
+
+    it('should reject response metadata with non-JSON value', () => {
+      const responseWithInvalidMetadata = TestDataFactory.createValidResponse({
+        metadata: {
+          custom: (() => 'not-json') as any
+        }
+      });
+      ValidationTestHelpers.expectValidationError(QuestionnaireResponseSchema, responseWithInvalidMetadata);
     });
   });
 });

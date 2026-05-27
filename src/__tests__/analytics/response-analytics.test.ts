@@ -226,7 +226,7 @@ describe('ResponseAnalytics', () => {
           questionnaireId,
           sessionId: `session-${i}`,
           answers: [
-            { questionId: 'q1', value: values[i], answeredAt: new Date().toISOString() }
+            { questionId: 'q1', value: values[i]!, answeredAt: new Date().toISOString() }
           ]
         });
         await storage.saveResponse(response);

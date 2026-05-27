@@ -5,6 +5,7 @@
  */
 
 import type { Questionnaire, QuestionnaireResponse } from '../schema.js';
+import type { JsonObject } from '../schemas/json-value.js';
 
 /**
  * Storage configuration options
@@ -45,9 +46,9 @@ export interface SessionData {
   /** Expiry timestamp for session-level timeout */
   expiresAt?: string;
   /** Flow state data */
-  state?: any;
+  state?: JsonObject;
   /** Additional metadata */
-  metadata?: Record<string, any>;
+  metadata?: JsonObject;
 }
 
 /**

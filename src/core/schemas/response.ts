@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
+import { JsonObjectSchema, JsonValueSchema } from './json-value.js';
 
 /**
  * Answer Schema
@@ -7,7 +8,7 @@ import { z } from 'zod';
  */
 const AnswerSchema = z.object({
   questionId: z.string(),
-  value: z.any(),
+  value: JsonValueSchema,
   answeredAt: z.string().datetime(),
   duration: z.number().min(0).optional(), // Time spent on question in milliseconds
   attempts: z.number().int().min(0).optional(), // Number of times answer was changed
@@ -50,7 +51,7 @@ export const QuestionnaireResponseSchema = z.object({
   status: z.nativeEnum(ResponseStatus),
   answers: z.array(AnswerSchema),
   progress: ResponseProgressSchema,
-  metadata: z.record(z.string(), z.any()).optional(),
+  metadata: JsonObjectSchema.optional(),
   version: z.string().default('1.0') // Response schema version (default applied by Zod when parsing incomplete objects; createResponse() sets this explicitly)
 });
 
