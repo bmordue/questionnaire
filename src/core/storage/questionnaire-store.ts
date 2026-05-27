@@ -116,7 +116,9 @@ export class QuestionnaireStore {
           ...(questionnaire.metadata.description !== undefined && { description: questionnaire.metadata.description }),
           createdAt: questionnaire.metadata.createdAt,
           updatedAt: questionnaire.metadata.updatedAt,
-          ...(questionnaire.metadata.tags !== undefined && { tags: questionnaire.metadata.tags })
+          ...(questionnaire.metadata.tags !== undefined && { tags: questionnaire.metadata.tags }),
+          ...(questionnaire.ownerId !== undefined && { ownerId: questionnaire.ownerId }),
+          ...(questionnaire.permissions !== undefined && { permissions: questionnaire.permissions })
         });
       } catch (error) {
         // Skip files that can't be parsed

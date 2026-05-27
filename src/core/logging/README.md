@@ -121,7 +121,7 @@ export class MyClass {
 Run the logging example to see the framework in action:
 
 ```bash
-npm run logging-example
+pnpm run logging-example
 ```
 
 This will demonstrate:

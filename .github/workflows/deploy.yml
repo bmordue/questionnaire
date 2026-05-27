@@ -15,8 +15,14 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.0.0
+          run_install: false
+
       - name: Install Vercel CLI
-        run: npm install -g vercel
+        run: pnpm add -g vercel
 
       - name: Pull Vercel project settings
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}

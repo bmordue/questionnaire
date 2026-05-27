@@ -11,8 +11,8 @@ function printHelp(): void {
   console.log(
     [
       'Usage:',
-      '  npm start -- --questionnaire <path> [--resume <sessionId>] [--data <directory>] [--storage-module <module>]',
-      '  npm run start:dev -- --questionnaire <path> [--resume <sessionId>] [--data <directory>]',
+      '  pnpm start -- --questionnaire <path> [--resume <sessionId>] [--data <directory>] [--storage-module <module>]',
+      '  pnpm run start:dev -- --questionnaire <path> [--resume <sessionId>] [--data <directory>]',
       '',
       'Options:',
       '  -q, --questionnaire   Path to questionnaire JSON file (required)',

@@ -7,7 +7,7 @@
 #   3. nginx    — reverse proxy + forward auth (http://localhost:8080)
 #
 # Run the questionnaire web server separately first:
-#   npm run build && npm run web   # (listens on port 3000)
+#   pnpm run build && pnpm run web   # (listens on port 3000)
 #
 # Then browse to http://localhost:8080 to exercise the full auth flow.
 #
