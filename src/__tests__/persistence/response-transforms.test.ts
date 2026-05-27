@@ -189,7 +189,7 @@ describe('applySkips', () => {
     });
     const result = applySkips(response, ['q1']); // already skipped
 
-    expect(result).toBe(response); // identical reference — no allocation
+    expect(result).toBe(response); // identical reference — answers array is not cloned
   });
 
   it('does not re-skip already-skipped questions', () => {

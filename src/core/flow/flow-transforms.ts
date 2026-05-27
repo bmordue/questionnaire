@@ -53,6 +53,7 @@ export function applyNavigation(state: FlowState, action: FlowTransitionAction):
         ...state,
         currentQuestionId: nextQuestion.id,
         currentQuestionIndex: nextQuestionIndex,
+        visitedQuestions: new Set(state.visitedQuestions),
         skippedQuestions: newSkipped,
         questionHistory: newHistory,
         lastUpdateTime: now
@@ -66,6 +67,7 @@ export function applyNavigation(state: FlowState, action: FlowTransitionAction):
       return {
         ...state,
         isCompleted: true,
+        visitedQuestions: new Set(state.visitedQuestions),
         skippedQuestions: newSkipped,
         lastUpdateTime: now
       };
@@ -82,6 +84,8 @@ export function applyNavigation(state: FlowState, action: FlowTransitionAction):
       return {
         ...state,
         currentQuestionId: previousQuestionId,
+        visitedQuestions: new Set(state.visitedQuestions),
+        skippedQuestions: new Set(state.skippedQuestions),
         questionHistory: newHistory,
         lastUpdateTime: now
       };
@@ -98,6 +102,8 @@ export function applyNavigation(state: FlowState, action: FlowTransitionAction):
         ...state,
         currentQuestionId: question.id,
         currentQuestionIndex: questionIndex,
+        visitedQuestions: new Set(state.visitedQuestions),
+        skippedQuestions: new Set(state.skippedQuestions),
         questionHistory: newHistory,
         lastUpdateTime: now
       };

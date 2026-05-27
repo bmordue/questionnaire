@@ -243,6 +243,24 @@ describe('ResponseBuilder', () => {
       expect(response1).not.toBe(response2);
       expect(response1).toEqual(response2);
     });
+
+    it('snapshot answers array is not affected by subsequent recordAnswer', async () => {
+      const snapshot = builder.getResponse();
+      const snapshotLength = snapshot.answers.length;
+
+      await builder.recordAnswer('q1', 'hello');
+
+      expect(snapshot.answers).toHaveLength(snapshotLength);
+    });
+
+    it('snapshot answers array is not affected by subsequent skipQuestion', async () => {
+      const snapshot = builder.getResponse();
+      const snapshotLength = snapshot.answers.length;
+
+      await builder.skipQuestion('q2');
+
+      expect(snapshot.answers).toHaveLength(snapshotLength);
+    });
   });
 
   describe('progress tracking', () => {

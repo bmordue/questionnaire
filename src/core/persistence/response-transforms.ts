@@ -127,35 +127,32 @@ export function applySkips(
   questionIds: string[],
   now: string = new Date().toISOString()
 ): QuestionnaireResponse {
-  let newAnswers = [...response.answers];
-  let modified = false;
+  let newAnswers: Answer[] | null = null;
 
   for (const questionId of questionIds) {
-    const existingIndex = newAnswers.findIndex(a => a.questionId === questionId);
+    const workingAnswers = newAnswers ?? response.answers;
+    const existingIndex = workingAnswers.findIndex(a => a.questionId === questionId);
 
     if (existingIndex >= 0) {
-      const existing = newAnswers[existingIndex]!;
+      const existing = workingAnswers[existingIndex]!;
       if (!existing.skipped) {
+        if (!newAnswers) newAnswers = [...response.answers];
         newAnswers[existingIndex] = { ...existing, answeredAt: now, skipped: true };
-        modified = true;
       }
     } else {
-      newAnswers = [
-        ...newAnswers,
-        {
-          questionId,
-          value: null,
-          answeredAt: now,
-          duration: 0,
-          attempts: 0,
-          skipped: true
-        }
-      ];
-      modified = true;
+      if (!newAnswers) newAnswers = [...response.answers];
+      newAnswers.push({
+        questionId,
+        value: null,
+        answeredAt: now,
+        duration: 0,
+        attempts: 0,
+        skipped: true
+      });
     }
   }
 
-  if (!modified) return response;
+  if (!newAnswers) return response;
 
   const updated: QuestionnaireResponse = { ...response, answers: newAnswers };
   return { ...updated, progress: computeProgress(updated), lastSavedAt: now };
