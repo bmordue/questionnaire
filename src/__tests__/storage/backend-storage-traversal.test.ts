@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import { BackendStorageService } from '../../core/storage/backend-storage-service.js';
 import { LocalStorageBackend } from '../../core/storage/backend.js';
 import { FileOperationError } from '../../core/storage/file-operations.js';
@@ -14,6 +14,10 @@ describe('BackendStorageService Path Traversal Protection', () => {
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'backend-traversal-test-'));
     const backend = new LocalStorageBackend(tempDir);
     service = new BackendStorageService({ backend });
+  });
+
+  afterEach(async () => {
+    await fs.rm(tempDir, { recursive: true, force: true });
   });
 
   const unsafeIds = ['..', '../etc/passwd', 'sub/dir', 'id with spaces'];

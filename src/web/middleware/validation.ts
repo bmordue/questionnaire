@@ -20,33 +20,33 @@ export function validateId(locations: {
 }) {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {
-      // Validate parameters
+      const validateValue = (value: unknown): void => {
+        if (typeof value === 'string') {
+          FileOperations.validateId(value);
+        } else if (Array.isArray(value)) {
+          for (const item of value) {
+            validateValue(item);
+          }
+        } else if (value !== undefined && value !== null) {
+          throw new Error('Invalid ID format: must be a string');
+        }
+      };
+
       if (locations.params) {
         for (const key of locations.params) {
-          const id = req.params[key];
-          if (id && typeof id === 'string') {
-            FileOperations.validateId(id);
-          }
+          validateValue(req.params[key]);
         }
       }
 
-      // Validate query strings
       if (locations.query) {
         for (const key of locations.query) {
-          const value = req.query[key];
-          if (value && typeof value === 'string') {
-            FileOperations.validateId(value);
-          }
+          validateValue(req.query[key]);
         }
       }
 
-      // Validate request body
       if (locations.body) {
         for (const key of locations.body) {
-          const value = (req.body as Record<string, unknown>)?.[key];
-          if (value && typeof value === 'string') {
-            FileOperations.validateId(value);
-          }
+          validateValue((req.body as Record<string, unknown>)?.[key]);
         }
       }
 
