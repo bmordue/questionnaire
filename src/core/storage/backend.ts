@@ -358,7 +358,7 @@ export class S3StorageBackend implements StorageBackend {
       ListObjectsV2Command
     } = await import('@aws-sdk/client-s3').catch(() => {
       throw new StorageBackendError(
-        'The @aws-sdk/client-s3 package is required for S3 storage. Install it with: npm install @aws-sdk/client-s3',
+        'The @aws-sdk/client-s3 package is required for S3 storage. Install it with: pnpm add @aws-sdk/client-s3',
         'getSDK',
         ''
       );

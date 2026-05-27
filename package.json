@@ -6,6 +6,7 @@
   "author": "",
   "type": "module",
   "main": "index.js",
+  "packageManager": "pnpm@9.0.0",
   "scripts": {
     "dev": "DEV_STUB_USER='dev@localhost.test:Developer' pnpm run web",
     "start": "pnpm run build && node dist/app.js",

@@ -33,7 +33,7 @@ This code is written in TypeScript and is built together with the rest of the pr
 1. Build the project:
 
 ```
-npm run build
+pnpm run build
 ```
 
 2. Run the compiled server (the build preserves the `web` path under `dist`):
