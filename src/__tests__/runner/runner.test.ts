@@ -2,9 +2,11 @@ import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals
 import os from 'os';
 import path from 'path';
 import { promises as fs } from 'fs';
-import { runQuestionnaire } from '../../runner.js';
+import { ExitPromptError } from '@inquirer/core';
+import { runQuestionnaire, QuestionnaireInterruptedError } from '../../runner.js';
 import { TestDataFactory } from '../helpers/test-data-factory.js';
 import { ComponentFactory } from '../../ui/components/index.js';
+import { PersistenceManager } from '../../core/persistence/persistence-manager.js';
 
 const ORIGINAL_TTY = process.stdin.isTTY;
 
@@ -117,5 +119,26 @@ describe('runner integration', () => {
 
     expect(resumeResult.sessionId).toBe(firstRun.sessionId);
     expect(renderMock).not.toHaveBeenCalled();
+  });
+
+  it('handles concurrent signal + prompt exit with single session cleanup', async () => {
+    const questionnaire = TestDataFactory.createValidQuestionnaire();
+    const questionnairePath = path.join(tempDir, 'questionnaire.json');
+    await fs.writeFile(questionnairePath, JSON.stringify(questionnaire, null, 2));
+
+    const endSessionSpy = jest.spyOn(PersistenceManager.prototype, 'endSession');
+    renderMock.mockImplementationOnce(async () => {
+      process.emit('SIGINT');
+      throw new ExitPromptError();
+    });
+
+    await expect(
+      runQuestionnaire({
+        questionnairePath,
+        dataDirectory: dataDir
+      })
+    ).rejects.toBeInstanceOf(QuestionnaireInterruptedError);
+
+    expect(endSessionSpy).toHaveBeenCalledTimes(1);
   });
 });

@@ -37,6 +37,14 @@ export class QuestionnaireInterruptedError extends Error {
 }
 
 type SignalHandler = (() => void) | null;
+type CancellationToken = { cancelled: boolean };
+
+interface StepState {
+  completed: boolean;
+  interrupted: boolean;
+}
+
+type StepAnswer = 'continue' | 'complete' | 'interrupt';
 
 function buildPersistedSkipped(response: QuestionnaireResponse): Set<string> {
   const skipped = new Set<string>();
@@ -144,6 +152,182 @@ function formatCompletionSummary(response: QuestionnaireResponse, dataDirectory:
 function ensureQuestionnaireFileExists(questionnairePath: string): void {
   if (!existsSync(questionnairePath)) {
     throw new Error(`Questionnaire file not found: ${questionnairePath}`);
+  }
+}
+
+function createCancellationToken(): CancellationToken {
+  return { cancelled: false };
+}
+
+function nextStepState(currentState: StepState, answer: StepAnswer): StepState {
+  switch (answer) {
+    case 'complete':
+      return { ...currentState, completed: true };
+    case 'interrupt':
+      return { ...currentState, interrupted: true };
+    case 'continue':
+    default:
+      return currentState;
+  }
+}
+
+function registerSignalCancellation(token: CancellationToken): () => void {
+  let sigintHandler: SignalHandler = null;
+  let sigtermHandler: SignalHandler = null;
+
+  sigintHandler = () => {
+    token.cancelled = true;
+  };
+
+  sigtermHandler = () => {
+    token.cancelled = true;
+  };
+
+  process.once('SIGINT', sigintHandler);
+  process.once('SIGTERM', sigtermHandler);
+
+  return () => {
+    if (sigintHandler) process.off('SIGINT', sigintHandler);
+    if (sigtermHandler) process.off('SIGTERM', sigtermHandler);
+    sigintHandler = null;
+    sigtermHandler = null;
+  };
+}
+
+async function renderQuestionAnswer(question: Question, response: QuestionnaireResponse): Promise<any> {
+  const priorAnswer = response.answers.find(a => a.questionId === question.id);
+  const component = ComponentFactory.create(question);
+  return component.render(question, priorAnswer?.value);
+}
+
+function buildRunnerResult(sessionId: string, response: QuestionnaireResponse): RunnerResult {
+  return {
+    sessionId,
+    responseId: response.id,
+    answeredCount: response.progress.answeredCount,
+    skippedCount: response.progress.skippedCount ?? 0,
+    completed: true
+  };
+}
+
+async function runQuestionnaireShell(args: {
+  sessionId: string;
+  dataDirectory: string;
+  engine: QuestionnaireFlowEngine;
+  navManager: NavigationManager;
+  persistenceManager: PersistenceManager;
+  responseBuilder: Awaited<ReturnType<PersistenceManager['startSession']>>['responseBuilder'];
+}): Promise<RunnerResult> {
+  const { sessionId, dataDirectory, engine, navManager, persistenceManager, responseBuilder } = args;
+  const cancellationToken = createCancellationToken();
+  const cleanupSignals = registerSignalCancellation(cancellationToken);
+  let stepState: StepState = { completed: false, interrupted: false };
+  let cleanupResult: Awaited<ReturnType<PersistenceManager['endSession']>> | null = null;
+  let interruptPromise: Promise<never> | null = null;
+
+  const endSessionOnce = async (): Promise<Awaited<ReturnType<PersistenceManager['endSession']>> > => {
+    if (cleanupResult) {
+      return cleanupResult;
+    }
+
+    cleanupResult = await persistenceManager.endSession();
+    return cleanupResult;
+  };
+
+  const handleInterrupt = (): Promise<never> => {
+    if (!interruptPromise) {
+      interruptPromise = (async () => {
+        const exitResult = await navManager.handleNavigation({ type: 'exit' });
+
+        if (!exitResult.success) {
+          console.log(
+            MessageFormatter.formatWarning(
+              `Failed to save session state before exit: ${exitResult.error ?? 'Unknown error'}`
+            )
+          );
+        }
+
+        await endSessionOnce();
+        console.log(
+          MessageFormatter.formatMuted(
+            exitResult.success
+              ? `Progress saved. Run with --resume ${sessionId} to continue.`
+              : `Progress may not have been saved. You can try --resume ${sessionId} to continue.`
+          )
+        );
+        throw new QuestionnaireInterruptedError(sessionId);
+      })();
+    }
+
+    return interruptPromise;
+  };
+
+  try {
+    while (!stepState.completed && !stepState.interrupted) {
+      if (cancellationToken.cancelled) {
+        stepState = nextStepState(stepState, 'interrupt');
+        continue;
+      }
+
+      const question = engine.getCurrentQuestion();
+
+      if (!question) {
+        console.log(MessageFormatter.formatWarning('No questions available.'));
+        break;
+      }
+
+      const currentResponse = responseBuilder.getResponse();
+      const progress = engine.getProgress(currentResponse.progress.answeredCount);
+      displayProgressHeader(progress);
+
+      let answer: any;
+      try {
+        answer = await renderQuestionAnswer(question, currentResponse);
+      } catch (error) {
+        if (error instanceof ExitPromptError) {
+          cancellationToken.cancelled = true;
+          stepState = nextStepState(stepState, 'interrupt');
+          continue;
+        }
+
+        throw error;
+      }
+
+      if (cancellationToken.cancelled) {
+        stepState = nextStepState(stepState, 'interrupt');
+        continue;
+      }
+
+      const navResult = await navManager.handleNavigation({ type: 'next', answer });
+
+      if (!navResult.success) {
+        throw new Error(navResult.error || 'Navigation failed');
+      }
+
+      stepState = nextStepState(stepState, navResult.result?.type === 'complete' ? 'complete' : 'continue');
+    }
+
+    if (stepState.interrupted || cancellationToken.cancelled) {
+      return await handleInterrupt();
+    }
+
+    const completedResponse = await responseBuilder.complete();
+    const completedCleanup = await endSessionOnce();
+    console.log(formatCompletionSummary(completedResponse, dataDirectory));
+    if (completedCleanup.deletedCount > 0 && completedCleanup.errors.length === 0) {
+      console.log(MessageFormatter.formatMuted(`Cleaned up ${completedCleanup.deletedCount} backup files`));
+    }
+
+    return buildRunnerResult(sessionId, completedResponse);
+  } catch (error) {
+    if (error instanceof ExitPromptError || cancellationToken.cancelled) {
+      return await handleInterrupt();
+    }
+
+    await endSessionOnce();
+    throw error;
+  } finally {
+    cleanupSignals();
   }
 }
 
@@ -256,96 +440,15 @@ export async function runQuestionnaire(options: RunnerOptions): Promise<RunnerRe
       console.log(MessageFormatter.formatMuted(`Cleaned up ${cleanupResult.deletedCount} backup files`));
     }
 
-    return {
-      sessionId: session.sessionId,
-      responseId: completed.id,
-      answeredCount: completed.progress.answeredCount,
-      skippedCount: completed.progress.skippedCount ?? 0,
-      completed: true
-    };
+    return buildRunnerResult(session.sessionId, completed);
   }
 
-  let sigintHandler: SignalHandler = null;
-  let sigtermHandler: SignalHandler = null;
-
-  const cleanupSignals = () => {
-    if (sigintHandler) process.off('SIGINT', sigintHandler);
-    if (sigtermHandler) process.off('SIGTERM', sigtermHandler);
-    sigintHandler = null;
-    sigtermHandler = null;
-  };
-
-  const handleInterrupt = async (): Promise<never> => {
-    await navManager.handleNavigation({ type: 'exit' });
-    await persistenceManager.endSession();
-    console.log(
-      MessageFormatter.formatMuted(
-        `Progress saved. Run with --resume ${session.sessionId} to continue.`
-      )
-    );
-    throw new QuestionnaireInterruptedError(session.sessionId);
-  };
-
-  sigintHandler = () => {
-    void handleInterrupt().catch(() => {});
-  };
-  sigtermHandler = () => {
-    void handleInterrupt().catch(() => {});
-  };
-
-  process.once('SIGINT', sigintHandler);
-  process.once('SIGTERM', sigtermHandler);
-
-  try {
-    while (true) {
-      const question = engine.getCurrentQuestion();
-
-      if (!question) {
-        console.log(MessageFormatter.formatWarning('No questions available.'));
-        break;
-      }
-
-      const currentResponse = session.responseBuilder.getResponse();
-      const progress = engine.getProgress(currentResponse.progress.answeredCount);
-      displayProgressHeader(progress);
-
-      const priorAnswer = currentResponse.answers.find(a => a.questionId === question.id);
-
-      const component = ComponentFactory.create(question);
-      const answer = await component.render(question, priorAnswer?.value);
-
-      const navResult = await navManager.handleNavigation({ type: 'next', answer });
-
-      if (!navResult.success) {
-        throw new Error(navResult.error || 'Navigation failed');
-      }
-
-      if (navResult.result?.type === 'complete') {
-        break;
-      }
-    }
-    const completedResponse = await session.responseBuilder.complete();
-    const cleanupResult = await persistenceManager.endSession();
-    console.log(formatCompletionSummary(completedResponse, dataDirectory));
-    if (cleanupResult.deletedCount > 0 && cleanupResult.errors.length === 0) {
-      console.log(MessageFormatter.formatMuted(`Cleaned up ${cleanupResult.deletedCount} backup files`));
-    }
-
-    return {
-      sessionId: session.sessionId,
-      responseId: completedResponse.id,
-      answeredCount: completedResponse.progress.answeredCount,
-      skippedCount: completedResponse.progress.skippedCount ?? 0,
-      completed: true
-    };
-  } catch (error) {
-    if (error instanceof ExitPromptError) {
-      await handleInterrupt();
-    }
-
-    await persistenceManager.endSession();
-    throw error;
-  } finally {
-    cleanupSignals();
-  }
+  return runQuestionnaireShell({
+    sessionId: session.sessionId,
+    dataDirectory,
+    engine,
+    navManager,
+    persistenceManager,
+    responseBuilder: session.responseBuilder
+  });
 }
