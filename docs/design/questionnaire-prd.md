@@ -72,7 +72,7 @@ src/
 ```bash
 questionnaire run <file>                        # Execute questionnaire
 questionnaire continue <session-id>             # Resume incomplete session
-npm run markdown-convert -- <response.json> <questionnaire.json> [output.md]
+pnpm run markdown-convert -- <response.json> <questionnaire.json> [output.md]
                                                 # Convert response to markdown
 ```
 
@@ -120,10 +120,10 @@ The markdown export utility converts questionnaire responses from JSON format in
 ### 6.3 Usage
 ```bash
 # Output to stdout
-npm run markdown-convert -- response.json questionnaire.json
+pnpm run markdown-convert -- response.json questionnaire.json
 
 # Save to file
-npm run markdown-convert -- response.json questionnaire.json output.md
+pnpm run markdown-convert -- response.json questionnaire.json output.md
 ```
 
 ### 6.4 Output Structure

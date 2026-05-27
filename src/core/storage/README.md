@@ -195,12 +195,12 @@ The storage module has comprehensive test coverage (>84%):
 
 Run tests with:
 ```bash
-npm test
+pnpm test
 ```
 
 Check coverage with:
 ```bash
-npm test -- --coverage
+pnpm test -- --coverage
 ```
 
 ## Example
@@ -209,7 +209,7 @@ See `src/storage-example.ts` for a complete working example demonstrating all st
 
 Run with:
 ```bash
-npm run build && node dist/storage-example.js
+pnpm run build && node dist/storage-example.js
 ```
 
 ## Implementation Details

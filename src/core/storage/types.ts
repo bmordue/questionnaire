@@ -5,6 +5,7 @@
  */
 
 import type { Questionnaire, QuestionnaireResponse } from '../schema.js';
+import type { QuestionnairePermission } from '../schemas/questionnaire.js';
 
 /**
  * Storage configuration options
@@ -61,6 +62,8 @@ export interface QuestionnaireMetadataListing {
   createdAt: string;
   updatedAt: string;
   tags?: string[];
+  ownerId?: string | undefined;
+  permissions?: QuestionnairePermission[] | undefined;
 }
 
 /**

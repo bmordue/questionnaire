@@ -19,19 +19,19 @@ This directory contains sample questionnaire responses and their converted markd
 To generate markdown from a response:
 
 ```bash
-npm run markdown-convert -- <response.json> <questionnaire.json> [output.md]
+pnpm run markdown-convert -- <response.json> <questionnaire.json> [output.md]
 ```
 
 ### Examples
 
 Convert to stdout:
 ```bash
-npm run markdown-convert -- examples/sample-response.json fixtures/basic/simple-text-survey.json
+pnpm run markdown-convert -- examples/sample-response.json fixtures/basic/simple-text-survey.json
 ```
 
 Convert to file:
 ```bash
-npm run markdown-convert -- examples/sample-response.json fixtures/basic/simple-text-survey.json examples/output.md
+pnpm run markdown-convert -- examples/sample-response.json fixtures/basic/simple-text-survey.json examples/output.md
 ```
 
 ## Output Format

@@ -23,10 +23,9 @@ export function validateId(locations: {
       // Validate parameters
       if (locations.params) {
         for (const key of locations.params) {
-          const value = req.params[key];
-          if (value) {
-            const id = Array.isArray(value) ? value[0] : value;
-            if (id) FileOperations.validateId(id);
+          const id = req.params[key];
+          if (id && typeof id === 'string') {
+            FileOperations.validateId(id);
           }
         }
       }

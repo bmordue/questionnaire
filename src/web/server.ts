@@ -393,22 +393,27 @@ router.get('/api/questionnaires', requireAuth, async (_req, res, next) => {
       res.json(enriched);
       return;
     }
-    const visible = (
-      await Promise.all(
-        list.map(async meta => {
-          try {
-            const questionnaire = await storage.loadQuestionnaire(meta.id);
-            const effectivePermission = resolvePermission(questionnaire, user.id, user.groups);
-            return effectivePermission !== null ? { ...meta, effectivePermission } : null;
-          } catch (err) {
-            if (!isNotFoundError(err)) {
-              console.error(`[questionnaires] Failed to load questionnaire ${meta.id} for permission check:`, err);
-            }
-            return null;
-          }
-        })
-      )
-    ).filter((meta): meta is NonNullable<typeof meta> => meta !== null);
+    const visible = list
+      .map(meta => {
+        const effectivePermission = resolvePermission(
+          {
+            id: meta.id,
+            version: meta.version,
+            metadata: {
+              title: meta.title,
+              createdAt: meta.createdAt,
+              updatedAt: meta.updatedAt,
+            },
+            questions: [], // Minimal skeleton for resolvePermission
+            ownerId: meta.ownerId,
+            permissions: meta.permissions ?? [],
+          } as Questionnaire,
+          user.id,
+          user.groups,
+        );
+        return effectivePermission !== null ? { ...meta, effectivePermission } : null;
+      })
+      .filter((meta): meta is NonNullable<typeof meta> => meta !== null);
     res.json(visible);
   } catch (err) {
     next(err);
