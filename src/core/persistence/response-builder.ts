@@ -4,10 +4,11 @@
  * Manages incremental construction and updating of questionnaire responses
  */
 
-import type { Questionnaire, QuestionnaireResponse, Answer } from '../schema.js';
+import type { Questionnaire, QuestionnaireResponse } from '../schema.js';
 import { ResponseStatus } from '../schemas/response.js';
 import type { StorageService } from '../storage/types.js';
 import { getLogger } from '../logging/index.js';
+import { applyAnswer, applySkip, applySkips, computeProgress } from './response-transforms.js';
 
 const logger = getLogger();
 
@@ -43,35 +44,7 @@ export class ResponseBuilder {
     value: any,
     metadata: AnswerMetadata = {}
   ): Promise<void> {
-    const now = metadata.timestamp || new Date().toISOString();
-    
-    // Find existing answer
-    const existingIndex = this.response.answers.findIndex(a => a.questionId === questionId);
-    
-    if (existingIndex >= 0) {
-      // Update existing answer
-      const existing = this.response.answers[existingIndex]!;
-      this.response.answers[existingIndex] = {
-        questionId,
-        value,
-        answeredAt: now,
-        duration: (existing.duration || 0) + (metadata.duration || 0),
-        attempts: (existing.attempts || 0) + 1,
-        skipped: false
-      };
-    } else {
-      // Add new answer
-      this.response.answers.push({
-        questionId,
-        value,
-        answeredAt: now,
-        duration: metadata.duration || 0,
-        attempts: 1,
-        skipped: false
-      });
-    }
-
-    this.updateProgress();
+    this.response = applyAnswer(this.response, questionId, value, metadata);
     await this.saveIncremental();
   }
 
@@ -79,35 +52,7 @@ export class ResponseBuilder {
    * Mark a question as skipped
    */
   async skipQuestion(questionId: string): Promise<void> {
-    const now = new Date().toISOString();
-    
-    // Find existing answer
-    const existingIndex = this.response.answers.findIndex(a => a.questionId === questionId);
-    
-    if (existingIndex >= 0) {
-      // Update existing to skipped
-      const existing = this.response.answers[existingIndex]!;
-      this.response.answers[existingIndex] = {
-        questionId: existing.questionId,
-        value: existing.value,
-        answeredAt: now,
-        duration: existing.duration,
-        attempts: existing.attempts,
-        skipped: true
-      };
-    } else {
-      // Add skipped answer
-      this.response.answers.push({
-        questionId,
-        value: null,
-        answeredAt: now,
-        duration: 0,
-        attempts: 0,
-        skipped: true
-      });
-    }
-
-    this.updateProgress();
+    this.response = applySkip(this.response, questionId);
     await this.saveIncremental();
   }
 
@@ -120,10 +65,10 @@ export class ResponseBuilder {
     duration: number = 0
   ): Promise<void> {
     const existingIndex = this.response.answers.findIndex(a => a.questionId === questionId);
-    
+
     if (existingIndex >= 0) {
       const existing = this.response.answers[existingIndex]!;
-      this.response.answers[existingIndex] = {
+      const updatedAnswer = {
         questionId,
         value: newValue,
         answeredAt: new Date().toISOString(),
@@ -131,13 +76,15 @@ export class ResponseBuilder {
         attempts: (existing.attempts || 0) + 1,
         skipped: false
       };
+      const newAnswers = [...this.response.answers];
+      newAnswers[existingIndex] = updatedAnswer;
+      const updated = { ...this.response, answers: newAnswers };
+      this.response = { ...updated, progress: computeProgress(updated), lastSavedAt: updatedAnswer.answeredAt };
     } else {
-      // If no existing answer, create new one
-      await this.recordAnswer(questionId, newValue, { duration });
-      return;
+      // If no existing answer, create new one via applyAnswer
+      this.response = applyAnswer(this.response, questionId, newValue, { duration });
     }
 
-    this.updateProgress();
     await this.saveIncremental();
   }
 
@@ -181,7 +128,7 @@ export class ResponseBuilder {
    * Get the current response
    */
   getResponse(): QuestionnaireResponse {
-    return { ...this.response };
+    return { ...this.response, answers: [...this.response.answers] };
   }
 
   /**
@@ -201,37 +148,9 @@ export class ResponseBuilder {
    * Mark multiple questions as skipped
    */
   async skipQuestions(questionIds: string[]): Promise<void> {
-    const now = new Date().toISOString();
-    let modified = false;
-
-    for (const questionId of questionIds) {
-      const existingIndex = this.response.answers.findIndex(a => a.questionId === questionId);
-
-      if (existingIndex >= 0) {
-        const existing = this.response.answers[existingIndex]!;
-        if (!existing.skipped) {
-          this.response.answers[existingIndex] = {
-            ...existing,
-            answeredAt: now,
-            skipped: true
-          };
-          modified = true;
-        }
-      } else {
-        this.response.answers.push({
-          questionId,
-          value: null,
-          answeredAt: now,
-          duration: 0,
-          attempts: 0,
-          skipped: true
-        });
-        modified = true;
-      }
-    }
-
-    if (modified) {
-      this.updateProgress();
+    const updated = applySkips(this.response, questionIds);
+    if (updated !== this.response) {
+      this.response = updated;
       await this.saveIncremental();
     }
   }
@@ -249,25 +168,6 @@ export class ResponseBuilder {
         error
       );
     }
-  }
-
-  /**
-   * Update progress tracking
-   */
-  private updateProgress(): void {
-    const answeredCount = this.response.answers.filter(
-      a => !a.skipped && a.value !== null
-    ).length;
-    
-    const skippedCount = this.response.answers.filter(a => a.skipped).length;
-
-    this.response.progress.answeredCount = answeredCount;
-    this.response.progress.skippedCount = skippedCount;
-    this.response.progress.percentComplete = Math.round(
-      (answeredCount / this.response.progress.totalQuestions) * 100
-    );
-
-    this.response.lastSavedAt = new Date().toISOString();
   }
 
   /**

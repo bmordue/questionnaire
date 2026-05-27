@@ -9,3 +9,5 @@ export type { AnswerMetadata } from './response-builder.js';
 
 export { PersistenceManager } from './persistence-manager.js';
 export type { ResponseSession, ExportFormat } from './persistence-manager.js';
+
+export { applyAnswer, applySkip, applySkips, computeProgress } from './response-transforms.js';

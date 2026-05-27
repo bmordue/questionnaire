@@ -243,6 +243,28 @@ describe('ResponseBuilder', () => {
       expect(response1).not.toBe(response2);
       expect(response1).toEqual(response2);
     });
+
+    it('snapshot answers array is not affected by subsequent recordAnswer', async () => {
+      await builder.recordAnswer('q1', 'before');
+      const snapshot = builder.getResponse();
+      const snapshotAnswersBefore = [...snapshot.answers];
+
+      await builder.recordAnswer('q1', 'after');
+
+      expect(snapshot.answers).toHaveLength(snapshotAnswersBefore.length);
+      expect(snapshot.answers).toEqual(snapshotAnswersBefore);
+    });
+
+    it('snapshot answers array is not affected by subsequent skipQuestion', async () => {
+      await builder.recordAnswer('q1', 'before');
+      const snapshot = builder.getResponse();
+      const snapshotAnswersBefore = [...snapshot.answers];
+
+      await builder.skipQuestion('q1');
+
+      expect(snapshot.answers).toHaveLength(snapshotAnswersBefore.length);
+      expect(snapshot.answers).toEqual(snapshotAnswersBefore);
+    });
   });
 
   describe('progress tracking', () => {
