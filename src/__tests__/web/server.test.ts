@@ -287,6 +287,46 @@ describe('GET /api/questionnaires', () => {
     expect(res.body[0]).toMatchObject({ id: body.id });
   });
 
+  it('uses metadata ACL fields to return only visible questionnaires with effective permissions', async () => {
+    const ownerQuestionnaire = makeQuestionnaire({ id: 'q_owner_visible' });
+    const ownerCreateRes = await request(app)
+      .post('/api/questionnaires')
+      .send(ownerQuestionnaire)
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
+    const currentUserId = (ownerCreateRes.body as { ownerId: string }).ownerId;
+
+    const sharedQuestionnaire = makeQuestionnaire({
+      id: 'q_shared_visible',
+      permissions: [{ userId: currentUserId, level: 'respond' }],
+    });
+    await request(app)
+      .post('/api/questionnaires')
+      .send(sharedQuestionnaire)
+      .set('Content-Type', 'application/json')
+      .set({ 'remote-user': 'owner2@example.com', 'remote-name': 'Owner Two' });
+
+    const hiddenQuestionnaire = makeQuestionnaire({ id: 'q_hidden' });
+    await request(app)
+      .post('/api/questionnaires')
+      .send(hiddenQuestionnaire)
+      .set('Content-Type', 'application/json')
+      .set({ 'remote-user': 'owner3@example.com', 'remote-name': 'Owner Three' });
+
+    const res = await request(app)
+      .get('/api/questionnaires')
+      .set(AUTH_HEADERS);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: ownerQuestionnaire.id, effectivePermission: 'manage' }),
+        expect.objectContaining({ id: sharedQuestionnaire.id, effectivePermission: 'respond' }),
+      ]),
+    );
+    expect((res.body as Array<{ id: string }>).map(q => q.id)).not.toContain(hiddenQuestionnaire.id as string);
+  });
+
   it('returns 401 when no proxy auth headers are present', async () => {
     const res = await request(app).get('/api/questionnaires');
     expect(res.status).toBe(401);

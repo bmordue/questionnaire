@@ -64,6 +64,24 @@ describe('StorageService', () => {
       expect(list.map(q => q.id)).toContain('q2');
     });
 
+    it('should include owner and permissions in questionnaire metadata listing', async () => {
+      const questionnaire = TestDataFactory.createValidQuestionnaire({
+        id: 'q_with_acl',
+        ownerId: 'owner@example.com',
+        permissions: [{ userId: 'viewer@example.com', level: 'view_responses' }],
+      });
+
+      await storage.saveQuestionnaire(questionnaire);
+      const list = await storage.listQuestionnaires();
+      const listing = list.find(q => q.id === questionnaire.id);
+
+      expect(listing).toMatchObject({
+        id: questionnaire.id,
+        ownerId: questionnaire.ownerId,
+        permissions: questionnaire.permissions,
+      });
+    });
+
     it('should delete a questionnaire', async () => {
       const questionnaire = TestDataFactory.createValidQuestionnaire();
 

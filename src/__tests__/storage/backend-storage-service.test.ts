@@ -77,6 +77,26 @@ describe('BackendStorageService', () => {
       expect(list.map(q => q.id)).toContain('q2');
     });
 
+    it('includes owner and permissions in questionnaire metadata listing', async () => {
+      const q = TestDataFactory.createValidQuestionnaire({
+        id: 'q-with-acl',
+        ownerId: 'owner@example.com',
+        permissions: [{ userId: 'viewer@example.com', level: 'respond' }],
+      });
+      await storage.saveQuestionnaire(q);
+
+      const list = await storage.listQuestionnaires();
+      expect(list).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: q.id,
+            ownerId: q.ownerId,
+            permissions: q.permissions,
+          }),
+        ]),
+      );
+    });
+
     it('skips and warns for unreadable questionnaire entries', async () => {
       const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
       try {
