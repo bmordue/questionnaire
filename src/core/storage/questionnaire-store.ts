@@ -117,8 +117,8 @@ export class QuestionnaireStore {
           createdAt: questionnaire.metadata.createdAt,
           updatedAt: questionnaire.metadata.updatedAt,
           ...(questionnaire.metadata.tags !== undefined && { tags: questionnaire.metadata.tags }),
-          ownerId: questionnaire.ownerId,
-          permissions: questionnaire.permissions
+          ...(questionnaire.ownerId !== undefined && { ownerId: questionnaire.ownerId }),
+          ...(questionnaire.permissions !== undefined && { permissions: questionnaire.permissions })
         });
       } catch (error) {
         // Skip files that can't be parsed

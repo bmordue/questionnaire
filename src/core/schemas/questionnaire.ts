@@ -76,6 +76,15 @@ export type QuestionnaireConfig = z.infer<typeof QuestionnaireConfigSchema>;
 // ── Permission resolution ─────────────────────────────────────────────────────
 
 /**
+ * Object that holds ownership and permission data for access control.
+ * Shared by Questionnaire and QuestionnaireMetadataListing.
+ */
+export interface Permissible {
+  ownerId?: string | undefined;
+  permissions?: QuestionnairePermission[] | undefined;
+}
+
+/**
  * Resolve the effective permission level for a given user on a questionnaire.
  *
  * Rules (in priority order):
@@ -87,16 +96,16 @@ export type QuestionnaireConfig = z.infer<typeof QuestionnaireConfigSchema>;
  * The admin group name comes from the ADMIN_GROUP env var (default: 'admins').
  */
 export function resolvePermission(
-  questionnaire: Questionnaire,
+  permissible: Permissible,
   userId: string,
   groups: string[] = [],
 ): PermissionLevel | null {
   const adminGroup = process.env['ADMIN_GROUP'] ?? 'admins';
 
   if (groups.includes(adminGroup)) return 'manage';
-  if (questionnaire.ownerId && questionnaire.ownerId === userId) return 'manage';
+  if (permissible.ownerId && permissible.ownerId === userId) return 'manage';
 
-  const entry = questionnaire.permissions.find(p => p.userId === userId);
+  const entry = permissible.permissions?.find(p => p.userId === userId);
   return entry?.level ?? null;
 }
 

@@ -395,19 +395,9 @@ router.get('/api/questionnaires', requireAuth, async (_req, res, next) => {
     }
     const visible = list
       .map(meta => {
+        // We use the ownerId and permissions from the metadata to avoid loading the full questionnaire
         const effectivePermission = resolvePermission(
-          {
-            id: meta.id,
-            version: meta.version,
-            metadata: {
-              title: meta.title,
-              createdAt: meta.createdAt,
-              updatedAt: meta.updatedAt,
-            },
-            questions: [], // Minimal skeleton for resolvePermission
-            ownerId: meta.ownerId,
-            permissions: meta.permissions ?? [],
-          } as Questionnaire,
+          meta,
           user.id,
           user.groups,
         );

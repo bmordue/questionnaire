@@ -46,7 +46,7 @@
 ### Prerequisites
 
 - **Node.js**: v20.19.5 (or compatible)
- - **pnpm**: 10.8.2 (or compatible)
+- **pnpm**: 9.0.0 (or compatible)
 - **TypeScript**: 5.9.2 (installed as dev dependency)
 
 ### Installation
@@ -108,15 +108,13 @@ Expected output includes:
 
 ### Testing
 
-**Current test status**: No test framework is configured yet.
+The repository uses Jest (with ts-jest in ESM mode) for automated tests.
 
 ```bash
 pnpm test
 ```
 
-This currently outputs: "Error: no test specified" and exits with code 1.
-
-**Do not add test infrastructure** unless specifically required by a task. (Historical plan: `docs/completed/implementation-phase1-tests.md`).
+This runs `node --experimental-vm-modules node_modules/jest/bin/jest.js` and executes tests in `src/__tests__/`.
 
 ### Linting
 
@@ -126,9 +124,10 @@ This currently outputs: "Error: no test specified" and exits with code 1.
 
 ### CI/CD
 
-**No GitHub Actions workflows exist**. There is no `.github/workflows/` directory.
+GitHub Actions workflows are configured in `.github/workflows/`.
 
-There are no automated checks to replicate before committing.
+- `test.yml` runs install/build/tests for pushes and pull requests
+- `deploy.yml` handles deployment to Vercel on pushes to `main`
 
 ## Architecture and Key Components
 

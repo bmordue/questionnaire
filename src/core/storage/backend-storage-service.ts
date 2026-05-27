@@ -112,8 +112,8 @@ export class BackendStorageService implements StorageService {
         };
         if (q.metadata.description !== undefined) listing.description = q.metadata.description;
         if (q.metadata.tags !== undefined) listing.tags = q.metadata.tags;
-        listing.ownerId = q.ownerId;
-        listing.permissions = q.permissions;
+        if (q.ownerId !== undefined) listing.ownerId = q.ownerId;
+        if (q.permissions !== undefined) listing.permissions = q.permissions;
         listings.push(listing);
       } catch (error) {
         console.warn(
