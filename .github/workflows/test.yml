@@ -19,6 +19,7 @@ jobs:
     - name: Install pnpm
       uses: pnpm/action-setup@v4
       with:
+        version: 9.0.0
         run_install: false
 
     - name: Use Node.js ${{ env.NODE_VERSION }}
@@ -49,6 +50,7 @@ jobs:
     - name: Install pnpm
       uses: pnpm/action-setup@v4
       with:
+        version: 9.0.0
         run_install: false
 
     - name: Use Node.js ${{ env.NODE_VERSION }}
@@ -64,4 +66,3 @@ jobs:
       run: pnpm run stryker
       env:
         STRYKER_DASHBOARD_API_KEY: ${{ secrets.STRYKER_DASHBOARD_API_KEY }}
-
