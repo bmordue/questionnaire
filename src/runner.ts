@@ -237,11 +237,22 @@ async function runQuestionnaireShell(args: {
   const handleInterrupt = (): Promise<never> => {
     if (!interruptPromise) {
       interruptPromise = (async () => {
-        await navManager.handleNavigation({ type: 'exit' });
+        const exitResult = await navManager.handleNavigation({ type: 'exit' });
+
+        if (!exitResult.success) {
+          console.log(
+            MessageFormatter.formatWarning(
+              `Failed to save session state before exit: ${exitResult.error ?? 'Unknown error'}`
+            )
+          );
+        }
+
         await endSessionOnce();
         console.log(
           MessageFormatter.formatMuted(
-            `Progress saved. Run with --resume ${sessionId} to continue.`
+            exitResult.success
+              ? `Progress saved. Run with --resume ${sessionId} to continue.`
+              : `Progress may not have been saved. You can try --resume ${sessionId} to continue.`
           )
         );
         throw new QuestionnaireInterruptedError(sessionId);
