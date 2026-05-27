@@ -4,6 +4,9 @@ import { QuestionnaireStore } from '../../core/storage/questionnaire-store.js';
 import { ResponseStore } from '../../core/storage/response-store.js';
 import { SessionStore } from '../../core/storage/session-store.js';
 import { FileUserRepository } from '../../core/repositories/file-user-repository.js';
+import { BackendStorageService } from '../../core/storage/backend-storage-service.js';
+import { LocalStorageBackend } from '../../core/storage/backend.js';
+import { TestDataFactory } from '../helpers/test-data-factory.js';
 import path from 'path';
 import os from 'os';
 import { promises as fs } from 'fs';
@@ -55,5 +58,57 @@ describe('Path Traversal Protection', () => {
   it('should protect FileUserRepository', async () => {
     const repo = new FileUserRepository({ dataDirectory: tempDir });
     await expect(repo.findById('../../package')).rejects.toThrow(FileOperationError);
+  });
+
+  describe('BackendStorageService', () => {
+    let backend: LocalStorageBackend;
+    let storage: BackendStorageService;
+
+    beforeEach(() => {
+      backend = new LocalStorageBackend(tempDir);
+      storage = new BackendStorageService({ backend });
+    });
+
+    it('should reject unsafe questionnaireId in loadQuestionnaire', async () => {
+      await expect(storage.loadQuestionnaire('../etc/passwd')).rejects.toThrow(FileOperationError);
+    });
+
+    it('should reject unsafe questionnaireId in deleteQuestionnaire', async () => {
+      await expect(storage.deleteQuestionnaire('../../config')).rejects.toThrow(FileOperationError);
+    });
+
+    it('should reject unsafe questionnaireId in saveQuestionnaire', async () => {
+      const q = TestDataFactory.createValidQuestionnaire({ id: '../evil' });
+      await expect(storage.saveQuestionnaire(q)).rejects.toThrow(FileOperationError);
+    });
+
+    it('should reject unsafe sessionId in loadResponse', async () => {
+      await expect(storage.loadResponse('../etc/shadow')).rejects.toThrow(FileOperationError);
+    });
+
+    it('should reject unsafe sessionId in deleteResponse', async () => {
+      await expect(storage.deleteResponse('../../config')).rejects.toThrow(FileOperationError);
+    });
+
+    it('should reject unsafe sessionId in saveResponse', async () => {
+      const r = TestDataFactory.createValidResponse({ sessionId: '../evil' });
+      await expect(storage.saveResponse(r)).rejects.toThrow(FileOperationError);
+    });
+
+    it('should reject unsafe questionnaireId in createSession', async () => {
+      await expect(storage.createSession('../etc/passwd')).rejects.toThrow(FileOperationError);
+    });
+
+    it('should reject unsafe sessionId in loadSession', async () => {
+      await expect(storage.loadSession('../etc/shadow')).rejects.toThrow(FileOperationError);
+    });
+
+    it('should reject unsafe sessionId in updateSession', async () => {
+      await expect(storage.updateSession('../../config', { status: 'completed' })).rejects.toThrow(FileOperationError);
+    });
+
+    it('should reject unsafe sessionId in deleteSession', async () => {
+      await expect(storage.deleteSession('../evil')).rejects.toThrow(FileOperationError);
+    });
   });
 });
