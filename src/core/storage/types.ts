@@ -4,7 +4,7 @@
  * Core type definitions for the storage layer
  */
 
-import type { Questionnaire, QuestionnaireResponse } from '../schema.js';
+import type { Questionnaire, QuestionnaireResponse, QuestionnairePermission } from '../schema.js';
 
 /**
  * Storage configuration options
@@ -61,6 +61,8 @@ export interface QuestionnaireMetadataListing {
   createdAt: string;
   updatedAt: string;
   tags?: string[];
+  ownerId?: string;
+  permissions?: QuestionnairePermission[];
 }
 
 /**
