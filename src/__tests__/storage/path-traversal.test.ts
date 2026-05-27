@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import { FileOperations, FileOperationError } from '../../core/storage/file-operations.js';
 import { QuestionnaireStore } from '../../core/storage/questionnaire-store.js';
 import { ResponseStore } from '../../core/storage/response-store.js';
@@ -63,52 +63,81 @@ describe('Path Traversal Protection', () => {
   describe('BackendStorageService', () => {
     let backend: LocalStorageBackend;
     let storage: BackendStorageService;
+    let readSpy: jest.SpiedFunction<LocalStorageBackend['read']>;
+    let writeSpy: jest.SpiedFunction<LocalStorageBackend['write']>;
+    let deleteSpy: jest.SpiedFunction<LocalStorageBackend['delete']>;
+    let listSpy: jest.SpiedFunction<LocalStorageBackend['list']>;
 
     beforeEach(() => {
       backend = new LocalStorageBackend(tempDir);
+      readSpy = jest.spyOn(backend, 'read');
+      writeSpy = jest.spyOn(backend, 'write');
+      deleteSpy = jest.spyOn(backend, 'delete');
+      listSpy = jest.spyOn(backend, 'list');
       storage = new BackendStorageService({ backend });
     });
 
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    const expectNoBackendIo = (): void => {
+      expect(readSpy).not.toHaveBeenCalled();
+      expect(writeSpy).not.toHaveBeenCalled();
+      expect(deleteSpy).not.toHaveBeenCalled();
+      expect(listSpy).not.toHaveBeenCalled();
+    };
+
     it('should reject unsafe questionnaireId in loadQuestionnaire', async () => {
       await expect(storage.loadQuestionnaire('../etc/passwd')).rejects.toThrow(FileOperationError);
+      expectNoBackendIo();
     });
 
     it('should reject unsafe questionnaireId in deleteQuestionnaire', async () => {
       await expect(storage.deleteQuestionnaire('../../config')).rejects.toThrow(FileOperationError);
+      expectNoBackendIo();
     });
 
     it('should reject unsafe questionnaireId in saveQuestionnaire', async () => {
       const q = TestDataFactory.createValidQuestionnaire({ id: '../evil' });
       await expect(storage.saveQuestionnaire(q)).rejects.toThrow(FileOperationError);
+      expectNoBackendIo();
     });
 
     it('should reject unsafe sessionId in loadResponse', async () => {
       await expect(storage.loadResponse('../etc/shadow')).rejects.toThrow(FileOperationError);
+      expectNoBackendIo();
     });
 
     it('should reject unsafe sessionId in deleteResponse', async () => {
       await expect(storage.deleteResponse('../../config')).rejects.toThrow(FileOperationError);
+      expectNoBackendIo();
     });
 
     it('should reject unsafe sessionId in saveResponse', async () => {
       const r = TestDataFactory.createValidResponse({ sessionId: '../evil' });
       await expect(storage.saveResponse(r)).rejects.toThrow(FileOperationError);
+      expectNoBackendIo();
     });
 
     it('should reject unsafe questionnaireId in createSession', async () => {
       await expect(storage.createSession('../etc/passwd')).rejects.toThrow(FileOperationError);
+      expectNoBackendIo();
     });
 
     it('should reject unsafe sessionId in loadSession', async () => {
       await expect(storage.loadSession('../etc/shadow')).rejects.toThrow(FileOperationError);
+      expectNoBackendIo();
     });
 
     it('should reject unsafe sessionId in updateSession', async () => {
       await expect(storage.updateSession('../../config', { status: 'completed' })).rejects.toThrow(FileOperationError);
+      expectNoBackendIo();
     });
 
     it('should reject unsafe sessionId in deleteSession', async () => {
       await expect(storage.deleteSession('../evil')).rejects.toThrow(FileOperationError);
+      expectNoBackendIo();
     });
   });
 });
