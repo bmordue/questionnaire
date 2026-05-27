@@ -15,6 +15,7 @@ import type {
 } from '../types/flow-types.js';
 import { ConditionalLogicEngine } from './conditional-logic.js';
 import { ProgressTracker } from './progress-tracker.js';
+import { applyNavigation } from './flow-transforms.js';
 
 /**
  * Error codes for flow engine errors
@@ -136,27 +137,24 @@ export class QuestionnaireFlowEngine implements FlowEngine {
 
     // Find next visible question
     const { nextQuestion, skippedQuestionIds } = await this.findNextVisibleQuestion(responses);
-    
+
     if (!nextQuestion) {
-      // Questionnaire complete
-      this.state!.isCompleted = true;
+      this.state = applyNavigation(this.state!, { direction: 'complete', skippedIds: skippedQuestionIds });
       await this.saveState();
-      return { 
-        type: 'complete', 
+      return {
+        type: 'complete',
         responses: new Map(responses),
         skippedQuestionIds
       };
     }
 
-    if (this.state!.questionHistory[this.state!.questionHistory.length - 1] !== nextQuestion.id) {
-      this.state!.questionHistory.push(nextQuestion.id);
-    }
+    this.state = applyNavigation(this.state!, {
+      direction: 'next',
+      nextQuestion,
+      nextQuestionIndex: this.findQuestionIndex(nextQuestion.id),
+      skippedIds: skippedQuestionIds
+    });
 
-    // Update state to next question
-    this.state!.currentQuestionId = nextQuestion.id;
-    this.state!.currentQuestionIndex = this.findQuestionIndex(nextQuestion.id);
-    this.state!.lastUpdateTime = new Date();
-    
     await this.saveState();
     return { type: 'question', question: nextQuestion, skippedQuestionIds };
   }
@@ -171,21 +169,14 @@ export class QuestionnaireFlowEngine implements FlowEngine {
       return null; // Already at first question
     }
 
-    // Remove current question from history
-    this.state!.questionHistory.pop();
-    
-    // Get previous question
-    const previousQuestionId = this.state!.questionHistory[this.state!.questionHistory.length - 1];
-    if (!previousQuestionId) {
-      return null;
-    }
-    
-    const previousQuestion = this.findQuestionById(previousQuestionId);
-    
+    const prevState = applyNavigation(this.state!, { direction: 'previous' });
+    const previousQuestion = this.findQuestionById(prevState.currentQuestionId);
+
     if (previousQuestion) {
-      this.state!.currentQuestionId = previousQuestion.id;
-      this.state!.currentQuestionIndex = this.findQuestionIndex(previousQuestion.id);
-      this.state!.lastUpdateTime = new Date();
+      this.state = {
+        ...prevState,
+        currentQuestionIndex: this.findQuestionIndex(previousQuestion.id)
+      };
       await this.saveState();
     }
 
@@ -207,14 +198,12 @@ export class QuestionnaireFlowEngine implements FlowEngine {
       );
     }
 
-    // Update state
-    this.state!.currentQuestionId = question.id;
-    this.state!.currentQuestionIndex = this.findQuestionIndex(question.id);
-    if (this.state!.questionHistory[this.state!.questionHistory.length - 1] !== question.id) {
-      this.state!.questionHistory.push(question.id);
-    }
-    this.state!.lastUpdateTime = new Date();
-    
+    this.state = applyNavigation(this.state!, {
+      direction: 'jumpTo',
+      question,
+      questionIndex: this.findQuestionIndex(question.id)
+    });
+
     await this.saveState();
     return question;
   }
@@ -331,8 +320,7 @@ export class QuestionnaireFlowEngine implements FlowEngine {
       if (await this.isQuestionVisible(question, responses)) {
         return { nextQuestion: question, skippedQuestionIds };
       } else {
-        // Mark as skipped
-        this.state!.skippedQuestions.add(question.id);
+        // Collect skipped IDs; they will be applied to state via applyNavigation
         skippedQuestionIds.push(question.id);
       }
     }

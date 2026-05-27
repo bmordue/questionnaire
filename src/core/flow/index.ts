@@ -34,6 +34,10 @@ export { NavigationManager } from './navigation-manager.js';
 // Export progress tracking
 export { ProgressTracker } from './progress-tracker.js';
 
+// Export pure state-transition functions
+export { applyNavigation } from './flow-transforms.js';
+export type { FlowTransitionAction } from './flow-transforms.js';
+
 // Export types
 export type {
   FlowEngine,
