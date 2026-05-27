@@ -245,21 +245,25 @@ describe('ResponseBuilder', () => {
     });
 
     it('snapshot answers array is not affected by subsequent recordAnswer', async () => {
+      await builder.recordAnswer('q1', 'before');
       const snapshot = builder.getResponse();
-      const snapshotLength = snapshot.answers.length;
+      const snapshotAnswersBefore = [...snapshot.answers];
 
-      await builder.recordAnswer('q1', 'hello');
+      await builder.recordAnswer('q1', 'after');
 
-      expect(snapshot.answers).toHaveLength(snapshotLength);
+      expect(snapshot.answers).toHaveLength(snapshotAnswersBefore.length);
+      expect(snapshot.answers).toEqual(snapshotAnswersBefore);
     });
 
     it('snapshot answers array is not affected by subsequent skipQuestion', async () => {
+      await builder.recordAnswer('q1', 'before');
       const snapshot = builder.getResponse();
-      const snapshotLength = snapshot.answers.length;
+      const snapshotAnswersBefore = [...snapshot.answers];
 
-      await builder.skipQuestion('q2');
+      await builder.skipQuestion('q1');
 
-      expect(snapshot.answers).toHaveLength(snapshotLength);
+      expect(snapshot.answers).toHaveLength(snapshotAnswersBefore.length);
+      expect(snapshot.answers).toEqual(snapshotAnswersBefore);
     });
   });
 
