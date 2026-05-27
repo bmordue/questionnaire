@@ -294,6 +294,34 @@ describe('QuestionnaireFlowEngine', () => {
       const progress = newEngine.getProgress(1);
       expect(progress.answeredQuestions).toBe(1);
     });
+
+    it('should throw STATE_CORRUPTION for invalid persisted state', async () => {
+      const questionnaire = TestDataFactory.createValidQuestionnaire({
+        questions: [
+          TestDataFactory.createValidTextQuestion({ id: 'q1' }),
+          TestDataFactory.createValidTextQuestion({ id: 'q2' })
+        ]
+      });
+
+      await storage.saveQuestionnaire(questionnaire);
+      await engine.start(questionnaire.id);
+
+      const sessions = await storage.listActiveSessions();
+      expect(sessions.length).toBeGreaterThan(0);
+      const sessionId = sessions[0]!.sessionId;
+
+      await storage.updateSession(sessionId, {
+        state: {
+          currentQuestionIndex: 'invalid'
+        }
+      });
+
+      const newEngine = new QuestionnaireFlowEngine(storage);
+      await expect(newEngine.loadState(sessionId)).rejects.toMatchObject({
+        name: 'FlowError',
+        code: FlowErrorCode.STATE_CORRUPTION
+      });
+    });
   });
 
   describe('complex conditional scenarios', () => {

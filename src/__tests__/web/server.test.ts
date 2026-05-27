@@ -672,6 +672,31 @@ describe('POST /api/sessions/:sessionId/answer', () => {
       nextQuestionIndex: 1,
     });
   });
+
+  it('returns 400 when answer value is not JSON-compatible', async () => {
+    const q = makeQuestionnaire();
+    await request(app)
+      .post('/api/questionnaires')
+      .send(q)
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
+
+    const sessionRes = await request(app)
+      .post('/api/sessions')
+      .send({ questionnaireId: q.id })
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS);
+    const { sessionId } = sessionRes.body as { sessionId: string };
+
+    const res = await request(app)
+      .post(`/api/sessions/${sessionId}/answer`)
+      .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS)
+      .send('{"questionId":"q1","value":1e999}');
+
+    expect(res.status).toBe(400);
+    expect(res.body).toMatchObject({ error: 'Answer value must be JSON-compatible' });
+  });
 });
 
 // ── POST /api/sessions/:sessionId/complete ────────────────────────────────────
