@@ -296,7 +296,7 @@ All components include comprehensive unit tests covering:
 Run tests with:
 
 ```bash
-npm test
+pnpm test
 ```
 
 ## File Structure

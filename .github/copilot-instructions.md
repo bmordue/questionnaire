@@ -46,15 +46,15 @@
 ### Prerequisites
 
 - **Node.js**: v20.19.5 (or compatible)
-- **npm**: 10.8.2 (or compatible)
+- **pnpm**: 9.0.0 (or compatible)
 - **TypeScript**: 5.9.2 (installed as dev dependency)
 
 ### Installation
 
-**ALWAYS run npm install before building** if node_modules doesn't exist:
+**ALWAYS run pnpm install before building** if node_modules doesn't exist:
 
 ```bash
-npm install
+pnpm install
 ```
 
 This installs:
@@ -69,7 +69,7 @@ Installation completes in ~1 second with no vulnerabilities.
 **To build the project:**
 
 ```bash
-npm run build
+pnpm run build
 ```
 
 This runs `tsc` which:
@@ -81,7 +81,7 @@ This runs `tsc` which:
 **To clean and rebuild:**
 
 ```bash
-rm -rf dist && npm run build
+rm -rf dist && pnpm run build
 ```
 
 The dist/ directory is in .gitignore and should never be committed.
@@ -91,10 +91,10 @@ The dist/ directory is in .gitignore and should never be committed.
 **To build and run the example:**
 
 ```bash
-npm run example
+pnpm run example
 ```
 
-This runs `npm run build && node dist/example.js` which:
+This runs `pnpm run build && node dist/example.js` which:
 - Rebuilds the project
 - Executes the example demonstrating schema validation
 - Takes approximately 1.5-2 seconds total
@@ -111,7 +111,7 @@ Expected output includes:
 **Current test status**: No test framework is configured yet.
 
 ```bash
-npm test
+pnpm test
 ```
 
 This currently outputs: "Error: no test specified" and exits with code 1.
@@ -213,8 +213,8 @@ Extensive documentation exists in the `docs/` directory:
 ### Making Code Changes
 
 1. **Edit TypeScript files** in `src/`
-2. **Build immediately** to catch TypeScript errors: `npm run build`
-3. **If changing schemas**, run the example to verify: `npm run example`
+2. **Build immediately** to catch TypeScript errors: `pnpm run build`
+3. **If changing schemas**, run the example to verify: `pnpm run example`
 4. **Review build output** in `dist/` to ensure changes compiled correctly
 
 ### Adding New Question Types
@@ -289,9 +289,9 @@ See `docs/implementation-dependencies.md` for detailed task breakdown.
 ## Trust These Instructions
 
 These instructions have been validated by:
-- Running `npm install` from clean state
-- Running `npm run build` multiple times (clean and incremental)
-- Running `npm run example` to verify functionality
+- Running `pnpm install` from clean state
+- Running `pnpm run build` multiple times (clean and incremental)
+- Running `pnpm run example` to verify functionality
 - Testing code changes and rebuilds
 - Verifying all file paths and directory structures
 

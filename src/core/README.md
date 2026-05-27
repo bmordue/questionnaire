@@ -228,7 +228,7 @@ try {
 See how the schemas work with a complete example:
 
 ```bash
-npm run example
+pnpm run example
 ```
 
 This runs `src/example.ts` which demonstrates:
