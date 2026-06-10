@@ -129,15 +129,15 @@ describe('S3StorageBackend integration', () => {
     it('lists and strips prefixes from S3 keys', async () => {
       mockSDK.client.send.mockResolvedValue({
         Contents: [
-          { Key: 'prefix/a.json' },
-          { Key: 'prefix/b.json' }
+          { Key: 'prefix/dir/a.json' },
+          { Key: 'prefix/dir/b.json' }
         ],
         IsTruncated: false
       });
 
       const keys = await backend.list('dir');
 
-      expect(keys).toEqual(['a.json', 'b.json']);
+      expect(keys).toEqual(['dir/a.json', 'dir/b.json']);
       expect(mockSDK.ListObjectsV2Command).toHaveBeenCalledWith({
         Bucket: 'test-bucket',
         Prefix: 'prefix/dir'

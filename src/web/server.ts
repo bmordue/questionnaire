@@ -143,6 +143,12 @@ if (isVercel && !process.env['S3_BUCKET'] && !process.env['DATA_DIR']) {
 }
 
 const storage = await createStorageBackend({ dataDirectory: DATA_DIR });
+{
+  const maybeInit = storage as StorageService & { initialize?: () => Promise<void> };
+  if (typeof maybeInit.initialize === 'function') {
+    await maybeInit.initialize();
+  }
+}
 
 // ── User repository (JIT provisioning) ───────────────────────────────────────
 
