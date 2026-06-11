@@ -27,6 +27,10 @@ export interface QuestionSummary {
   totalSkipped: number;
   /** For choice-based questions: distribution of selected values */
   valueDistribution: Array<{ value: unknown; count: number; percentage: number }>;
+  /** For numeric/rating questions: summary statistics */
+  average?: number;
+  min?: number;
+  max?: number;
 }
 
 export interface QuestionnaireSummary {
@@ -233,13 +237,38 @@ export class ReviewService {
         percentage: answered.length > 0 ? Math.round((count / answered.length) * 100) / 100 : 0,
       }));
 
-      return {
+      const summary: QuestionSummary = {
         questionId: question.id,
         questionText: question.text,
         totalAnswered: answered.length,
         totalSkipped: skipped.length,
         valueDistribution,
       };
+
+      // Add numeric stats for appropriate question types
+      if (question.type === 'number' || question.type === 'rating') {
+        const numericValues = answered
+          .map(a => Number(a.value))
+          .filter(v => !isNaN(v));
+
+        if (numericValues.length > 0) {
+          let min = numericValues[0];
+          let max = numericValues[0];
+          let sum = 0;
+
+          for (const val of numericValues) {
+            if (val < min) min = val;
+            if (val > max) max = val;
+            sum += val;
+          }
+
+          summary.min = min;
+          summary.max = max;
+          summary.average = Math.round((sum / numericValues.length) * 100) / 100;
+        }
+      }
+
+      return summary;
     });
   }
 }
