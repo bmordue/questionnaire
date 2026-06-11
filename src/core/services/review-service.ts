@@ -28,9 +28,9 @@ export interface QuestionSummary {
   /** For choice-based questions: distribution of selected values */
   valueDistribution: Array<{ value: unknown; count: number; percentage: number }>;
   /** For numeric/rating questions: summary statistics */
-  average?: number;
-  min?: number;
-  max?: number;
+  average?: number | undefined;
+  min?: number | undefined;
+  max?: number | undefined;
 }
 
 export interface QuestionnaireSummary {
@@ -251,9 +251,10 @@ export class ReviewService {
           .map(a => Number(a.value))
           .filter(v => !isNaN(v));
 
-        if (numericValues.length > 0) {
-          let min = numericValues[0];
-          let max = numericValues[0];
+        const firstValue = numericValues[0];
+        if (firstValue !== undefined) {
+          let min = firstValue;
+          let max = firstValue;
           let sum = 0;
 
           for (const val of numericValues) {
