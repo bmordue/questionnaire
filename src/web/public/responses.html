@@ -19,7 +19,10 @@
 <div class="container">
   <div class="page-header">
     <h1>Responses</h1>
-    <a href="index.html" class="btn btn-ghost">← Back to questionnaires</a>
+    <div style="display:flex; gap:0.5rem">
+      <a id="viewAnalyticsBtn" href="#" class="btn btn-outline hidden">📊 View Analytics</a>
+      <a href="index.html" class="btn btn-ghost">← Back to questionnaires</a>
+    </div>
   </div>
 
   <div id="alert" class="alert hidden"></div>
@@ -64,7 +67,18 @@ const responseList = document.getElementById('responseList');
 document.getElementById('backBtn').addEventListener('click', showList);
 qFilter.addEventListener('change', () => {
   refreshResponses(qFilter.value);
+  updateAnalyticsLink(qFilter.value);
 });
+
+function updateAnalyticsLink(qid) {
+  const btn = document.getElementById('viewAnalyticsBtn');
+  if (qid) {
+    btn.href = `analytics.html?id=${encodeURIComponent(qid)}`;
+    btn.classList.remove('hidden');
+  } else {
+    btn.classList.add('hidden');
+  }
+}
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 (async () => {
@@ -78,7 +92,10 @@ qFilter.addEventListener('change', () => {
       qFilter.appendChild(opt);
     }
 
-    if (initQId) qFilter.value = initQId;
+    if (initQId) {
+      qFilter.value = initQId;
+      updateAnalyticsLink(initQId);
+    }
 
     await refreshResponses(qFilter.value);
 

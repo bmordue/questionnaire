@@ -125,6 +125,7 @@ document.getElementById('uploadInput').addEventListener('change', async (event) 
       <div class="card-actions">
         <a href="runner.html?id=${encodeURIComponent(q.id)}" class="btn btn-primary">▶ Run</a>
         ${canManage ? `<a href="builder.html?id=${encodeURIComponent(q.id)}" class="btn btn-outline">✏ Edit</a>` : ''}
+        <a href="analytics.html?id=${encodeURIComponent(q.id)}" class="btn btn-outline">📊 Analytics</a>
         <a href="responses.html?questionnaireId=${encodeURIComponent(q.id)}" class="btn btn-ghost">📄 Responses</a>
         ${canManage ? `<button class="btn btn-outline btn-share" data-id="${esc(q.id)}" data-title="${esc(q.title)}" aria-label="Share questionnaire">🔗 Share</button>` : ''}
         ${canManage ? `<button class="btn btn-danger btn-delete" data-id="${esc(q.id)}" aria-label="Delete questionnaire">🗑</button>` : ''}

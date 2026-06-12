@@ -19,6 +19,7 @@
 <div class="container">
   <div class="page-header">
     <h1 id="pageTitle">New Questionnaire</h1>
+    <a id="viewAnalyticsBtn" href="#" class="btn btn-outline hidden">📊 View Analytics</a>
   </div>
 
   <div id="alert" class="alert hidden"></div>
@@ -239,6 +240,11 @@ if (editId) {
         if (qq.validation?.max !== undefined) base.rMax = qq.validation.max;
         return base;
       });
+
+      const analyticsBtn = document.getElementById('viewAnalyticsBtn');
+      analyticsBtn.href = `analytics.html?id=${encodeURIComponent(editId)}`;
+      analyticsBtn.classList.remove('hidden');
+
       renderQuestions();
     } catch (err) {
       showAlert(document.getElementById('alert'), 'Failed to load questionnaire: ' + err.message);

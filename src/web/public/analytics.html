@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Questionnaire Analytics</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .stat-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      padding: 1.5rem;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 0.5rem;
+    }
+    .stat-label {
+      font-size: 0.875rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .chart-container {
+      margin-top: 1rem;
+    }
+    .chart-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 0.5rem;
+    }
+    .chart-label {
+      width: 150px;
+      font-size: 0.875rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .chart-bar-bg {
+      flex-grow: 1;
+      height: 1.5rem;
+      background: var(--bg-secondary);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .chart-bar-fill {
+      height: 100%;
+      background: var(--primary);
+      transition: width 0.3s ease;
+    }
+    .chart-value {
+      width: 60px;
+      font-size: 0.875rem;
+      text-align: right;
+    }
+    .numeric-stats {
+      display: flex;
+      gap: 2rem;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+    .numeric-stat-item {
+      display: flex;
+      flex-direction: column;
+    }
+    .numeric-stat-label {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .numeric-stat-value {
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a class="brand" href="index.html">📋 Questionnaires</a>
+  <a href="index.html">Home</a>
+  <a href="builder.html">Builder</a>
+  <a href="responses.html">Responses</a>
+  <div id="auth" class="nav-auth"></div>
+</nav>
+
+<div class="container">
+  <div class="page-header">
+    <div>
+      <h1 id="pageTitle">Analytics</h1>
+      <p id="questionnaireTitle" class="card-sub"></p>
+    </div>
+    <div style="display:flex;gap:0.5rem">
+      <a id="viewResponsesBtn" href="responses.html" class="btn btn-outline">View Responses</a>
+      <a href="index.html" class="btn btn-ghost">← Back</a>
+    </div>
+  </div>
+
+  <div id="alert" class="alert hidden"></div>
+
+  <div id="loadingState">
+    <div class="empty-state"><p>Loading analytics data…</p></div>
+  </div>
+
+  <div id="analyticsContent" class="hidden">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div id="statTotalResponses" class="stat-value">0</div>
+        <div class="stat-label">Total Responses</div>
+      </div>
+      <div class="stat-card">
+        <div id="statCompletionRate" class="stat-value">0%</div>
+        <div class="stat-label">Completion Rate</div>
+      </div>
+      <div class="stat-card">
+        <div id="statAvgTime" class="stat-value">—</div>
+        <div class="stat-label">Avg. Completion Time</div>
+      </div>
+      <div class="stat-card">
+        <div id="statAbandoned" class="stat-value">0</div>
+        <div class="stat-label">Abandoned</div>
+      </div>
+    </div>
+
+    <h2 style="margin-bottom: 1.5rem;">Question Breakdown</h2>
+    <div id="questionList"></div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>
+const params = new URLSearchParams(location.search);
+const id = params.get('id');
+
+const alertEl = document.getElementById('alert');
+const loadingEl = document.getElementById('loadingState');
+const contentEl = document.getElementById('analyticsContent');
+const qListEl = document.getElementById('questionList');
+
+if (!id) {
+  loadingEl.innerHTML = '<div class="alert alert-error">No questionnaire ID provided.</div>';
+} else {
+  loadAnalytics();
+}
+
+async function loadAnalytics() {
+  try {
+    const summary = await apiFetch(`/api/questionnaires/${encodeURIComponent(id)}/summary`);
+
+    document.getElementById('questionnaireTitle').textContent = summary.questionnaireTitle;
+    document.getElementById('viewResponsesBtn').href = `responses.html?questionnaireId=${encodeURIComponent(id)}`;
+
+    // Set top-level stats
+    document.getElementById('statTotalResponses').textContent = summary.stats.totalResponses;
+    document.getElementById('statCompletionRate').textContent = Math.round(summary.stats.completionRate * 100) + '%';
+    document.getElementById('statAbandoned').textContent = summary.stats.abandonedResponses;
+
+    if (summary.stats.averageCompletionTimeMs) {
+      document.getElementById('statAvgTime').textContent = formatDuration(summary.stats.averageCompletionTimeMs);
+    }
+
+    renderQuestions(summary.questions);
+
+    loadingEl.classList.add('hidden');
+    contentEl.classList.remove('hidden');
+  } catch (err) {
+    showAlert(alertEl, 'Failed to load analytics: ' + err.message);
+    loadingEl.classList.add('hidden');
+  }
+}
+
+function renderQuestions(questions) {
+  qListEl.innerHTML = questions.map(q => {
+    const distributionHtml = q.valueDistribution.length > 0
+      ? `<div class="chart-container">
+          ${q.valueDistribution.sort((a,b) => b.count - a.count).slice(0, 10).map(item => `
+            <div class="chart-bar-row">
+              <div class="chart-label" title="${esc(JSON.stringify(item.value))}">${esc(formatValue(item.value))}</div>
+              <div class="chart-bar-bg">
+                <div class="chart-bar-fill" style="width: ${item.percentage * 100}%"></div>
+              </div>
+              <div class="chart-value">${item.count} (${Math.round(item.percentage * 100)}%)</div>
+            </div>
+          `).join('')}
+        </div>`
+      : '<p class="card-sub">No answers recorded for this question.</p>';
+
+    const numericStatsHtml = (q.average !== undefined)
+      ? `<div class="numeric-stats">
+          <div class="numeric-stat-item">
+            <span class="numeric-stat-label">Average</span>
+            <span class="numeric-stat-value">${q.average}</span>
+          </div>
+          <div class="numeric-stat-item">
+            <span class="numeric-stat-label">Min</span>
+            <span class="numeric-stat-value">${q.min}</span>
+          </div>
+          <div class="numeric-stat-item">
+            <span class="numeric-stat-label">Max</span>
+            <span class="numeric-stat-value">${q.max}</span>
+          </div>
+        </div>`
+      : '';
+
+    return `
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 1rem;">
+          <div>
+            <h3 style="font-size: 1rem; font-weight: 600; margin: 0;">${esc(q.questionText)}</h3>
+            <div class="card-sub" style="margin-top: 0.25rem;">
+              ID: ${esc(q.questionId)} · ${q.totalAnswered} responses · ${q.totalSkipped} skipped
+            </div>
+          </div>
+        </div>
+        ${distributionHtml}
+        ${numericStatsHtml}
+      </div>
+    `;
+  }).join('');
+}
+
+function formatDuration(ms) {
+  const seconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+
+  if (hours > 0) return `${hours}h ${minutes % 60}m`;
+  if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
+  return `${seconds}s`;
+}
+
+function formatValue(val) {
+  if (typeof val === 'boolean') return val ? 'Yes' : 'No';
+  if (val === null || val === undefined) return 'None';
+  return String(val);
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>

@@ -17,6 +17,9 @@
 </nav>
 
 <div class="container" style="max-width:680px">
+  <div style="display:flex; justify-content:flex-end; margin-bottom: 1rem;">
+    <a id="runnerAnalyticsBtn" href="#" class="btn btn-outline btn-sm hidden">📊 View Analytics</a>
+  </div>
 
   <!-- Loading / error state -->
   <div id="loadingState">
@@ -99,6 +102,10 @@ if (!questionnaireId) {
 
 async function startSession() {
   try {
+    const analyticsBtn = document.getElementById('runnerAnalyticsBtn');
+    analyticsBtn.href = `analytics.html?id=${encodeURIComponent(questionnaireId)}`;
+    analyticsBtn.classList.remove('hidden');
+
     const s = await apiFetch('/api/sessions', {
       method: 'POST',
       body: JSON.stringify({ questionnaireId })
